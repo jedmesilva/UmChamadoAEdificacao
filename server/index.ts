@@ -50,36 +50,44 @@ let server: Server;
 
 // Função de inicialização assíncrona
 async function initializeServer() {
-  server = await registerRoutes(app);
+  try {
+    // Configura as rotas e retorna o servidor HTTP
+    server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Middleware de erro
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    console.error(err);
-  });
-
-  // Configura o Vite ou serve os arquivos estáticos
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // Se não estiver no ambiente da Vercel, inicia o servidor
-  if (process.env.VERCEL !== '1') {
-    const port = process.env.PORT || 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`serving on port ${port}`);
+      res.status(status).json({ message });
+      console.error(err);
     });
+
+    // Configura o Vite para desenvolvimento ou serve arquivos estáticos para produção
+    const isVercel = process.env.VERCEL === '1';
+    if (app.get("env") === "development" && !isVercel) {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+
+    // Se não estiver no ambiente da Vercel, inicia o servidor
+    if (!isVercel) {
+      const port = process.env.PORT || 5000;
+      server.listen({
+        port,
+        host: "0.0.0.0",
+        reusePort: true,
+      }, () => {
+        log(`serving on port ${port}`);
+      });
+    }
+    
+    return { app, server };
+  } catch (error) {
+    console.error('Erro ao inicializar o servidor:', error);
+    throw error;
   }
-  
-  return { app, server };
 }
 
 // Executa a inicialização
