@@ -1,27 +1,18 @@
 {
   "version": 2,
-  "buildCommand": "npm run vercel-build",
-  "outputDirectory": "dist",
-  "framework": null,
-  "installCommand": "npm install",
   "builds": [
     {
-      "src": "api/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["dist/**"],
-        "nodeVersion": "18.x"
-      }
+      "src": "package.json",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/api/index.js"
+      "dest": "index.js"
     }
   ],
   "env": {
-    "VERCEL": "1",
-    "NODE_OPTIONS": "--experimental-specifier-resolution=node"
+    "VERCEL": "1"
   }
 }
