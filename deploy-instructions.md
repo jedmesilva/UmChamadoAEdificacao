@@ -18,6 +18,37 @@ Antes de fazer o deploy da aplicação no Vercel, certifique-se de configurar as
 1. **Build Command**: `npm run build`
 2. **Output Directory**: `dist`
 3. **Framework Preset**: Other
+4. **Configurações do Runtime**:
+   - Clique em "Advanced" e certifique-se de que o "Node.js Version" esteja configurado para 18.x
+
+## Correção do Erro "require is not defined"
+
+Se você estiver enfrentando este erro no Vercel, siga estes passos:
+
+1. Verifique a versão do Node.js no seu projeto Vercel (deve ser 18.x ou superior)
+2. Em "Settings" > "General" do seu projeto no Vercel:
+   - Ative a opção "Include source files outside of the root directory"
+   - Configure "Root Directory" para deixar vazio (raiz do projeto)
+
+3. Em "Settings" > "Functions" do seu projeto no Vercel:
+   - Defina "Node.js Version" para 18.x
+   - Ative a opção "Include additional dependency files"
+
+4. Adicione regras no vercel.json para resolver o problema:
+```json
+"functions": {
+  "api/*.mjs": {
+    "memory": 1024,
+    "maxDuration": 10,
+    "runtime": "nodejs18.x"
+  },
+  "*.mjs": {
+    "memory": 1024,
+    "maxDuration": 10,
+    "runtime": "nodejs18.x"
+  }
+}
+```
 
 ## Estrutura de Arquivos para Deploy
 
@@ -29,8 +60,11 @@ dist/
 ├── api/
 │   ├── index.mjs (funções serverless para API)
 │   ├── healthcheck.mjs (verificação de status)
-│   └── package.json (dependências para as funções serverless)
+│   └── package.json (dependências para as funções serverless - com "type": "module")
+├── static/ (arquivos estáticos de fallback)
+│   └── index.html (página de fallback)
 ├── index.html (página principal)
+├── fallback.html (cópia da página de fallback)
 ├── index.mjs (handler principal para a raiz)
 └── vercel.json (configuração para o Vercel)
 ```
@@ -38,18 +72,57 @@ dist/
 ## Solução para Problemas Comuns
 
 ### Erro "require is not defined"
-Este erro ocorre quando há conflito entre ESM e CommonJS. Certifique-se de que:
-- Todos os arquivos `.mjs` usam apenas sintaxe ESM (imports/exports)
-- Não misture `require()` com `import`
-- No arquivo vercel.json, a configuração de `rewrites` está correta
+Este erro ocorre quando há conflito entre ESM e CommonJS no ambiente serverless do Vercel. Para corrigir:
 
-### Erro com o NODE_ENV
-Se a aplicação estiver retornando código-fonte em vez da interface, verifique:
-- A variável NODE_ENV está definida corretamente como "production"
-- O build foi concluído corretamente
-- A estrutura de arquivos na pasta `dist` está conforme esperado
+1. **Verificar package.json**: Certifique-se que em `api/package.json` existe:
+   ```json
+   {
+     "type": "module",
+     "engines": {
+       "node": ">=18.x"
+     }
+   }
+   ```
+
+2. **Use apenas importações ESM**: Em todos os arquivos `.mjs`:
+   - Use apenas `import` (nunca `require()`)
+   - Use `import { readFileSync } from 'fs'` em vez de `const fs = require('fs')`
+   - Certifique-se que quaisquer bibliotecas importadas são compatíveis com ESM
+
+3. **Remova o projeto e faça deploy novamente**: Às vezes, é necessário remover completamente o projeto do Vercel e criar um novo deploy.
+
+### Erro com as Páginas do Frontend
+
+Se o frontend não estiver carregando corretamente, verifique:
+
+1. **Redirecionamento para API**: Certifique-se que o Vercel não está servindo a API quando deveria servir o frontend.
+   - Verifique a configuração `"rewrites"` no vercel.json
+   - A ordem dos redirecionamentos importa!
+
+2. **Páginas de fallback**: Se o frontend ainda não estiver carregando:
+   - Acesse `/static/index.html` para verificar se a página de fallback está funcionando
+   - Acesse `/api/healthcheck` para verificar se a API está respondendo
+
+3. **Logs no Vercel**: Verifique os logs de função no painel do Vercel para identificar erros específicos.
 
 ### Problemas com CORS
-Para resolver problemas de CORS, verifique:
-- Os cabeçalhos na seção `headers` do arquivo vercel.json
-- As funções serverless estão configurando os cabeçalhos CORS corretamente
+
+Se sua API estiver funcionando mas o frontend não conseguir acessá-la devido a erros de CORS:
+
+1. **Headers no vercel.json**: Certifique-se que os headers estão configurados corretamente:
+   ```json
+   "headers": [
+     {
+       "source": "/(.*)",
+       "headers": [
+         { "key": "Access-Control-Allow-Origin", "value": "*" },
+         { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+         { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" }
+       ]
+     }
+   ]
+   ```
+
+2. **Cabeçalhos na API**: Verifique se cada handler de API também está configurando os cabeçalhos CORS corretamente.
+
+3. **Preflight Requests**: Certifique-se que sua API responde adequadamente a requisições OPTIONS.
