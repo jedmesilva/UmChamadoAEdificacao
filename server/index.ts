@@ -65,9 +65,15 @@ async function initializeServer() {
 
     // Configura o Vite para desenvolvimento ou serve arquivos estáticos para produção
     const isVercel = process.env.VERCEL === '1';
-    if (app.get("env") === "development" && !isVercel) {
+    // Forçamos o modo de desenvolvimento se NODE_ENV não estiver definido
+    const env = process.env.NODE_ENV || "development";
+    console.log(`Ambiente atual: ${env}, isVercel: ${isVercel}`);
+    
+    if (env === "development" && !isVercel) {
+      console.log("Iniciando em modo de desenvolvimento com Vite");
       await setupVite(app, server);
     } else {
+      console.log("Iniciando em modo de produção com arquivos estáticos");
       serveStatic(app);
     }
 

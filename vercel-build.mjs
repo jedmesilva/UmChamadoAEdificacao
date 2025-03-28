@@ -9,6 +9,30 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Função auxiliar para copiar diretório recursivamente 
+function copyDir(src, dest) {
+  // Criar diretório de destino se não existir
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  
+  // Ler conteúdo do diretório fonte
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    
+    // Recursivamente copiar subdiretórios
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      // Copiar arquivo
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 // Executa o build normal primeiro
 console.log('Iniciando build para o Vercel...');
 
@@ -19,32 +43,92 @@ try {
   // Cria um arquivo .env para o ambiente de produção se não existir
   if (!fs.existsSync('.env')) {
     console.log('Criando arquivo .env padrão...');
-    fs.writeFileSync('.env', 'STORAGE_TYPE=supabase\n');
+    fs.writeFileSync('.env', 'STORAGE_TYPE=supabase\nNODE_ENV=production\n');
   }
   
   // Verifica se o diretório dist existe
   if (!fs.existsSync('dist')) {
-    fs.mkdirSync('dist');
-  }
-  
-  // Cópia arquivos .mjs para a pasta dist
-  console.log('Copiando arquivos .mjs para a pasta dist...');
-  if (fs.existsSync('index.mjs')) {
-    fs.copyFileSync('index.mjs', path.join('dist', 'index.mjs'));
+    console.log('Criando diretório dist...');
+    fs.mkdirSync('dist', { recursive: true });
   }
   
   // Garantir que a pasta api exista em dist
   if (!fs.existsSync(path.join('dist', 'api'))) {
-    fs.mkdirSync(path.join('dist', 'api'));
+    console.log('Criando diretório dist/api...');
+    fs.mkdirSync(path.join('dist', 'api'), { recursive: true });
   }
   
-  // Copiar arquivos de api
-  if (fs.existsSync('api/index.mjs')) {
-    fs.copyFileSync('api/index.mjs', path.join('dist', 'api', 'index.mjs'));
+  // Cópia arquivos .mjs para a pasta dist
+  console.log('Copiando arquivos .mjs para a pasta dist...');
+  
+  // Copiar index.mjs e package.json para a raiz de dist
+  if (fs.existsSync('index.mjs')) {
+    console.log('Copiando index.mjs para dist...');
+    fs.copyFileSync('index.mjs', path.join('dist', 'index.mjs'));
   }
   
-  if (fs.existsSync('api/healthcheck.mjs')) {
-    fs.copyFileSync('api/healthcheck.mjs', path.join('dist', 'api', 'healthcheck.mjs'));
+  // Copiar package.json para dist para referência de dependências
+  if (fs.existsSync('package.json')) {
+    console.log('Copiando package.json para dist...');
+    fs.copyFileSync('package.json', path.join('dist', 'package.json'));
+  }
+  
+  // Copiar todos os arquivos da pasta api para dist/api
+  if (fs.existsSync('api')) {
+    console.log('Copiando arquivos da pasta api para dist/api...');
+    const apiFiles = fs.readdirSync('api');
+    
+    for (const file of apiFiles) {
+      const srcPath = path.join('api', file);
+      const destPath = path.join('dist', 'api', file);
+      
+      if (fs.statSync(srcPath).isFile()) {
+        console.log(`Copiando ${file} para dist/api...`);
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+  
+  // Copiar vercel.json para a raiz de dist
+  if (fs.existsSync('vercel.json')) {
+    console.log('Copiando vercel.json para dist...');
+    fs.copyFileSync('vercel.json', path.join('dist', 'vercel.json'));
+  }
+  
+  // Copiar página estática de fallback
+  if (fs.existsSync('static-index.html')) {
+    console.log('Copiando página estática de fallback...');
+    // Se a pasta dist/api não existir, criá-la
+    if (!fs.existsSync(path.join('dist', 'static'))) {
+      fs.mkdirSync(path.join('dist', 'static'), { recursive: true });
+    }
+    fs.copyFileSync('static-index.html', path.join('dist', 'static', 'index.html'));
+    
+    // Também copiar para a raiz como backup
+    fs.copyFileSync('static-index.html', path.join('dist', 'fallback.html'));
+  }
+  
+  // Copiar as instruções de deploy
+  if (fs.existsSync('deploy-instructions.md')) {
+    console.log('Copiando instruções de deploy...');
+    fs.copyFileSync('deploy-instructions.md', path.join('dist', 'deploy-instructions.md'));
+  }
+  
+  // Verificar arquivos presentes no diretório dist
+  console.log('Arquivos na pasta dist:');
+  const distFiles = fs.readdirSync('dist');
+  console.log(distFiles);
+  
+  if (fs.existsSync(path.join('dist', 'api'))) {
+    console.log('Arquivos na pasta dist/api:');
+    const distApiFiles = fs.readdirSync(path.join('dist', 'api'));
+    console.log(distApiFiles);
+  }
+  
+  // Verificar se o index.html principal existe, caso contrário, copiar o fallback
+  if (!fs.existsSync(path.join('dist', 'index.html')) && fs.existsSync('static-index.html')) {
+    console.log('Index principal não encontrado, usando fallback...');
+    fs.copyFileSync('static-index.html', path.join('dist', 'index.html'));
   }
   
   console.log('Build para Vercel concluído com sucesso!');

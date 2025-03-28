@@ -1,7 +1,12 @@
 {
   "name": "api-functions",
+  "version": "1.0.0",
+  "description": "Funções serverless para a API",
   "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.3"
+  },
   "engines": {
-    "node": "18.x"
+    "node": "^18.0.0"
   }
 }
