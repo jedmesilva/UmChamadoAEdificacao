@@ -78,6 +78,7 @@
     "recharts": "^2.13.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
+    "tsc-alias": "^1.8.11",
     "uuid": "^11.1.0",
     "vaul": "^1.1.0",
     "wouter": "^3.6.0",
