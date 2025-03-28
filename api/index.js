@@ -1,49 +1,36 @@
-// API Serverless para Vercel - Endpoint principal
-const app = require('./_app');
-const { registerRoutes } = require('../dist/server/routes.js');
-const { serveStatic } = require('../dist/server/vite.js');
+// API Serverless para Vercel - Endpoint principal usando CommonJS para compatibilidade
 
-// Variável para garantir que só inicializamos uma vez
-let isInitialized = false;
-let initializationPromise = null;
-
-// Função para inicializar o servidor apenas uma vez
-async function initialize() {
-  if (initializationPromise) return initializationPromise;
-  
-  initializationPromise = new Promise(async (resolve, reject) => {
-    try {
-      console.log('Inicializando servidor API no Vercel...');
-      
-      if (!isInitialized) {
-        await registerRoutes(app);
-        serveStatic(app);
-        isInitialized = true;
-        console.log('API inicializada com sucesso no Vercel');
-      }
-      
-      resolve(app);
-    } catch (error) {
-      console.error('Erro ao inicializar API:', error);
-      reject(error);
-    }
-  });
-  
-  return initializationPromise;
-}
-
-// Handler para o Vercel - função que será executada para cada requisição
+// Handler para o ambiente Vercel (serverless)
 module.exports = async (req, res) => {
   try {
-    console.log(`Recebida requisição: ${req.method} ${req.url}`);
+    console.log(`Recebida requisição API: ${req.method} ${req.url}`);
     
-    // Inicializa o servidor apenas na primeira requisição
-    const appInstance = await initialize();
+    // Configuração básica para responder a requisições da API
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
     
-    // Passa a requisição para a instância do Express
-    return appInstance(req, res);
+    const response = {
+      message: 'API Um Chamado à Edificação',
+      path: req.url,
+      method: req.method,
+      status: 'online',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'production',
+      vercel: true
+    };
+    
+    // Responde à requisição
+    res.end(JSON.stringify(response));
   } catch (error) {
-    console.error('Erro ao processar requisição:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error('Erro ao processar requisição API:', error);
+    
+    // Resposta de erro
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
+      error: 'Erro interno do servidor',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    }));
   }
 };
