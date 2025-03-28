@@ -2,20 +2,13 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": {
-    "index.mjs": {
-      "runtime": "nodejs18.x"
-    },
-    "api/*.mjs": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "routes": [
-    { "src": "/api/healthcheck", "dest": "/api/healthcheck.mjs" },
-    { "src": "/api/(.*)", "dest": "/api/index.mjs" },
-    { "src": "/(.*)", "dest": "/index.mjs" }
+  "rewrites": [
+    { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
+    { "source": "/api/:path*", "destination": "/api/index.mjs" },
+    { "source": "/(.*)", "destination": "/$1" }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "STORAGE_TYPE": "supabase"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "api-functions",
-  "type": "commonjs",
+  "type": "module",
   "engines": {
     "node": "18.x"
   }
