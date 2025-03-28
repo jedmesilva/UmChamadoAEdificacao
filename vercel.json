@@ -1,21 +1,17 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": null,
   "functions": {
-    "api/*.js": {
-      "runtime": "vercel-node@2.0.0",
-      "memory": 1024
+    "index.js": {
+      "runtime": "nodejs16.x"
     }
   },
   "routes": [
-    { "src": "/api/healthcheck", "dest": "/api/healthcheck.js" },
-    { "src": "/api/(.*)", "dest": "/api/index.js" },
-    { "src": "/(.*)", "dest": "/index.js" }
+    {
+      "src": "/(.*)",
+      "dest": "/index.js"
+    }
   ],
   "env": {
-    "VERCEL": "1",
-    "NODE_OPTIONS": "--enable-source-maps"
+    "NODE_ENV": "production"
   }
 }
