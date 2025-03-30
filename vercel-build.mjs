@@ -128,15 +128,110 @@ try {
     console.log('Arquivo de fallback criado.');
   }
   
-  // Verificar se a pasta dist/assets existe (necessária para scripts)
-  if (!fs.existsSync('dist/assets') && fs.existsSync('dist/public/assets')) {
-    console.log('Copiando pasta de assets para diretório raiz do dist...');
-    try {
-      fs.cpSync('dist/public/assets', 'dist/assets', { recursive: true });
-      console.log('Pasta assets copiada com sucesso para dist/assets.');
-    } catch (err) {
-      console.error('Erro ao copiar pasta assets:', err);
+  // Verificar e garantir que a pasta dist/assets existe (necessária para scripts)
+  console.log('Verificando e preparando pasta de assets...');
+  
+  // Criar pasta dist/assets se não existir
+  if (!fs.existsSync('dist/assets')) {
+    console.log('Criando diretório dist/assets...');
+    fs.mkdirSync('dist/assets', { recursive: true });
+  }
+  
+  // Verificar possíveis localizações da pasta de assets
+  const possibleAssetsPaths = [
+    'dist/public/assets',
+    'client/dist/assets',
+    'public/assets'
+  ];
+  
+  let assetsCopied = false;
+  
+  for (const assetPath of possibleAssetsPaths) {
+    if (fs.existsSync(assetPath)) {
+      console.log(`Encontrada pasta de assets em: ${assetPath}`);
+      try {
+        console.log(`Copiando assets de ${assetPath} para dist/assets...`);
+        // Listar todos os arquivos na pasta de origem
+        const files = fs.readdirSync(assetPath);
+        console.log(`Encontrados ${files.length} arquivos em ${assetPath}`);
+        
+        // Copiar cada arquivo individualmente
+        for (const file of files) {
+          const srcFile = path.join(assetPath, file);
+          const destFile = path.join('dist/assets', file);
+          
+          if (fs.statSync(srcFile).isFile()) {
+            fs.copyFileSync(srcFile, destFile);
+            console.log(`Copiado: ${file}`);
+          } else if (fs.statSync(srcFile).isDirectory()) {
+            fs.cpSync(srcFile, path.join('dist/assets', file), { recursive: true });
+            console.log(`Copiado diretório: ${file}`);
+          }
+        }
+        
+        console.log(`Pasta de assets copiada com sucesso de ${assetPath} para dist/assets`);
+        assetsCopied = true;
+        break;
+      } catch (err) {
+        console.error(`Erro ao copiar pasta assets de ${assetPath}:`, err);
+      }
     }
+  }
+  
+  if (!assetsCopied) {
+    console.warn('AVISO: Nenhuma pasta de assets encontrada para copiar!');
+    
+    // Verificar se há algum arquivo JavaScript em dist/public
+    if (fs.existsSync('dist/public')) {
+      console.log('Verificando arquivos JS em dist/public...');
+      try {
+        const findJsFiles = (dir, fileList = []) => {
+          const files = fs.readdirSync(dir);
+          files.forEach(file => {
+            const filePath = path.join(dir, file);
+            if (fs.statSync(filePath).isDirectory()) {
+              findJsFiles(filePath, fileList);
+            } else if (file.endsWith('.js')) {
+              fileList.push(filePath);
+            }
+          });
+          return fileList;
+        };
+        
+        const jsFiles = findJsFiles('dist/public');
+        console.log(`Encontrados ${jsFiles.length} arquivos JS em dist/public`);
+        
+        if (jsFiles.length > 0) {
+          for (const jsFile of jsFiles) {
+            const relativePath = path.relative('dist/public', jsFile);
+            const destDir = path.dirname(path.join('dist', relativePath));
+            
+            if (!fs.existsSync(destDir)) {
+              fs.mkdirSync(destDir, { recursive: true });
+            }
+            
+            fs.copyFileSync(jsFile, path.join('dist', relativePath));
+            console.log(`Copiado JS: ${relativePath}`);
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao buscar arquivos JS:', err);
+      }
+    }
+  }
+  
+  // Listar conteúdo da pasta dist/assets para verificação
+  console.log('Verificando conteúdo final de dist/assets:');
+  if (fs.existsSync('dist/assets')) {
+    try {
+      const assetsFiles = fs.readdirSync('dist/assets');
+      console.log(`Conteúdo de dist/assets (${assetsFiles.length} itens):`);
+      assetsFiles.forEach(file => console.log(` - ${file}`));
+    } catch (err) {
+      console.error('Erro ao listar conteúdo da pasta dist/assets:', err);
+    }
+  } else {
+    console.warn('AVISO: Pasta dist/assets não existe após tentativa de cópia!');
   }
 
 

@@ -72,6 +72,18 @@
         color: #d32f2f;
         display: none;
       }
+      .debug-info {
+        font-size: 12px;
+        color: #666;
+        margin-top: 1rem;
+        text-align: left;
+        display: none;
+        background-color: #f5f5f5;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        max-height: 150px;
+        overflow-y: auto;
+      }
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -90,80 +102,141 @@
         <button onclick="window.location.reload()" class="button">Recarregar Página</button>
         <a href="/api/healthcheck" target="_blank" class="button">Verificar API</a>
       </div>
+      <div id="debug-info" class="debug-info"></div>
     </div>
     
     <script>
       let attempts = 0;
       const maxAttempts = 3;
+      const debugInfo = document.getElementById('debug-info');
+      
+      function addLog(message) {
+        if (debugInfo) {
+          const timestamp = new Date().toLocaleTimeString();
+          debugInfo.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+          console.log(message);
+        }
+      }
+      
+      function showDebug() {
+        if (debugInfo) {
+          debugInfo.style.display = 'block';
+        }
+      }
+      
+      // Adicionar botão de debug em produção com ctrl+shift+d
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+          showDebug();
+        }
+      });
       
       function checkAppAssets() {
-        // Verificar se os assets principais da aplicação existem
-        fetch('/assets/index.js')
-          .then(response => {
-            if (response.ok) {
-              // Redirecionar para aplicação principal com parâmetro para evitar loop
-              if (!window.location.href.includes('?loaded=true')) {
-                window.location.href = '/?loaded=true';
-              } else {
-                // Se já temos o parâmetro, carregar o script diretamente
-                loadMainScript();
-              }
-            } else {
+        // Lista de possíveis caminhos para o arquivo principal da aplicação
+        const possiblePaths = [
+          '/assets/index.js',
+          '/dist/assets/index.js',
+          '/dist/client/assets/index.js',
+          '/client/dist/assets/index.js',
+          '/public/assets/index.js'
+        ];
+        
+        // Tentar encontrar pelo menos um dos paths
+        let foundAsset = false;
+        let checkedPaths = 0;
+        
+        addLog(`Verificando ${possiblePaths.length} possíveis caminhos para os assets...`);
+        
+        function checkNextPath(index) {
+          if (index >= possiblePaths.length) {
+            if (!foundAsset) {
+              addLog("Nenhum asset encontrado nos caminhos verificados.");
               attempts++;
               if (attempts >= maxAttempts) {
                 showError("Não foi possível carregar os assets da aplicação.");
+                showDebug();
               } else {
-                setTimeout(checkAppAssets, 2000);
+                setTimeout(() => checkAppAssets(), 2000);
               }
             }
-          })
-          .catch(error => {
-            console.error('Erro ao verificar assets:', error);
-            attempts++;
-            if (attempts >= maxAttempts) {
-              showError("Erro ao verificar os arquivos da aplicação.");
-            } else {
-              setTimeout(checkAppAssets, 2000);
-            }
-          });
+            return;
+          }
+          
+          const path = possiblePaths[index];
+          addLog(`Verificando path: ${path}`);
+          
+          fetch(path)
+            .then(response => {
+              checkedPaths++;
+              if (response.ok) {
+                addLog(`✅ Asset encontrado em: ${path}`);
+                foundAsset = true;
+                loadAppWithPath(path);
+              } else {
+                addLog(`❌ Asset não encontrado em: ${path} (status: ${response.status})`);
+                checkNextPath(index + 1);
+              }
+            })
+            .catch(error => {
+              checkedPaths++;
+              addLog(`⚠️ Erro ao verificar ${path}: ${error.message}`);
+              checkNextPath(index + 1);
+            });
+        }
+        
+        checkNextPath(0);
       }
       
-      function loadMainScript() {
+      function loadAppWithPath(path) {
+        addLog(`Carregando aplicação com script: ${path}`);
+        
+        // Limpar o HTML atual
+        document.body.innerHTML = '<div id="root"></div>';
+        
+        // Criar e adicionar o script
         const script = document.createElement('script');
         script.type = 'module';
-        script.src = '/assets/index.js';
-        script.onerror = () => showError("Erro ao carregar o script principal.");
-        document.head.appendChild(script);
+        script.src = path;
+        script.onload = () => addLog("Script carregado com sucesso!");
+        script.onerror = (e) => {
+          addLog(`Erro ao carregar script: ${e}`);
+          showError("Erro ao carregar o script principal.");
+          showDebug();
+        };
         
-        // Também criar o contêiner root para o React
-        if (!document.getElementById('root')) {
-          const root = document.createElement('div');
-          root.id = 'root';
-          document.body.appendChild(root);
-        }
+        document.head.appendChild(script);
       }
       
       function showError(message) {
         const errorContainer = document.getElementById('error-container');
-        errorContainer.style.display = 'block';
-        errorContainer.innerHTML = `<p>${message}</p>`;
+        if (errorContainer) {
+          errorContainer.style.display = 'block';
+          errorContainer.innerHTML = `<p>${message}</p>`;
+        }
+        addLog(`ERRO: ${message}`);
       }
       
       // Verificar a API antes de prosseguir
+      addLog("Iniciando verificação da API...");
+      
       fetch('/api/healthcheck')
         .then(response => response.json())
         .then(data => {
-          console.log('API Healthcheck:', data);
+          addLog(`API Healthcheck: ${JSON.stringify(data)}`);
           if (data.status === 'ok') {
-            // API ok, verificar assets
+            addLog("API respondeu OK, verificando assets...");
             checkAppAssets();
           } else {
             showError("A API está indisponível no momento.");
+            showDebug();
           }
         })
         .catch(error => {
-          console.error('Erro ao verificar API:', error);
+          addLog(`Erro ao verificar API: ${error.message}`);
           showError("Não foi possível conectar à API. Verifique sua conexão.");
+          // Mesmo com erro na API, vamos tentar carregar os assets
+          checkAppAssets();
+          showDebug();
         });
     </script>
   </body>
