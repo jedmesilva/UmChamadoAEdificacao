@@ -50,18 +50,20 @@ Se você estiver enfrentando este erro no Vercel, siga estes passos:
 }
 ```
 
-5. **IMPORTANTE**: No Vercel, você não pode usar `routes` e `rewrites` juntos. Use apenas `rewrites` e `fallback`:
+5. **IMPORTANTE**: No Vercel, você não pode usar `routes` e `rewrites` juntos e a propriedade `fallback` também não é suportada. Use apenas `rewrites` com uma última regra para fallback:
 ```json
 "rewrites": [
   { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
   { "source": "/api/:path*", "destination": "/api/index.mjs" },
   { "source": "/static/:path*", "destination": "/static/:path*" },
-  { "source": "/(.*)", "destination": "/$1" }
+  { "source": "/(.*)", "destination": "/$1" },
+  { "source": "/(.*)", "destination": "/static/index.html" }
 ],
-"fallback": {
-  "404": "/static/index.html"
-}
+"cleanUrls": true,
+"trailingSlash": false
 ```
+
+Importante: A ordem das regras de rewrite é crucial. A última regra só será aplicada se nenhuma das anteriores corresponder.
 
 ## Estrutura de Arquivos para Deploy
 
