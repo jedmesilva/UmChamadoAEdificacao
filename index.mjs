@@ -116,14 +116,67 @@ export default function handler(req, res) {
     
     function loadApp() {
       addLog("Tentando carregar aplicação...");
+      
+      // Lista expandida de possíveis caminhos de assets
       var scripts = [
         '/assets/index.js',
-        '/assets/main.js'
+        '/assets/main.js',
+        '/client/dist/assets/index.js',
+        '/client/assets/index.js',
+        '/dist/assets/index.js',
+        '/dist/client/assets/index.js'
       ];
       
+      // Tentativa adicional para localizar arquivos com padrão de hash no nome
+      function scanForAssets() {
+        addLog("Escaneando possíveis assets...");
+        
+        // Lista de diretórios para verificar
+        var directories = [
+          '/assets',
+          '/dist/assets',
+          '/client/dist/assets',
+          '/dist/client/assets'
+        ];
+        
+        // Verificar cada diretório
+        function checkDirectory(index) {
+          if (index >= directories.length) {
+            addLog("Nenhum diretório de assets encontrado. Iniciando carregamento direto...");
+            tryNextScript(0);
+            return;
+          }
+          
+          var dir = directories[index];
+          addLog("Verificando diretório: " + dir);
+          
+          fetch(dir)
+            .then(function(response) {
+              if (response.ok) {
+                addLog("Diretório encontrado: " + dir);
+                // Se for possível encontrar assets deste diretório, adicionamos à lista
+                scripts.unshift(dir + '/index.js');
+                scripts.unshift(dir + '/main.js');
+              }
+              // Passar para o próximo diretório
+              checkDirectory(index + 1);
+            })
+            .catch(function() {
+              // Diretório não encontrado, passar para o próximo
+              checkDirectory(index + 1);
+            });
+        }
+        
+        // Iniciar verificação de diretórios
+        checkDirectory(0);
+      }
+      
+      // Função para tentar carregar scripts da lista
       function tryNextScript(index) {
         if (index >= scripts.length) {
           addLog("Não foi possível carregar os assets da aplicação");
+          addLog("Tentando carregar a aplicação de cliente diretamente...");
+          tryLoadClientIndex();
           return;
         }
         
@@ -134,11 +187,16 @@ export default function handler(req, res) {
           .then(function(response) {
             if (response.ok) {
               addLog("Encontrado: " + src);
+              // Verificar se há CSS correspondente
+              var cssPath = src.replace('.js', '.css');
+              tryLoadCSS(cssPath);
+              
+              // Carregar o script
               var script = document.createElement('script');
               script.type = 'module';
               script.src = src;
               script.onload = function() {
-                addLog("Script carregado");
+                addLog("Script carregado com sucesso!");
               };
               script.onerror = function() {
                 addLog("Erro ao carregar script: " + src);
@@ -155,7 +213,63 @@ export default function handler(req, res) {
           });
       }
       
-      tryNextScript(0);
+      // Tentar carregar CSS associado
+      function tryLoadCSS(cssPath) {
+        fetch(cssPath)
+          .then(function(response) {
+            if (response.ok) {
+              addLog("CSS encontrado: " + cssPath);
+              var link = document.createElement('link');
+              link.rel = 'stylesheet';
+              link.href = cssPath;
+              document.head.appendChild(link);
+            }
+          })
+          .catch(function() {
+            // Ignorar erro de CSS
+          });
+      }
+      
+      // Caso especial: tentar carregar o HTML do cliente diretamente
+      function tryLoadClientIndex() {
+        addLog("Tentando carregar index.html do cliente...");
+        
+        fetch('/client/index.html')
+          .then(function(response) {
+            if (response.ok) {
+              return response.text();
+            }
+            throw new Error("Client index.html não encontrado");
+          })
+          .then(function(html) {
+            addLog("index.html do cliente encontrado, extraindo scripts...");
+            
+            // Extrair script src do HTML
+            var scriptRegex = /<script[^>]*src=["']([^"']+)["'][^>]*>/g;
+            var match;
+            var foundScripts = [];
+            
+            while ((match = scriptRegex.exec(html)) !== null) {
+              foundScripts.push(match[1]);
+            }
+            
+            if (foundScripts.length > 0) {
+              addLog("Scripts encontrados: " + foundScripts.join(', '));
+              
+              // Adicionar scripts encontrados à nossa lista
+              scripts = foundScripts.concat(scripts);
+              tryNextScript(0);
+            } else {
+              addLog("Nenhum script encontrado no index.html do cliente");
+            }
+          })
+          .catch(function(error) {
+            addLog("Erro ao carregar index.html do cliente: " + error.message);
+          });
+      }
+      
+      // Iniciar o processo de detecção
+      scanForAssets();
     }
     
     // Iniciar verificação

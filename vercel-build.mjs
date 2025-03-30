@@ -46,16 +46,21 @@ try {
     fs.writeFileSync('.env', 'STORAGE_TYPE=supabase\nNODE_ENV=production\n');
   }
   
-  // Verifica se o diretório dist existe
-  if (!fs.existsSync('dist')) {
-    console.log('Criando diretório dist...');
-    fs.mkdirSync('dist', { recursive: true });
-  }
+  // Verificar e criar diretórios necessários
+  var requiredDirs = [
+    'dist',
+    'dist/api',
+    'dist/assets',
+    'dist/client',
+    'dist/static'
+  ];
   
-  // Garantir que a pasta api exista em dist
-  if (!fs.existsSync(path.join('dist', 'api'))) {
-    console.log('Criando diretório dist/api...');
-    fs.mkdirSync(path.join('dist', 'api'), { recursive: true });
+  for (var i = 0; i < requiredDirs.length; i++) {
+    var dir = requiredDirs[i];
+    if (!fs.existsSync(dir)) {
+      console.log('Criando diretório ' + dir + '...');
+      fs.mkdirSync(dir, { recursive: true });
+    }
   }
   
   // Cópia arquivos .mjs para a pasta dist
@@ -129,6 +134,38 @@ try {
   if (fs.existsSync('deploy-instructions.md')) {
     console.log('Copiando instruções de deploy...');
     fs.copyFileSync('deploy-instructions.md', path.join('dist', 'deploy-instructions.md'));
+  }
+  
+  // Copiar pasta client para dist/client se existir
+  if (fs.existsSync('client')) {
+    console.log('Copiando pasta client para dist/client...');
+    
+    // Verificar se client/dist existe e copiar todo o conteúdo para dist
+    if (fs.existsSync(path.join('client', 'dist'))) {
+      console.log('Copiando client/dist para dist...');
+      copyDir(path.join('client', 'dist'), 'dist');
+    }
+    
+    // Verificar se client/dist/assets existe para usar no carregamento da aplicação
+    if (fs.existsSync(path.join('client', 'dist', 'assets'))) {
+      console.log('Copiando client/dist/assets para dist/assets...');
+      copyDir(path.join('client', 'dist', 'assets'), path.join('dist', 'assets'));
+    }
+    
+    // Verificar se client/index.html existe e copiar para a raiz para facilitar o diagnóstico
+    if (fs.existsSync(path.join('client', 'index.html'))) {
+      console.log('Copiando client/index.html para dist/client/index.html...');
+      
+      // Garantir que dist/client exista
+      if (!fs.existsSync(path.join('dist', 'client'))) {
+        fs.mkdirSync(path.join('dist', 'client'), { recursive: true });
+      }
+      
+      fs.copyFileSync(
+        path.join('client', 'index.html'), 
+        path.join('dist', 'client', 'index.html')
+      );
+    }
   }
   
   // Verificar arquivos presentes no diretório dist
