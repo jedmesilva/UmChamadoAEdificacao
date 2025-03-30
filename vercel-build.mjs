@@ -237,17 +237,19 @@ try {
 // Tentar carregar a aplicação principal dinamicamente
 document.addEventListener('DOMContentLoaded', function() {
   // Verificar se há assets da aplicação
-  fetch('/assets/')
-    .then(response => {
+  fetch("/assets/")
+    .then(function(response) {
       if (response.ok) {
-        console.log('Assets da aplicação encontrados, tentando carregar...');
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = '/assets/index.js'; // Nome do arquivo principal do build
+        console.log("Assets da aplicação encontrados, tentando carregar...");
+        var script = document.createElement("script");
+        script.type = "module";
+        script.src = "/assets/index.js"; // Nome do arquivo principal do build
         document.head.appendChild(script);
       }
     })
-    .catch(err => console.error('Erro ao verificar assets:', err));
+    .catch(function(err) { 
+      console.error("Erro ao verificar assets:", err);
+    });
 });
 `
         );
@@ -294,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <script>
     // Tentar carregar os assets da aplicação principal
     document.addEventListener('DOMContentLoaded', function() {
-      const mainScript = document.createElement('script');
+      var mainScript = document.createElement('script');
       mainScript.type = 'module';
       mainScript.src = '/assets/index.js';
       mainScript.onerror = function() {
@@ -304,11 +306,11 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Verificar o status da API
       fetch('/api/healthcheck')
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
           console.log('API status:', data);
         })
-        .catch(error => {
+        .catch(function(error) {
           console.error('Erro ao verificar API:', error);
         });
     });
