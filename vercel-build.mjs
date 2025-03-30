@@ -144,8 +144,15 @@ try {
     'public/assets',
     'dist/assets', // Verificar se já existe
     'client/assets',
-    'client/public/assets'
+    'client/public/assets',
+    'client/build/assets'
   ];
+
+  // Criar log para verificar quais diretórios existem
+  console.log('Verificando existência dos diretórios:');
+  possibleAssetsPaths.forEach(path => {
+    console.log(`${path}: ${fs.existsSync(path) ? 'existe' : 'não existe'}`);
+  });
   
   let assetsCopied = false;
   
@@ -373,6 +380,43 @@ try {
     }
   }
 
+
+  // Garantir que o index.js esteja disponível no local esperado pelo HTML
+  console.log('Verificando se dist/public/assets existe...');
+  if (fs.existsSync('dist/public/assets')) {
+    if (fs.existsSync('dist/public/assets/index.js')) {
+      console.log('Copiando dist/public/assets/index.js para dist/assets/index.js');
+      
+      if (!fs.existsSync('dist/assets')) {
+        fs.mkdirSync('dist/assets', { recursive: true });
+      }
+      
+      fs.copyFileSync('dist/public/assets/index.js', 'dist/assets/index.js');
+    }
+  }
+  
+  // Verificar em todas as possíveis localizações para o index.js
+  console.log('Buscando index.js em todas as localizações possíveis...');
+  const possibleIndexPaths = [
+    'dist/public/assets/index.js',
+    'client/dist/assets/index.js',
+    'dist/assets/index.js'
+  ];
+  
+  for (const indexPath of possibleIndexPaths) {
+    if (fs.existsSync(indexPath)) {
+      console.log(`Encontrado index.js em ${indexPath}`);
+      
+      // Garantir que exista uma cópia em dist/assets/index.js
+      if (!fs.existsSync('dist/assets')) {
+        fs.mkdirSync('dist/assets', { recursive: true });
+      }
+      
+      console.log(`Copiando ${indexPath} para dist/assets/index.js`);
+      fs.copyFileSync(indexPath, 'dist/assets/index.js');
+      break;
+    }
+  }
 
   console.log('✅ Build personalizado concluído com sucesso!');
 } catch (error) {
