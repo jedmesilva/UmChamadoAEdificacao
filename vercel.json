@@ -3,11 +3,12 @@
   "version": 2,
   "buildCommand": "node vercel-build.mjs",
   "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
-    { "source": "/api/:path*", "destination": "/api/:path*.mjs" },
-    { "source": "/assets/:path*", "destination": "/public/assets/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/api/healthcheck", "dest": "/api/healthcheck.mjs" },
+    { "src": "/api/(.*)", "dest": "/api/$1.mjs" },
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
     {

@@ -129,15 +129,15 @@ try {
   }
   
   // Verificar e garantir que a pasta dist/assets existe (necessária para scripts)
-  console.log('Verificando e preparando pasta de assets...');
+  console.log('🔍 Verificando e preparando pasta de assets...');
   
   // Criar pasta dist/assets se não existir
   if (!fs.existsSync('dist/assets')) {
-    console.log('Criando diretório dist/assets...');
+    console.log('📁 Criando diretório dist/assets...');
     fs.mkdirSync('dist/assets', { recursive: true });
   }
   
-  // Verificar possíveis localizações da pasta de assets
+  // Verificar possíveis localizações da pasta de assets e arquivos JS
   const possibleAssetsPaths = [
     'dist/public/assets',
     'client/dist/assets',
@@ -145,16 +145,53 @@ try {
     'dist/assets', // Verificar se já existe
     'client/assets',
     'client/public/assets',
-    'client/build/assets'
+    'client/build/assets',
+    'dist/public' // Adicionar o public diretamente para pegar todos os JS
   ];
 
   // Criar log para verificar quais diretórios existem
-  console.log('Verificando existência dos diretórios:');
+  console.log('🔍 Verificando existência dos diretórios:');
   possibleAssetsPaths.forEach(path => {
-    console.log(`${path}: ${fs.existsSync(path) ? 'existe' : 'não existe'}`);
+    console.log(`${path}: ${fs.existsSync(path) ? '✅ existe' : '❌ não existe'}`);
   });
   
   let assetsCopied = false;
+  
+  // Procurar os arquivos main.*.js e index.*.js em toda a pasta dist
+  console.log('🔍 Procurando arquivos JS principais em toda a estrutura...');
+  const findMainJsFiles = (dir, fileList = []) => {
+    if (!fs.existsSync(dir)) return fileList;
+    
+    const files = fs.readdirSync(dir);
+    files.forEach(file => {
+      const filePath = path.join(dir, file);
+      if (fs.statSync(filePath).isDirectory() && !filePath.includes('node_modules')) {
+        findMainJsFiles(filePath, fileList);
+      } else if (
+        (file.startsWith('main.') && file.endsWith('.js')) || 
+        (file.startsWith('index.') && file.endsWith('.js')) ||
+        (file.startsWith('app.') && file.endsWith('.js')) ||
+        (file.includes('bundle') && file.endsWith('.js'))
+      ) {
+        fileList.push(filePath);
+      }
+    });
+    return fileList;
+  };
+  
+  const mainJsFiles = findMainJsFiles('dist');
+  console.log(`🔍 Arquivos JS principais encontrados: ${mainJsFiles.length}`);
+  
+  // Se encontrarmos arquivos JS principais, vamos garantir que eles estejam em dist/assets
+  if (mainJsFiles.length > 0) {
+    console.log('📦 Copiando arquivos JS principais para dist/assets...');
+    mainJsFiles.forEach(file => {
+      const fileName = path.basename(file);
+      fs.copyFileSync(file, path.join('dist/assets', 'index.js'));
+      console.log(`✅ Arquivo ${fileName} copiado como dist/assets/index.js`);
+    });
+    assetsCopied = true;
+  }
   
   // Garantir que a pasta de destino existe
   if (!fs.existsSync('dist/assets')) {
