@@ -4,6 +4,8 @@ export default function handler(req, res) {
   try {
     // Garantir que retorna um JSON válido
     res.setHeader('Content-Type', 'application/json');
+    // Evitar redirecionamento automático
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
 
     // Coletar informações sobre o ambiente
     const info = {

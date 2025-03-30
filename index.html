@@ -100,6 +100,7 @@
       <div>
         <button onclick="window.location.reload()" class="button">Recarregar Página</button>
         <a href="/api/healthcheck" target="_blank" class="button">Verificar API</a>
+        <button onclick="window.location.href='/'" class="button">Ir para Página Inicial</button>
       </div>
       <div id="debug-info" class="debug-info"></div>
     </div>
@@ -118,6 +119,20 @@
           debugInfo.innerHTML += `<div>[${timestamp}] ${message}</div>`;
           console.log(message);
         }
+      }
+      
+      // Adicionar informações sobre a rota atual
+      addLog(`URL atual: ${window.location.href}`);
+      addLog(`Caminho: ${window.location.pathname}`);
+      
+      // Verificar se estamos sendo redirecionados para a API
+      if (window.location.pathname.includes('/api/')) {
+        addLog('⚠️ ALERTA: Você está em uma rota de API em vez da página inicial!');
+        // Se estiver na rota da API, redirecionar para a página inicial após 3 segundos
+        setTimeout(() => {
+          window.location.href = '/';
+          addLog('Redirecionando para a página inicial...');
+        }, 3000);
       }
 
       function showDebug() {
