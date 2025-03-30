@@ -90,15 +90,54 @@ try {
         fs.copyFileSync('vercel.json', path.join('dist', 'vercel.json'));
     }
 
-  // Verificar e copiar o index.html principal para a raiz do dist (from original code - simplified)
-    if (fs.existsSync('dist/index.html')){
-        console.log('Index.html already exists. Skipping copy.');
-    } else if (fs.existsSync('client/index.html')) {
-        console.log('Copying client/index.html to dist/');
-        fs.copyFileSync('client/index.html', path.join('dist', 'index.html'));
-    } else {
-        console.warn('WARNING: Neither dist/index.html nor client/index.html found. No index.html copied.');
+  // Verificar e copiar o index.html principal para a raiz do dist
+  console.log('Copiando index.html para diretório raiz do dist...');
+  if (fs.existsSync('index.html')) {
+    console.log('Copiando index.html raiz para dist/');
+    fs.copyFileSync('index.html', path.join('dist', 'index.html'));
+  } else if (fs.existsSync('dist/public/index.html')) {
+    console.log('Copiando dist/public/index.html para dist/');
+    fs.copyFileSync('dist/public/index.html', path.join('dist', 'index.html'));
+  } else if (fs.existsSync('client/index.html')) {
+    console.log('Copiando client/index.html para dist/');
+    fs.copyFileSync('client/index.html', path.join('dist', 'index.html'));
+  } else {
+    console.warn('WARNING: Nenhum arquivo index.html encontrado. Criando fallback...');
+    // Criar um arquivo de fallback simples
+    const fallbackHTML = `<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Um Chamado à Edificação</title>
+    <style>
+      body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; text-align: center; }
+      div { max-width: 500px; padding: 2rem; }
+      h1 { margin-bottom: 1rem; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>Um Chamado à Edificação</h1>
+      <p>Carregando aplicação...</p>
+      <button onclick="window.location.reload()">Recarregar</button>
+    </div>
+  </body>
+</html>`;
+    fs.writeFileSync(path.join('dist', 'index.html'), fallbackHTML);
+    console.log('Arquivo de fallback criado.');
+  }
+  
+  // Verificar se a pasta dist/assets existe (necessária para scripts)
+  if (!fs.existsSync('dist/assets') && fs.existsSync('dist/public/assets')) {
+    console.log('Copiando pasta de assets para diretório raiz do dist...');
+    try {
+      fs.cpSync('dist/public/assets', 'dist/assets', { recursive: true });
+      console.log('Pasta assets copiada com sucesso para dist/assets.');
+    } catch (err) {
+      console.error('Erro ao copiar pasta assets:', err);
     }
+  }
 
 
   console.log('✅ Build personalizado concluído com sucesso!');

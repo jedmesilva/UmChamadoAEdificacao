@@ -63,6 +63,15 @@
       .button:hover {
         background-color: #3857b3;
       }
+      .error-container {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #fff8f8;
+        border: 1px solid #ffdddd;
+        border-radius: 0.25rem;
+        color: #d32f2f;
+        display: none;
+      }
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -74,27 +83,88 @@
       <h1>Um Chamado à Edificação</h1>
       <div class="loading-spinner"></div>
       <p class="loading-text">Carregando aplicação...</p>
+      <div id="error-container" class="error-container">
+        <p>Não foi possível carregar a aplicação. Por favor, tente novamente.</p>
+      </div>
       <div>
-        <a href="/" class="button" onclick="window.location.reload()">Recarregar Página</a>
+        <button onclick="window.location.reload()" class="button">Recarregar Página</button>
         <a href="/api/healthcheck" target="_blank" class="button">Verificar API</a>
       </div>
     </div>
     
     <script>
-      // Redirecionamento para a aplicação principal
-      window.onload = function() {
-        // Verificar a API antes de redirecionar
-        fetch('/api/healthcheck')
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      function checkAppAssets() {
+        // Verificar se os assets principais da aplicação existem
+        fetch('/assets/index.js')
           .then(response => {
             if (response.ok) {
-              // Redirecionamos diretamente para a raiz (onde a app React deve estar)
-              window.location.href = '/';
+              // Redirecionar para aplicação principal com parâmetro para evitar loop
+              if (!window.location.href.includes('?loaded=true')) {
+                window.location.href = '/?loaded=true';
+              } else {
+                // Se já temos o parâmetro, carregar o script diretamente
+                loadMainScript();
+              }
+            } else {
+              attempts++;
+              if (attempts >= maxAttempts) {
+                showError("Não foi possível carregar os assets da aplicação.");
+              } else {
+                setTimeout(checkAppAssets, 2000);
+              }
             }
           })
           .catch(error => {
-            console.error('Erro ao verificar API:', error);
+            console.error('Erro ao verificar assets:', error);
+            attempts++;
+            if (attempts >= maxAttempts) {
+              showError("Erro ao verificar os arquivos da aplicação.");
+            } else {
+              setTimeout(checkAppAssets, 2000);
+            }
           });
-      };
+      }
+      
+      function loadMainScript() {
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = '/assets/index.js';
+        script.onerror = () => showError("Erro ao carregar o script principal.");
+        document.head.appendChild(script);
+        
+        // Também criar o contêiner root para o React
+        if (!document.getElementById('root')) {
+          const root = document.createElement('div');
+          root.id = 'root';
+          document.body.appendChild(root);
+        }
+      }
+      
+      function showError(message) {
+        const errorContainer = document.getElementById('error-container');
+        errorContainer.style.display = 'block';
+        errorContainer.innerHTML = `<p>${message}</p>`;
+      }
+      
+      // Verificar a API antes de prosseguir
+      fetch('/api/healthcheck')
+        .then(response => response.json())
+        .then(data => {
+          console.log('API Healthcheck:', data);
+          if (data.status === 'ok') {
+            // API ok, verificar assets
+            checkAppAssets();
+          } else {
+            showError("A API está indisponível no momento.");
+          }
+        })
+        .catch(error => {
+          console.error('Erro ao verificar API:', error);
+          showError("Não foi possível conectar à API. Verifique sua conexão.");
+        });
     </script>
   </body>
 </html>
