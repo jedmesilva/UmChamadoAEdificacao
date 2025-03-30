@@ -7,8 +7,6 @@
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
     { "source": "/api/:path*", "destination": "/api/index.mjs" },
     { "source": "/assets/:path*", "destination": "/dist/assets/:path*" },
-    { "source": "/client/assets/:path*", "destination": "/dist/assets/:path*" },
-    { "source": "/dist/assets/:path*", "destination": "/dist/assets/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true,
@@ -25,12 +23,6 @@
     },
     {
       "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/dist/assets/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]

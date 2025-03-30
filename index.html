@@ -106,8 +106,11 @@
     </div>
     
     <script>
+      // Exibir debug info por padrão durante diagnósticos
+      document.getElementById('debug-info').style.display = 'block';
+      
       let attempts = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5;
       const debugInfo = document.getElementById('debug-info');
       
       function addLog(message) {
@@ -131,60 +134,186 @@
         }
       });
       
+      function showError(message) {
+        const errorContainer = document.getElementById('error-container');
+        if (errorContainer) {
+          errorContainer.style.display = 'block';
+          errorContainer.innerHTML = `<p>${message}</p>`;
+        }
+        addLog(`ERRO: ${message}`);
+      }
+      
+      // Verificar a API antes de prosseguir
+      addLog("Iniciando verificação da API...");
+      
+      fetch('/api/healthcheck')
+        .then(response => {
+          addLog(`API respondeu com status: ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          addLog(`API Healthcheck: ${JSON.stringify(data)}`);
+          if (data.status === 'ok') {
+            addLog("API respondeu OK, verificando assets...");
+            checkAppAssets();
+          } else {
+            showError("A API está indisponível no momento.");
+          }
+        })
+        .catch(error => {
+          addLog(`Erro ao verificar API: ${error.message}`);
+          showError("Não foi possível conectar à API. Tentando carregar os assets mesmo assim.");
+          // Mesmo com erro na API, vamos tentar carregar os assets
+          checkAppAssets();
+        });
+        
       function checkAppAssets() {
-        // Lista de possíveis caminhos para o arquivo principal da aplicação
+        // Melhoramos a lista de caminhos possíveis para abranger mais casos
         const possiblePaths = [
           '/assets/index.js',
+          '/assets/index-*.js', // Para capturar arquivos com hash
           '/dist/assets/index.js',
-          '/dist/client/assets/index.js',
-          '/client/dist/assets/index.js',
-          '/public/assets/index.js'
+          '/dist/assets/index-*.js',
+          '/client/assets/index.js',
+          '/client/dist/assets/index.js'
         ];
-        
-        // Tentar encontrar pelo menos um dos paths
-        let foundAsset = false;
-        let checkedPaths = 0;
         
         addLog(`Verificando ${possiblePaths.length} possíveis caminhos para os assets...`);
         
-        function checkNextPath(index) {
-          if (index >= possiblePaths.length) {
-            if (!foundAsset) {
-              addLog("Nenhum asset encontrado nos caminhos verificados.");
-              attempts++;
-              if (attempts >= maxAttempts) {
-                showError("Não foi possível carregar os assets da aplicação.");
-                showDebug();
-              } else {
-                setTimeout(() => checkAppAssets(), 2000);
+        // Listar arquivos na pasta atual para debug
+        addLog("Verificando ambiente da aplicação...");
+        
+        // Tentar encontrar scripts na página
+        const listFiles = () => {
+          fetch('/api/healthcheck')
+            .then(response => {
+              addLog(`Healthcheck re-verificação status: ${response.status}`);
+              return response.text();
+            })
+            .then(text => {
+              addLog(`Healthcheck resposta: ${text.substring(0, 50)}...`);
+              return findAssetsWithWildcard();
+            })
+            .catch(err => {
+              addLog(`Erro ao listar arquivos: ${err.message}`);
+              findAssetsWithWildcard();
+            });
+        };
+        
+        // Nova abordagem para encontrar assets com suporte a wildcard
+        function findAssetsWithWildcard() {
+          addLog("Iniciando busca avançada por assets...");
+          
+          // Buscar em diretórios conhecidos
+          const checkDirectories = [
+            '/assets/',
+            '/dist/assets/',
+            '/client/assets/',
+            '/client/dist/assets/'
+          ];
+          
+          let dirChecked = 0;
+          let assetFound = false;
+          
+          function checkNextDirectory(index) {
+            if (index >= checkDirectories.length) {
+              if (!assetFound) {
+                addLog("Nenhum diretório de assets encontrado.");
+                
+                // Última tentativa: verificar se o app está em /
+                addLog("Tentando carregar aplicação da raiz...");
+                attemptDirectLoad();
               }
+              return;
             }
-            return;
+            
+            const dir = checkDirectories[index];
+            addLog(`Verificando diretório: ${dir}`);
+            
+            fetch(dir)
+              .then(response => {
+                if (response.ok) {
+                  addLog(`Diretório encontrado: ${dir}, procurando por scripts...`);
+                  // Se encontramos o diretório, vamos tentar alguns padrões comuns de nomes de arquivos
+                  tryLoadFromDirectory(dir);
+                } else {
+                  addLog(`Diretório não encontrado: ${dir}`);
+                  checkNextDirectory(index + 1);
+                }
+              })
+              .catch(error => {
+                addLog(`Erro ao verificar diretório ${dir}: ${error.message}`);
+                checkNextDirectory(index + 1);
+              });
           }
           
-          const path = possiblePaths[index];
-          addLog(`Verificando path: ${path}`);
-          
-          fetch(path)
-            .then(response => {
-              checkedPaths++;
-              if (response.ok) {
-                addLog(`✅ Asset encontrado em: ${path}`);
-                foundAsset = true;
-                loadAppWithPath(path);
-              } else {
-                addLog(`❌ Asset não encontrado em: ${path} (status: ${response.status})`);
-                checkNextPath(index + 1);
+          function tryLoadFromDirectory(dir) {
+            const commonFilePatterns = [
+              'index.js', 
+              'main.js', 
+              'app.js',
+              'bundle.js'
+            ];
+            
+            // Tenta cada padrão de arquivo
+            function tryNextPattern(patternIndex) {
+              if (patternIndex >= commonFilePatterns.length) {
+                addLog(`Nenhum script encontrado em ${dir}`);
+                checkNextDirectory(dirChecked + 1);
+                return;
               }
-            })
-            .catch(error => {
-              checkedPaths++;
-              addLog(`⚠️ Erro ao verificar ${path}: ${error.message}`);
-              checkNextPath(index + 1);
-            });
+              
+              const file = commonFilePatterns[patternIndex];
+              const path = `${dir}${file}`;
+              
+              addLog(`Tentando carregar: ${path}`);
+              
+              fetch(path)
+                .then(response => {
+                  if (response.ok) {
+                    addLog(`✅ Script encontrado: ${path}`);
+                    assetFound = true;
+                    loadAppWithPath(path);
+                  } else {
+                    addLog(`❌ Script não encontrado: ${path}`);
+                    tryNextPattern(patternIndex + 1);
+                  }
+                })
+                .catch(error => {
+                  addLog(`Erro ao verificar ${path}: ${error.message}`);
+                  tryNextPattern(patternIndex + 1);
+                });
+            }
+            
+            tryNextPattern(0);
+          }
+          
+          function attemptDirectLoad() {
+            // Última tentativa - tentar carregar a aplicação diretamente
+            addLog("Tentativa final: carregando aplicação sem assets específicos");
+            
+            // Criar o contêiner root
+            document.body.innerHTML = '<div id="root"></div>';
+            
+            // Verificar se a aplicação está funcionando após um tempo
+            setTimeout(() => {
+              if (document.getElementById('root').children.length === 0) {
+                // Restaurar a tela de carregamento e mostrar erro
+                document.body.innerHTML = document.querySelector('.loading-container').outerHTML;
+                showError("Não foi possível carregar a aplicação automaticamente.");
+                showDebug();
+              } else {
+                addLog("Aplicação carregada com sucesso!");
+              }
+            }, 5000);
+          }
+          
+          // Começar a verificação
+          checkNextDirectory(0);
         }
         
-        checkNextPath(0);
+        // Inicia o processo de verificação
+        listFiles();
       }
       
       function loadAppWithPath(path) {
@@ -206,38 +335,6 @@
         
         document.head.appendChild(script);
       }
-      
-      function showError(message) {
-        const errorContainer = document.getElementById('error-container');
-        if (errorContainer) {
-          errorContainer.style.display = 'block';
-          errorContainer.innerHTML = `<p>${message}</p>`;
-        }
-        addLog(`ERRO: ${message}`);
-      }
-      
-      // Verificar a API antes de prosseguir
-      addLog("Iniciando verificação da API...");
-      
-      fetch('/api/healthcheck')
-        .then(response => response.json())
-        .then(data => {
-          addLog(`API Healthcheck: ${JSON.stringify(data)}`);
-          if (data.status === 'ok') {
-            addLog("API respondeu OK, verificando assets...");
-            checkAppAssets();
-          } else {
-            showError("A API está indisponível no momento.");
-            showDebug();
-          }
-        })
-        .catch(error => {
-          addLog(`Erro ao verificar API: ${error.message}`);
-          showError("Não foi possível conectar à API. Verifique sua conexão.");
-          // Mesmo com erro na API, vamos tentar carregar os assets
-          checkAppAssets();
-          showDebug();
-        });
     </script>
   </body>
 </html>
