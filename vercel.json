@@ -5,8 +5,9 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
-    { "source": "/api/:path*", "destination": "/api/index.mjs" },
+    { "source": "/api/:path*", "destination": "/api/:path*.mjs" },
     { "source": "/assets/:path*", "destination": "/dist/assets/:path*" },
+    { "source": "/client/assets/:path*", "destination": "/dist/client/assets/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true,

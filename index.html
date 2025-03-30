@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
@@ -104,15 +103,15 @@
       </div>
       <div id="debug-info" class="debug-info"></div>
     </div>
-    
+
     <script>
       // Exibir debug info por padrão durante diagnósticos
       document.getElementById('debug-info').style.display = 'block';
-      
+
       let attempts = 0;
       const maxAttempts = 5;
       const debugInfo = document.getElementById('debug-info');
-      
+
       function addLog(message) {
         if (debugInfo) {
           const timestamp = new Date().toLocaleTimeString();
@@ -120,20 +119,20 @@
           console.log(message);
         }
       }
-      
+
       function showDebug() {
         if (debugInfo) {
           debugInfo.style.display = 'block';
         }
       }
-      
+
       // Adicionar botão de debug em produção com ctrl+shift+d
       document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.shiftKey && e.key === 'D') {
           showDebug();
         }
       });
-      
+
       function showError(message) {
         const errorContainer = document.getElementById('error-container');
         if (errorContainer) {
@@ -142,10 +141,10 @@
         }
         addLog(`ERRO: ${message}`);
       }
-      
+
       // Verificar a API antes de prosseguir
       addLog("Iniciando verificação da API...");
-      
+
       fetch('/api/healthcheck')
         .then(response => {
           addLog(`API respondeu com status: ${response.status}`);
@@ -166,7 +165,7 @@
           // Mesmo com erro na API, vamos tentar carregar os assets
           checkAppAssets();
         });
-        
+
       function checkAppAssets() {
         // Melhoramos a lista de caminhos possíveis para abranger mais casos
         const possiblePaths = [
@@ -177,12 +176,12 @@
           '/client/assets/index.js',
           '/client/dist/assets/index.js'
         ];
-        
+
         addLog(`Verificando ${possiblePaths.length} possíveis caminhos para os assets...`);
-        
+
         // Listar arquivos na pasta atual para debug
         addLog("Verificando ambiente da aplicação...");
-        
+
         // Tentar encontrar scripts na página
         const listFiles = () => {
           fetch('/api/healthcheck')
@@ -199,11 +198,11 @@
               findAssetsWithWildcard();
             });
         };
-        
+
         // Nova abordagem para encontrar assets com suporte a wildcard
         function findAssetsWithWildcard() {
           addLog("Iniciando busca avançada por assets...");
-          
+
           // Buscar em diretórios conhecidos
           const checkDirectories = [
             '/assets/',
@@ -211,31 +210,53 @@
             '/client/assets/',
             '/client/dist/assets/'
           ];
-          
+
           let dirChecked = 0;
           let assetFound = false;
-          
+
           function checkNextDirectory(index) {
             if (index >= checkDirectories.length) {
               if (!assetFound) {
                 addLog("Nenhum diretório de assets encontrado.");
-                
+
                 // Última tentativa: verificar se o app está em /
                 addLog("Tentando carregar aplicação da raiz...");
                 attemptDirectLoad();
               }
               return;
             }
-            
+
             const dir = checkDirectories[index];
             addLog(`Verificando diretório: ${dir}`);
-            
+
             fetch(dir)
               .then(response => {
                 if (response.ok) {
                   addLog(`Diretório encontrado: ${dir}, procurando por scripts...`);
-                  // Se encontramos o diretório, vamos tentar alguns padrões comuns de nomes de arquivos
-                  tryLoadFromDirectory(dir);
+                  // Se encontramos o diretório, vamos procurar por padrões de arquivos JS
+                  fetch(dir)
+                    .then(response => response.text())
+                    .then(html => {
+                      // Procurar por arquivos JS no diretório
+                      const jsFiles = html.match(/href="([^"]+\.js)"/g) || [];
+                      if (jsFiles.length > 0) {
+                        addLog(`Encontrados ${jsFiles.length} arquivos JS em ${dir}`);
+                        // Extrair nome do arquivo do primeiro match
+                        const firstMatch = jsFiles[0].match(/href="([^"]+)"/);
+                        if (firstMatch && firstMatch[1]) {
+                          const scriptPath = dir + firstMatch[1];
+                          addLog(`Tentando carregar script: ${scriptPath}`);
+                          loadAppWithPath(scriptPath);
+                          return;
+                        }
+                      }
+                      // Se não encontrou arquivos JS no HTML do diretório
+                      tryLoadFromDirectory(dir);
+                    })
+                    .catch(() => {
+                      // Em caso de erro, tentar carregar usando nomes de arquivo comuns
+                      tryLoadFromDirectory(dir);
+                    });
                 } else {
                   addLog(`Diretório não encontrado: ${dir}`);
                   checkNextDirectory(index + 1);
@@ -246,7 +267,7 @@
                 checkNextDirectory(index + 1);
               });
           }
-          
+
           function tryLoadFromDirectory(dir) {
             const commonFilePatterns = [
               'index.js', 
@@ -254,7 +275,7 @@
               'app.js',
               'bundle.js'
             ];
-            
+
             // Tenta cada padrão de arquivo
             function tryNextPattern(patternIndex) {
               if (patternIndex >= commonFilePatterns.length) {
@@ -262,12 +283,12 @@
                 checkNextDirectory(dirChecked + 1);
                 return;
               }
-              
+
               const file = commonFilePatterns[patternIndex];
               const path = `${dir}${file}`;
-              
+
               addLog(`Tentando carregar: ${path}`);
-              
+
               fetch(path)
                 .then(response => {
                   if (response.ok) {
@@ -284,17 +305,17 @@
                   tryNextPattern(patternIndex + 1);
                 });
             }
-            
+
             tryNextPattern(0);
           }
-          
+
           function attemptDirectLoad() {
             // Última tentativa - tentar carregar a aplicação diretamente
             addLog("Tentativa final: carregando aplicação sem assets específicos");
-            
+
             // Criar o contêiner root
             document.body.innerHTML = '<div id="root"></div>';
-            
+
             // Verificar se a aplicação está funcionando após um tempo
             setTimeout(() => {
               if (document.getElementById('root').children.length === 0) {
@@ -307,21 +328,21 @@
               }
             }, 5000);
           }
-          
+
           // Começar a verificação
           checkNextDirectory(0);
         }
-        
+
         // Inicia o processo de verificação
         listFiles();
       }
-      
+
       function loadAppWithPath(path) {
         addLog(`Carregando aplicação com script: ${path}`);
-        
+
         // Limpar o HTML atual
         document.body.innerHTML = '<div id="root"></div>';
-        
+
         // Criar e adicionar o script
         const script = document.createElement('script');
         script.type = 'module';
@@ -332,7 +353,7 @@
           showError("Erro ao carregar o script principal.");
           showDebug();
         };
-        
+
         document.head.appendChild(script);
       }
     </script>
