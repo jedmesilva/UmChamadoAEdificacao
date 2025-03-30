@@ -1,3 +1,4 @@
+
 {
   "version": 2,
   "buildCommand": "npm run build && node vercel-build.mjs",
@@ -6,9 +7,7 @@
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
     { "source": "/api/:path*", "destination": "/api/index.mjs" },
     { "source": "/assets/:path*", "destination": "/assets/:path*" },
-    { "source": "/client/:path*", "destination": "/client/:path*" },
-    { "source": "/dist/:path*", "destination": "/dist/:path*" },
-    { "source": "/(.*)", "destination": "/index.mjs" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true,
   "trailingSlash": false,
@@ -36,11 +35,8 @@
   },
   "builds": [
     { "src": "api/*.mjs", "use": "@vercel/node" },
-    { "src": "index.mjs", "use": "@vercel/node" },
-    { "src": "public/**/*", "use": "@vercel/static" },
     { "src": "*.html", "use": "@vercel/static" },
     { "src": "assets/**/*", "use": "@vercel/static" },
-    { "src": "client/**/*", "use": "@vercel/static" },
     { "src": "dist/**/*", "use": "@vercel/static" }
   ]
 }
