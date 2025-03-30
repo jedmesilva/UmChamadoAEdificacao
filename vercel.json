@@ -5,8 +5,12 @@
   "rewrites": [
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
     { "source": "/api/:path*", "destination": "/api/index.mjs" },
+    { "source": "/static/:path*", "destination": "/static/:path*" },
     { "source": "/(.*)", "destination": "/$1" }
   ],
+  "fallback": {
+    "404": "/static/index.html"
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -40,10 +44,5 @@
       "maxDuration": 10,
       "runtime": "nodejs18.x"
     }
-  },
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/api/.*", "dest": "/api/index.mjs" },
-    { "src": "/(.*)", "status": 404, "dest": "/static/index.html" }
-  ]
+  }
 }

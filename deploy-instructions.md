@@ -50,6 +50,19 @@ Se você estiver enfrentando este erro no Vercel, siga estes passos:
 }
 ```
 
+5. **IMPORTANTE**: No Vercel, você não pode usar `routes` e `rewrites` juntos. Use apenas `rewrites` e `fallback`:
+```json
+"rewrites": [
+  { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
+  { "source": "/api/:path*", "destination": "/api/index.mjs" },
+  { "source": "/static/:path*", "destination": "/static/:path*" },
+  { "source": "/(.*)", "destination": "/$1" }
+],
+"fallback": {
+  "404": "/static/index.html"
+}
+```
+
 ## Estrutura de Arquivos para Deploy
 
 A estrutura de arquivos esperada após o build:
