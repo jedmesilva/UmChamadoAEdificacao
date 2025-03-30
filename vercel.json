@@ -4,12 +4,17 @@
   "buildCommand": "node vercel-build.mjs",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
+    { "source": "/", "destination": "/client/index.html" },
+    { "source": "/dashboard", "destination": "/client/index.html" },
+    { "source": "/login", "destination": "/client/index.html" },
+    { "source": "/register", "destination": "/client/index.html" },
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
     { "source": "/api/:path*", "destination": "/api/:path*.mjs" },
     { "source": "/assets/:path*", "destination": "/dist/assets/:path*" },
     { "source": "/client/assets/:path*", "destination": "/dist/client/assets/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/src/:path*", "destination": "/client/src/:path*" },
+    { "source": "/client/:path*", "destination": "/client/:path*" },
+    { "source": "/(.*)", "destination": "/client/index.html" }
   ],
   "cleanUrls": true,
   "trailingSlash": false,

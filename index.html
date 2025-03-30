@@ -120,11 +120,11 @@
           console.log(message);
         }
       }
-      
+
       // Adicionar informações sobre a rota atual
       addLog(`URL atual: ${window.location.href}`);
       addLog(`Caminho: ${window.location.pathname}`);
-      
+
       // Verificar se estamos sendo redirecionados para a API
       if (window.location.pathname.includes('/api/')) {
         addLog('⚠️ ALERTA: Você está em uma rota de API em vez da página inicial!');
@@ -168,7 +168,15 @@
         .then(data => {
           addLog(`API Healthcheck: ${JSON.stringify(data)}`);
           if (data.status === 'ok') {
-            addLog("API respondeu OK, verificando assets...");
+            addLog("API respondeu OK, verificando se devemos ir para a aplicação principal...");
+
+            // Verificar se não estamos na landing page e redirecionar se necessário
+            if (window.location.pathname.includes('/api/')) {
+              addLog("Estamos em uma rota de API. Redirecionando para a aplicação principal...");
+              window.location.href = '/';
+              return;
+            }
+
             checkAppAssets();
           } else {
             showError("A API está indisponível no momento.");
@@ -216,136 +224,78 @@
 
         // Nova abordagem para encontrar assets com suporte a wildcard
         function findAssetsWithWildcard() {
-          addLog("Iniciando busca avançada por assets...");
+          addLog("Iniciando busca pela aplicação principal...");
 
-          // Buscar em diretórios conhecidos
-          const checkDirectories = [
-            '/assets/',
-            '/dist/assets/',
-            '/client/assets/',
-            '/client/dist/assets/'
+          // Criar o contêiner root para a aplicação React
+          const rootDiv = document.createElement('div');
+          rootDiv.id = 'root';
+
+          // Adicionar à página, mas manter a tela de carregamento visível por enquanto
+          document.body.appendChild(rootDiv);
+
+          // Caminhos específicos baseados na estrutura de projeto React/Vite
+          const mainPaths = [
+            '/dist/assets/index-*.js',
+            '/assets/index-*.js',
+            '/client/dist/assets/index-*.js',
+            '/src/main.tsx'
           ];
 
-          let dirChecked = 0;
-          let assetFound = false;
+          addLog("Tentando carregar o script principal da aplicação...");
 
-          function checkNextDirectory(index) {
-            if (index >= checkDirectories.length) {
-              if (!assetFound) {
-                addLog("Nenhum diretório de assets encontrado.");
+          // Tentar carregar o script principal diretamente - baseado no client/index.html
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.src = '/src/main.tsx'; // Primeira tentativa com o caminho padrão
 
-                // Última tentativa: verificar se o app está em /
-                addLog("Tentando carregar aplicação da raiz...");
-                attemptDirectLoad();
-              }
-              return;
-            }
+          script.onload = () => {
+            addLog("✅ Script principal carregado com sucesso!");
+            // Esconder a tela de carregamento após sucesso
+            document.querySelector('.loading-container').style.display = 'none';
+          };
 
-            const dir = checkDirectories[index];
-            addLog(`Verificando diretório: ${dir}`);
+          script.onerror = () => {
+            addLog("❌ Não foi possível carregar o script principal. Tentando alternativas...");
 
-            fetch(dir)
-              .then(response => {
-                if (response.ok) {
-                  addLog(`Diretório encontrado: ${dir}, procurando por scripts...`);
-                  // Se encontramos o diretório, vamos procurar por padrões de arquivos JS
-                  fetch(dir)
-                    .then(response => response.text())
-                    .then(html => {
-                      // Procurar por arquivos JS no diretório
-                      const jsFiles = html.match(/href="([^"]+\.js)"/g) || [];
-                      if (jsFiles.length > 0) {
-                        addLog(`Encontrados ${jsFiles.length} arquivos JS em ${dir}`);
-                        // Extrair nome do arquivo do primeiro match
-                        const firstMatch = jsFiles[0].match(/href="([^"]+)"/);
-                        if (firstMatch && firstMatch[1]) {
-                          const scriptPath = dir + firstMatch[1];
-                          addLog(`Tentando carregar script: ${scriptPath}`);
-                          loadAppWithPath(scriptPath);
-                          return;
-                        }
-                      }
-                      // Se não encontrou arquivos JS no HTML do diretório
-                      tryLoadFromDirectory(dir);
-                    })
-                    .catch(() => {
-                      // Em caso de erro, tentar carregar usando nomes de arquivo comuns
-                      tryLoadFromDirectory(dir);
-                    });
+            // Tentar carregar diretamente do client/
+            const clientScript = document.createElement('script');
+            clientScript.type = 'module';
+            clientScript.src = '/client/src/main.tsx';
+
+            clientScript.onload = () => {
+              addLog("✅ Script do client/ carregado com sucesso!");
+              document.querySelector('.loading-container').style.display = 'none';
+            };
+
+            clientScript.onerror = () => {
+              addLog("❌ Falha ao carregar scripts alternativos. Tentando redirecionamento direto...");
+
+              // Se nenhum script for carregado, redirecionar para a raiz explicitamente
+              setTimeout(() => {
+                // Se não conseguimos carregar os scripts, a última opção é redirecionar
+                if (window.location.pathname !== '/') {
+                  addLog("Redirecionando para a raiz...");
+                  window.location.href = '/';
                 } else {
-                  addLog(`Diretório não encontrado: ${dir}`);
-                  checkNextDirectory(index + 1);
-                }
-              })
-              .catch(error => {
-                addLog(`Erro ao verificar diretório ${dir}: ${error.message}`);
-                checkNextDirectory(index + 1);
-              });
-          }
+                  // Se já estamos na raiz e ainda não funciona, mostrar mensagem de diagnóstico
+                  showError("Não foi possível carregar a aplicação. Verifique o console para mais detalhes.");
 
-          function tryLoadFromDirectory(dir) {
-            const commonFilePatterns = [
-              'index.js', 
-              'main.js', 
-              'app.js',
-              'bundle.js'
-            ];
-
-            // Tenta cada padrão de arquivo
-            function tryNextPattern(patternIndex) {
-              if (patternIndex >= commonFilePatterns.length) {
-                addLog(`Nenhum script encontrado em ${dir}`);
-                checkNextDirectory(dirChecked + 1);
-                return;
-              }
-
-              const file = commonFilePatterns[patternIndex];
-              const path = `${dir}${file}`;
-
-              addLog(`Tentando carregar: ${path}`);
-
-              fetch(path)
-                .then(response => {
-                  if (response.ok) {
-                    addLog(`✅ Script encontrado: ${path}`);
-                    assetFound = true;
-                    loadAppWithPath(path);
-                  } else {
-                    addLog(`❌ Script não encontrado: ${path}`);
-                    tryNextPattern(patternIndex + 1);
+                  // Verificar erros de console
+                  if (console.error) {
+                    const originalError = console.error;
+                    console.error = function() {
+                      addLog(`ERRO CONSOLE: ${Array.from(arguments).join(' ')}`);
+                      originalError.apply(console, arguments);
+                    };
                   }
-                })
-                .catch(error => {
-                  addLog(`Erro ao verificar ${path}: ${error.message}`);
-                  tryNextPattern(patternIndex + 1);
-                });
-            }
+                }
+              }, 2000);
+            };
 
-            tryNextPattern(0);
-          }
+            document.head.appendChild(clientScript);
+          };
 
-          function attemptDirectLoad() {
-            // Última tentativa - tentar carregar a aplicação diretamente
-            addLog("Tentativa final: carregando aplicação sem assets específicos");
-
-            // Criar o contêiner root
-            document.body.innerHTML = '<div id="root"></div>';
-
-            // Verificar se a aplicação está funcionando após um tempo
-            setTimeout(() => {
-              if (document.getElementById('root').children.length === 0) {
-                // Restaurar a tela de carregamento e mostrar erro
-                document.body.innerHTML = document.querySelector('.loading-container').outerHTML;
-                showError("Não foi possível carregar a aplicação automaticamente.");
-                showDebug();
-              } else {
-                addLog("Aplicação carregada com sucesso!");
-              }
-            }, 5000);
-          }
-
-          // Começar a verificação
-          checkNextDirectory(0);
+          document.head.appendChild(script);
         }
 
         // Inicia o processo de verificação
