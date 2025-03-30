@@ -65,12 +65,29 @@ try {
   if (fs.existsSync('index.mjs')) {
     console.log('Copiando index.mjs para dist...');
     fs.copyFileSync('index.mjs', path.join('dist', 'index.mjs'));
+    
+    // Copiar também como index.js para garantir compatibilidade total
+    console.log('Criando cópia como index.js para compatibilidade...');
+    fs.copyFileSync('index.mjs', path.join('dist', 'index.js'));
   }
   
   // Copiar package.json para dist para referência de dependências
   if (fs.existsSync('package.json')) {
     console.log('Copiando package.json para dist...');
     fs.copyFileSync('package.json', path.join('dist', 'package.json'));
+    
+    // Garantir que o tipo do módulo está definido como module
+    try {
+      const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+      packageJson.type = 'module';
+      fs.writeFileSync(
+        path.join('dist', 'package.json'),
+        JSON.stringify(packageJson, null, 2)
+      );
+      console.log('package.json atualizado com "type": "module"');
+    } catch (err) {
+      console.error('Erro ao atualizar package.json:', err);
+    }
   }
   
   // Copiar todos os arquivos da pasta api para dist/api

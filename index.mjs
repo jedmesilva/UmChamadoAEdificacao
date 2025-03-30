@@ -154,99 +154,200 @@ export default function handler(req, res) {
       console.log('[Handler] Requisição para assets, deixando passar para o sistema de roteamento padrão');
       return res.status(404).send('Not found via serverless function');
     }
+
+    // HTML funcional padrão caso nada funcione
+    const simpleHtml = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Um Chamado à Edificação</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 800px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #root {
+      width: 100%;
+      max-width: 1200px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #4a6cf7;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+      font-weight: 500;
+      margin: 0.5rem;
+      cursor: pointer;
+    }
+    .button:hover {
+      background-color: #3a5cf7;
+    }
+    .logs {
+      background-color: #f1f1f1;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 20px;
+      text-align: left;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      overflow: auto;
+      max-height: 200px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Um Chamado à Edificação</h1>
+    <p>Carregando aplicação...</p>
+    <div>
+      <button class="button" id="loadApp">Tentar Carregar Aplicação</button>
+      <button class="button" id="checkApi">Verificar API</button>
+    </div>
+    <div class="logs" id="logs">Logs do carregamento:</div>
+  </div>
+  
+  <div id="root"></div>
+
+  <script>
+    const logElement = document.getElementById('logs');
     
-    // Tenta carregar o arquivo index.html gerado pelo build do Vite
-    try {
-      // Procurar em múltiplos locais possíveis
-      const possiblePaths = [
-        join(__dirname, 'index.html'),
-        join(__dirname, 'client', 'index.html'),
-        join(__dirname, 'client', 'dist', 'index.html')
-      ];
-      
-      let htmlContent = null;
-      
-      // Testar cada caminho possível
-      for (const indexPath of possiblePaths) {
-        try {
-          console.log(`[Handler] Tentando ler index.html de: ${indexPath}`);
-          htmlContent = readFileSync(indexPath, 'utf8');
-          console.log(`[Handler] Sucesso ao ler index.html de: ${indexPath}`);
-          break;
-        } catch (err) {
-          console.log(`[Handler] Erro ao ler de ${indexPath}: ${err.message}`);
-          // Continua para o próximo caminho
-        }
-      }
-      
-      // Se encontrou um index.html válido
-      if (htmlContent) {
-        // Garante que exista uma div com id="root" para o React
-        if (!htmlContent.includes('id="root"')) {
-          console.log('[Handler] Adicionando div root ao HTML');
-          htmlContent = htmlContent.replace('</body>', '<div id="root"></div></body>');
-        }
-        
-        // Retorna o HTML encontrado
-        return res.status(200).send(htmlContent);
-      }
-      
-      // Se chegou aqui, não encontrou o index.html
-      throw new Error('Nenhum arquivo index.html válido encontrado');
-    } catch (readError) {
-      console.error('[Handler] Erro ao ler arquivo index.html:', readError);
-      
-      // Tenta ler a página de fallback
+    function log(message) {
+      console.log(message);
+      const time = new Date().toLocaleTimeString();
+      logElement.innerHTML += `\n[${time}] ${message}`;
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+    
+    document.getElementById('loadApp').addEventListener('click', tryLoadMainApp);
+    document.getElementById('checkApi').addEventListener('click', checkApiStatus);
+    
+    async function checkApiStatus() {
+      log('Verificando status da API...');
       try {
-        console.log('[Handler] Tentando carregar fallback.html');
-        const fallbackPath = join(__dirname, 'fallback.html');
-        let fallbackContent = readFileSync(fallbackPath, 'utf8');
+        const response = await fetch('/api/healthcheck');
+        const data = await response.json();
+        log(`API respondeu: ${JSON.stringify(data)}`);
         
-        // Adiciona script para tentar carregar a aplicação principal
-        if (!fallbackContent.includes('tryLoadMainApp')) {
-          console.log('[Handler] Adicionando script de carregamento dinâmico ao fallback');
-          fallbackContent = fallbackContent.replace('<script>', `<script>
-            // Função para tentar carregar a aplicação principal
-            function tryLoadMainApp() {
-              console.log('Tentando carregar a aplicação principal...');
-              fetch('/assets/index.js')
-                .then(response => {
-                  if (response.ok) {
-                    console.log('Script principal encontrado!');
-                    const script = document.createElement('script');
-                    script.type = 'module';
-                    script.src = '/assets/index.js';
-                    document.head.appendChild(script);
-                    
-                    // Criar div root para React
-                    if (!document.getElementById('root')) {
-                      const root = document.createElement('div');
-                      root.id = 'root';
-                      document.body.appendChild(root);
-                    }
-                  }
-                })
-                .catch(err => console.error('Erro ao carregar script principal:', err));
-            }
-            
-            // Tentar carregar a aplicação após 1 segundo
-            setTimeout(tryLoadMainApp, 1000);
-          `);
+        if (data && data.status === 'ok') {
+          log('API está funcionando corretamente!');
+          tryLoadMainApp();
         }
-        
-        return res.status(200).send(fallbackContent);
-      } catch (fallbackError) {
-        console.error('[Handler] Erro ao ler fallback.html:', fallbackError);
-        
-        // Se não conseguir ler nenhum dos arquivos, envia o HTML de fallback incorporado
-        console.log('[Handler] Enviando HTML de fallback incorporado');
-        return res.status(200).send(fallbackHTML);
+      } catch (error) {
+        log(`Erro ao verificar API: ${error.message}`);
       }
     }
+    
+    async function tryLoadMainApp() {
+      log('Tentando carregar a aplicação principal...');
+      
+      try {
+        // Verificar se os assets principais estão disponíveis
+        const foundAssets = [];
+        
+        // Tentar carregar o script principal - diferentes variações de nome
+        const possibleScripts = [
+          '/assets/index.js',
+          '/assets/index-*.js',
+          '/assets/main.js',
+          '/assets/app.js',
+          '/client/dist/assets/index-*.js',
+          '/client/assets/index-*.js'
+        ];
+        
+        for (const scriptPattern of possibleScripts) {
+          try {
+            // Se for um padrão com wildcard, tentar fazer uma listagem
+            if (scriptPattern.includes('*')) {
+              log(`Tentando encontrar arquivos com padrão ${scriptPattern}...`);
+              const baseUrl = scriptPattern.split('*')[0];
+              
+              try {
+                // Fazer uma solicitação para ver se a página existe
+                const dirResponse = await fetch(baseUrl);
+                log(`Resposta da solicitação para ${baseUrl}: ${dirResponse.status}`);
+                
+                if (dirResponse.ok) {
+                  foundAssets.push(baseUrl);
+                }
+              } catch (e) {
+                log(`Erro ao verificar ${baseUrl}: ${e.message}`);
+              }
+            } else {
+              // Tentar carregar o arquivo diretamente
+              log(`Verificando se o script ${scriptPattern} existe...`);
+              const response = await fetch(scriptPattern);
+              
+              if (response.ok) {
+                log(`Script ${scriptPattern} encontrado!`);
+                foundAssets.push(scriptPattern);
+                break;
+              }
+            }
+          } catch (e) {
+            log(`Erro ao verificar script ${scriptPattern}: ${e.message}`);
+          }
+        }
+        
+        if (foundAssets.length > 0) {
+          log(`Assets encontrados: ${foundAssets.join(', ')}`);
+          
+          // Criar o elemento script para o primeiro asset encontrado
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.src = foundAssets[0];
+          script.onerror = (e) => log(`Erro ao carregar script: ${e.message || 'Erro desconhecido'}`);
+          script.onload = () => log('Script carregado com sucesso!');
+          document.head.appendChild(script);
+          
+          log('Script adicionado à página. Aguardando carregamento...');
+        } else {
+          log('Nenhum asset encontrado. Verifique se o build foi gerado corretamente.');
+        }
+      } catch (error) {
+        log(`Erro ao carregar aplicação: ${error.message}`);
+      }
+    }
+    
+    // Executar verificação automaticamente
+    log('Página carregada, verificando API em 1 segundo...');
+    setTimeout(checkApiStatus, 1000);
+  </script>
+</body>
+</html>
+`;
+    
+    // Retorna o HTML simplificado que serve como loader inteligente
+    console.log('[Handler] Enviando HTML simplificado com carregador inteligente');
+    return res.status(200).send(simpleHtml);
+    
   } catch (error) {
     console.error('[Handler] Erro no handler principal:', error);
     
-    // Em caso de erro, retorna o HTML de fallback incorporado
+    // Em caso de erro crítico, retorna o HTML de fallback incorporado
     return res.status(500).send(fallbackHTML);
   }
 }

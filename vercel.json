@@ -6,7 +6,7 @@
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
     { "source": "/api/:path*", "destination": "/api/index.mjs" },
     { "source": "/assets/:path*", "destination": "/assets/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.mjs" }
   ],
   "cleanUrls": true,
   "trailingSlash": false,
