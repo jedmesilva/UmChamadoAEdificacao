@@ -125,36 +125,184 @@ try {
     console.log(distApiFiles);
   }
   
+  // Verificar e copiar o index.html principal para a raiz do dist
+  console.log('Verificando e copiando o index.html...');
+  
+  // Verifica se o build foi feito corretamente
+  const buildDir = path.join('dist', 'assets');
+  const buildExists = fs.existsSync(buildDir);
+  
+  if (buildExists) {
+    console.log('Diretório de assets encontrado, parece que o build foi concluído com sucesso');
+    
+    // Verificar arquivos em assets
+    const assetFiles = fs.readdirSync(buildDir);
+    console.log('Arquivos em assets:', assetFiles);
+    
+    // Procura por arquivos JS e CSS no diretório assets
+    const jsFiles = assetFiles.filter(file => file.endsWith('.js'));
+    const cssFiles = assetFiles.filter(file => file.endsWith('.css'));
+    
+    if (jsFiles.length > 0) {
+      console.log('Arquivos JS encontrados:', jsFiles);
+    } else {
+      console.warn('ATENÇÃO: Nenhum arquivo JS encontrado em assets!');
+    }
+    
+    if (cssFiles.length > 0) {
+      console.log('Arquivos CSS encontrados:', cssFiles);
+    }
+  } else {
+    console.warn('ATENÇÃO: Diretório de assets não encontrado. O build pode ter falhado!');
+  }
+  
   // Verificar se o index.html principal existe, caso contrário, copiar o fallback
   if (!fs.existsSync(path.join('dist', 'index.html'))) {
-    console.log('Index principal não encontrado, usando fallback...');
-    if (fs.existsSync('static-index.html')) {
-      // Usar o fallback estático se disponível
-      fs.copyFileSync('static-index.html', path.join('dist', 'index.html'));
-    } else if (fs.existsSync(path.join('client', 'index.html'))) {
-      // Tentar usar o index.html do cliente
-      fs.copyFileSync(path.join('client', 'index.html'), path.join('dist', 'index.html'));
-    } else {
-      // Criar um index.html básico
-      console.log('Criando index.html básico para redirecionamento...');
-      const htmlContent = `<!DOCTYPE html>
+    console.log('Index principal não encontrado no diretório dist, buscando alternativas...');
+    
+    // Procurar pelo index.html construído pelo Vite
+    const possibleIndexLocations = [
+      path.join('dist', 'client', 'index.html'),
+      path.join('client', 'dist', 'index.html'),
+      path.join('client', 'index.html')
+    ];
+    
+    let indexFound = false;
+    
+    for (const location of possibleIndexLocations) {
+      if (fs.existsSync(location)) {
+        console.log(`Index.html encontrado em ${location}, copiando para dist...`);
+        
+        // Ler o conteúdo do index.html
+        let indexContent = fs.readFileSync(location, 'utf8');
+        
+        // Se for do Vite, corrigir caminhos dos assets se necessário
+        if (buildExists && location !== path.join('client', 'index.html')) {
+          // Garantir que os caminhos de assets estejam corretos
+          indexContent = indexContent.replace(/src="\/assets\//g, 'src="/assets/');
+          indexContent = indexContent.replace(/href="\/assets\//g, 'href="/assets/');
+        }
+        
+        // Se for o arquivo original do cliente, injetar os scripts do build
+        if (location === path.join('client', 'index.html') && buildExists) {
+          const jsImports = jsFiles.map(file => 
+            `<script type="module" src="/assets/${file}"></script>`
+          ).join('\n');
+          
+          const cssImports = cssFiles.map(file => 
+            `<link rel="stylesheet" href="/assets/${file}">`
+          ).join('\n');
+          
+          // Substituir a referência ao script original pelo compilado
+          indexContent = indexContent.replace(
+            '<script type="module" src="/src/main.tsx"></script>', 
+            `${cssImports}\n${jsImports}`
+          );
+        }
+        
+        // Escrever o conteúdo modificado no index.html final
+        fs.writeFileSync(path.join('dist', 'index.html'), indexContent);
+        indexFound = true;
+        break;
+      }
+    }
+    
+    // Se ainda não encontrou o index.html, usar o fallback
+    if (!indexFound) {
+      if (fs.existsSync('static-index.html')) {
+        console.log('Usando página estática de fallback como index.html...');
+        let fallbackContent = fs.readFileSync('static-index.html', 'utf8');
+        
+        // Modificar a página estática para tentar carregar a aplicação principal
+        fallbackContent = fallbackContent.replace(
+          '<script>',
+          `<script>
+// Tentar carregar a aplicação principal dinamicamente
+document.addEventListener('DOMContentLoaded', function() {
+  // Verificar se há assets da aplicação
+  fetch('/assets/')
+    .then(response => {
+      if (response.ok) {
+        console.log('Assets da aplicação encontrados, tentando carregar...');
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = '/assets/index.js'; // Nome do arquivo principal do build
+        document.head.appendChild(script);
+      }
+    })
+    .catch(err => console.error('Erro ao verificar assets:', err));
+});
+`
+        );
+        
+        fs.writeFileSync(path.join('dist', 'index.html'), fallbackContent);
+      } else {
+        // Criar um index.html básico
+        console.log('Criando index.html básico para carregamento da aplicação...');
+        const htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Um Chamado à Edificação</title>
-  <script>
-    // Redirecionar para a aplicação frontend
-    window.location.href = '/client/';
-  </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-  <h1>Carregando aplicação...</h1>
-  <p>Você será redirecionado automaticamente. Se não for redirecionado, <a href="/client/">clique aqui</a>.</p>
+  <div class="container">
+    <h1>Um Chamado à Edificação</h1>
+    <p>Carregando aplicação...</p>
+    <div id="root"></div>
+  </div>
+  <script>
+    // Tentar carregar os assets da aplicação principal
+    document.addEventListener('DOMContentLoaded', function() {
+      const mainScript = document.createElement('script');
+      mainScript.type = 'module';
+      mainScript.src = '/assets/index.js';
+      mainScript.onerror = function() {
+        document.querySelector('.container').innerHTML = '<h1>Um Chamado à Edificação</h1><p>Não foi possível carregar a aplicação. Por favor, tente novamente mais tarde.</p>';
+      };
+      document.body.appendChild(mainScript);
+      
+      // Verificar o status da API
+      fetch('/api/healthcheck')
+        .then(response => response.json())
+        .then(data => {
+          console.log('API status:', data);
+        })
+        .catch(error => {
+          console.error('Erro ao verificar API:', error);
+        });
+    });
+  </script>
 </body>
 </html>`;
-      fs.writeFileSync(path.join('dist', 'index.html'), htmlContent);
+        fs.writeFileSync(path.join('dist', 'index.html'), htmlContent);
+      }
     }
+  } else {
+    console.log('Index.html já existe no diretório dist, mantendo o existente.');
   }
   
   console.log('Build para Vercel concluído com sucesso!');

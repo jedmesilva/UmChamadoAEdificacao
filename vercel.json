@@ -5,9 +5,7 @@
   "rewrites": [
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
     { "source": "/api/:path*", "destination": "/api/index.mjs" },
-    { "source": "/static/:path*", "destination": "/static/:path*" },
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/$1" },
+    { "source": "/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true,

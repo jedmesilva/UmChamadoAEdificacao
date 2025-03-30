@@ -142,33 +142,109 @@ const fallbackHTML = `
  */
 export default function handler(req, res) {
   try {
+    // Log da requisição recebida
+    console.log(`[Handler] Requisição recebida: ${req.method} ${req.url}`);
+    
     // Configurar headers corretos
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     
+    // Se for uma requisição para assets, permitir que passe pelo sistema de roteamento normal
+    if (req.url.startsWith('/assets/')) {
+      console.log('[Handler] Requisição para assets, deixando passar para o sistema de roteamento padrão');
+      return res.status(404).send('Not found via serverless function');
+    }
+    
     // Tenta carregar o arquivo index.html gerado pelo build do Vite
     try {
-      // Tentar ler o arquivo index.html do diretório atual
-      const indexPath = join(__dirname, 'index.html');
-      const htmlContent = readFileSync(indexPath, 'utf8');
-      return res.status(200).send(htmlContent);
+      // Procurar em múltiplos locais possíveis
+      const possiblePaths = [
+        join(__dirname, 'index.html'),
+        join(__dirname, 'client', 'index.html'),
+        join(__dirname, 'client', 'dist', 'index.html')
+      ];
+      
+      let htmlContent = null;
+      
+      // Testar cada caminho possível
+      for (const indexPath of possiblePaths) {
+        try {
+          console.log(`[Handler] Tentando ler index.html de: ${indexPath}`);
+          htmlContent = readFileSync(indexPath, 'utf8');
+          console.log(`[Handler] Sucesso ao ler index.html de: ${indexPath}`);
+          break;
+        } catch (err) {
+          console.log(`[Handler] Erro ao ler de ${indexPath}: ${err.message}`);
+          // Continua para o próximo caminho
+        }
+      }
+      
+      // Se encontrou um index.html válido
+      if (htmlContent) {
+        // Garante que exista uma div com id="root" para o React
+        if (!htmlContent.includes('id="root"')) {
+          console.log('[Handler] Adicionando div root ao HTML');
+          htmlContent = htmlContent.replace('</body>', '<div id="root"></div></body>');
+        }
+        
+        // Retorna o HTML encontrado
+        return res.status(200).send(htmlContent);
+      }
+      
+      // Se chegou aqui, não encontrou o index.html
+      throw new Error('Nenhum arquivo index.html válido encontrado');
     } catch (readError) {
-      console.error('Erro ao ler arquivo index.html:', readError);
+      console.error('[Handler] Erro ao ler arquivo index.html:', readError);
       
       // Tenta ler a página de fallback
       try {
+        console.log('[Handler] Tentando carregar fallback.html');
         const fallbackPath = join(__dirname, 'fallback.html');
-        const fallbackContent = readFileSync(fallbackPath, 'utf8');
+        let fallbackContent = readFileSync(fallbackPath, 'utf8');
+        
+        // Adiciona script para tentar carregar a aplicação principal
+        if (!fallbackContent.includes('tryLoadMainApp')) {
+          console.log('[Handler] Adicionando script de carregamento dinâmico ao fallback');
+          fallbackContent = fallbackContent.replace('<script>', `<script>
+            // Função para tentar carregar a aplicação principal
+            function tryLoadMainApp() {
+              console.log('Tentando carregar a aplicação principal...');
+              fetch('/assets/index.js')
+                .then(response => {
+                  if (response.ok) {
+                    console.log('Script principal encontrado!');
+                    const script = document.createElement('script');
+                    script.type = 'module';
+                    script.src = '/assets/index.js';
+                    document.head.appendChild(script);
+                    
+                    // Criar div root para React
+                    if (!document.getElementById('root')) {
+                      const root = document.createElement('div');
+                      root.id = 'root';
+                      document.body.appendChild(root);
+                    }
+                  }
+                })
+                .catch(err => console.error('Erro ao carregar script principal:', err));
+            }
+            
+            // Tentar carregar a aplicação após 1 segundo
+            setTimeout(tryLoadMainApp, 1000);
+          `);
+        }
+        
         return res.status(200).send(fallbackContent);
       } catch (fallbackError) {
-        console.error('Erro ao ler fallback.html:', fallbackError);
+        console.error('[Handler] Erro ao ler fallback.html:', fallbackError);
         
         // Se não conseguir ler nenhum dos arquivos, envia o HTML de fallback incorporado
+        console.log('[Handler] Enviando HTML de fallback incorporado');
         return res.status(200).send(fallbackHTML);
       }
     }
   } catch (error) {
-    console.error('Erro no handler:', error);
+    console.error('[Handler] Erro no handler principal:', error);
     
     // Em caso de erro, retorna o HTML de fallback incorporado
     return res.status(500).send(fallbackHTML);

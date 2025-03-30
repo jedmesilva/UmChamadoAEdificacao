@@ -147,12 +147,59 @@ Se o Vercel estiver mostrando o código-fonte dos arquivos JavaScript em vez de 
 2. Verifique se o index.html está sendo servido corretamente:
 ```json
 "rewrites": [
-  { "source": "/", "destination": "/index.html" },
-  ...
+  { "source": "/(.*)", "destination": "/index.html" }
 ]
 ```
 
 3. Se o problema persistir, tente criar um arquivo `.vercel/output/config.json` personalizado durante o build para definir as rotas com mais precisão.
+
+### Problema: Página estática/fallback é mostrada em vez da aplicação React
+
+Se a aplicação Vercel está mostrando a página estática de fallback em vez da aplicação React principal, isso pode ocorrer quando o build não está gerando corretamente os arquivos estáticos ou quando a configuração de rotas não está correta.
+
+**Solução:**
+1. Simplifique as regras de rewrite no vercel.json para evitar conflitos:
+```json
+"rewrites": [
+  { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
+  { "source": "/api/:path*", "destination": "/api/index.mjs" },
+  { "source": "/assets/:path*", "destination": "/assets/:path*" },
+  { "source": "/(.*)", "destination": "/index.html" }
+]
+```
+
+2. Ajuste o script vercel-build.mjs para melhorar a detecção e manipulação do index.html:
+   - Procurar em diversos locais possíveis (dist/index.html, client/index.html, etc.)
+   - Verificar a existência da pasta assets e arquivos JS, CSS relevantes
+   - Modificar o index.html para apontar para os assets corretos
+
+3. Modifique o static-index.html para tentar carregar a aplicação principal dinamicamente:
+```javascript
+// Adicione este código ao script
+function tryLoadMainApp() {
+  fetch('/assets/index.js')
+    .then(response => {
+      if (response.ok) {
+        // Criar e adicionar o script principal
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = '/assets/index.js';
+        document.head.appendChild(script);
+        
+        // Criar div root para React
+        if (!document.getElementById('root')) {
+          const root = document.createElement('div');
+          root.id = 'root';
+          document.body.appendChild(root);
+        }
+      }
+    });
+}
+// Executar após carregar a página
+setTimeout(tryLoadMainApp, 1000);
+```
+
+4. Verifique os logs de build no Vercel para identificar problemas específicos com a geração de assets.
 
 ### Problemas com CORS
 
