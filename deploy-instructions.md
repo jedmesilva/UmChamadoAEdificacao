@@ -34,21 +34,7 @@ Se você estiver enfrentando este erro no Vercel, siga estes passos:
    - Defina "Node.js Version" para 18.x
    - Ative a opção "Include additional dependency files"
 
-4. Adicione regras no vercel.json para resolver o problema (note o formato correto do runtime com @ no lugar de x):
-```json
-"functions": {
-  "api/*.mjs": {
-    "memory": 1024,
-    "maxDuration": 10,
-    "runtime": "nodejs@18.x"
-  },
-  "*.mjs": {
-    "memory": 1024,
-    "maxDuration": 10,
-    "runtime": "nodejs@18.x"
-  }
-}
-```
+4. **IMPORTANTE**: Para o deploy no Vercel, não use a propriedade `functions` no vercel.json, pois ela está causando problemas com a versão atual do Vercel CLI. Em vez disso, defina a versão do Node.js via configurações do projeto no painel do Vercel:
 
 5. **IMPORTANTE**: No Vercel, você não pode usar `routes` e `rewrites` juntos e a propriedade `fallback` também não é suportada. Use apenas `rewrites` com uma última regra para fallback:
 ```json
@@ -108,19 +94,12 @@ Este erro ocorre quando há conflito entre ESM e CommonJS no ambiente serverless
 
 ### Erro "Function Runtimes must have a valid version"
 
-Este erro ocorre quando o formato do runtime nas configurações de função está incorreto. O formato correto para especificar o runtime do Node.js 18 é:
+Este erro ocorre quando tentamos usar a propriedade `functions` no vercel.json. A partir das versões mais recentes do Vercel CLI, essa propriedade pode causar problemas.
 
-```json
-"runtime": "nodejs@18.x"
-```
-
-E não:
-
-```json
-"runtime": "nodejs18.x"  // Formato incorreto
-```
-
-Observe o uso de `@` em vez de concatenar diretamente o número da versão.
+**Solução:**
+1. Remova completamente a seção `functions` do vercel.json
+2. Configure a versão do Node.js diretamente no painel do Vercel em "Settings" > "General" > "Node.js Version"
+3. Se necessário, use o arquivo `.nvmrc` ou `.node-version` na raiz do projeto para especificar a versão do Node.js
 
 ### Erro com as Páginas do Frontend
 

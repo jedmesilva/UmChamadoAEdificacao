@@ -32,17 +32,5 @@
   "env": {
     "NODE_ENV": "production",
     "STORAGE_TYPE": "supabase"
-  },
-  "functions": {
-    "api/*.mjs": {
-      "memory": 1024,
-      "maxDuration": 10,
-      "runtime": "nodejs@18.x"
-    },
-    "*.mjs": {
-      "memory": 1024,
-      "maxDuration": 10,
-      "runtime": "nodejs@18.x"
-    }
   }
 }
