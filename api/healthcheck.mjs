@@ -18,15 +18,22 @@ export default function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Configuração de resposta com headers
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  try {
+    // Configuração de resposta com headers
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
-  // Resposta completa de healthcheck
-  return res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    message: 'API está funcionando corretamente!'
-  });
+    // Resposta completa de healthcheck
+    res.status(200).json({ 
+      status: 'ok',
+      message: 'API está operacional!',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error',
+      message: 'Erro ao verificar API',
+      error: error.message
+    });
+  }
 }

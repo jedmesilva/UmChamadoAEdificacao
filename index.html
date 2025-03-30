@@ -87,8 +87,8 @@
         fetch('/api/healthcheck')
           .then(response => {
             if (response.ok) {
-              // Redirecionamos para o índice do cliente
-              window.location.href = '/client/';
+              // Redirecionamos diretamente para a raiz (onde a app React deve estar)
+              window.location.href = '/';
             }
           })
           .catch(error => {
