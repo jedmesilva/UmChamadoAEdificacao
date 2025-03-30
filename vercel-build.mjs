@@ -293,11 +293,84 @@ try {
       const assetsFiles = fs.readdirSync('dist/assets');
       console.log(`Conteúdo de dist/assets (${assetsFiles.length} itens):`);
       assetsFiles.forEach(file => console.log(` - ${file}`));
+      
+      // Verificar se dist/assets contém o index.js
+      const hasIndexJs = assetsFiles.includes('index.js');
+      if (!hasIndexJs) {
+        console.warn('AVISO: index.js não encontrado em dist/assets! Buscando em outras localizações...');
+        
+        // Listar todas as pastas do projeto para encontrar index.js
+        const findFile = (dir, fileName, result = []) => {
+          if (!fs.existsSync(dir)) return result;
+          
+          const files = fs.readdirSync(dir);
+          files.forEach(file => {
+            const fullPath = path.join(dir, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+              findFile(fullPath, fileName, result);
+            } else if (file === fileName) {
+              result.push(fullPath);
+            }
+          });
+          return result;
+        };
+        
+        const indexJsLocations = findFile('dist', 'index.js');
+        console.log(`Localizações de index.js encontradas: ${indexJsLocations.length}`);
+        indexJsLocations.forEach(location => console.log(` - ${location}`));
+        
+        // Se encontrarmos index.js em outro lugar, copiamos para dist/assets
+        if (indexJsLocations.length > 0) {
+          console.log(`Copiando ${indexJsLocations[0]} para dist/assets/index.js`);
+          fs.copyFileSync(indexJsLocations[0], 'dist/assets/index.js');
+        }
+      }
     } catch (err) {
       console.error('Erro ao listar conteúdo da pasta dist/assets:', err);
     }
   } else {
     console.warn('AVISO: Pasta dist/assets não existe após tentativa de cópia!');
+    
+    // Criar dist/assets se não existir
+    fs.mkdirSync('dist/assets', { recursive: true });
+    console.log('Pasta dist/assets criada.');
+    
+    // Buscar arquivos JS em toda a estrutura de dist
+    console.log('Buscando arquivos JS em dist para movê-los para dist/assets...');
+    const findJsFiles = (dir, fileList = []) => {
+      if (!fs.existsSync(dir)) return fileList;
+      
+      const files = fs.readdirSync(dir);
+      files.forEach(file => {
+        const filePath = path.join(dir, file);
+        if (fs.statSync(filePath).isDirectory() && !filePath.includes('node_modules')) {
+          findJsFiles(filePath, fileList);
+        } else if (file.endsWith('.js')) {
+          fileList.push(filePath);
+        }
+      });
+      return fileList;
+    };
+    
+    const jsFiles = findJsFiles('dist');
+    console.log(`Encontrados ${jsFiles.length} arquivos JS em dist`);
+    
+    if (jsFiles.length > 0) {
+      const mainJsFiles = jsFiles.filter(file => 
+        file.includes('main.') || file.includes('index.') || file.includes('bundle.')
+      );
+      
+      console.log('Arquivos JS principais encontrados:');
+      mainJsFiles.forEach(file => console.log(` - ${file}`));
+      
+      if (mainJsFiles.length > 0) {
+        fs.copyFileSync(mainJsFiles[0], 'dist/assets/index.js');
+        console.log(`Arquivo ${mainJsFiles[0]} copiado para dist/assets/index.js`);
+      } else if (jsFiles.length > 0) {
+        fs.copyFileSync(jsFiles[0], 'dist/assets/index.js');
+        console.log(`Arquivo ${jsFiles[0]} copiado para dist/assets/index.js`);
+      }
+    }
   }
 
 
