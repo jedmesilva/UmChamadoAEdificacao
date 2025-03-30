@@ -1,12 +1,14 @@
 
 {
   "version": 2,
-  "buildCommand": "npm run build && node vercel-build.mjs",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
     { "source": "/api/:path*", "destination": "/api/index.mjs" },
-    { "source": "/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/client", "destination": "/client/index.html" },
+    { "source": "/client/:path*", "destination": "/client/:path*" },
+    { "source": "/assets/:path*", "destination": "/dist/assets/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true,
@@ -23,7 +25,7 @@
       ]
     },
     {
-      "source": "/(assets|dist|client)/(.*)",
+      "source": "/assets/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
@@ -35,8 +37,8 @@
   },
   "builds": [
     { "src": "api/*.mjs", "use": "@vercel/node" },
-    { "src": "*.html", "use": "@vercel/static" },
-    { "src": "assets/**/*", "use": "@vercel/static" },
-    { "src": "dist/**/*", "use": "@vercel/static" }
+    { "src": "dist/**/*", "use": "@vercel/static" },
+    { "src": "client/**/*", "use": "@vercel/static" },
+    { "src": "*.html", "use": "@vercel/static" }
   ]
 }
