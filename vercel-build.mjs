@@ -194,8 +194,13 @@ try {
     console.log('Arquivos em assets:', assetFiles);
     
     // Procura por arquivos JS e CSS no diretório assets
-    const jsFiles = assetFiles.filter(file => file.endsWith('.js'));
-    const cssFiles = assetFiles.filter(file => file.endsWith('.css'));
+    // Incluindo arquivos com padrão hash (ex: index-ab123c.js)
+    const jsFiles = assetFiles.filter(file => file.endsWith('.js') || /\.js$/.test(file));
+    const cssFiles = assetFiles.filter(file => file.endsWith('.css') || /\.css$/.test(file));
+    
+    // Identificar o arquivo principal do aplicativo (geralmente index ou main)
+    const mainJsFile = jsFiles.find(file => file.startsWith('index-') || file.startsWith('main-')) || 
+                       (jsFiles.length > 0 ? jsFiles[0] : null);
     
     if (jsFiles.length > 0) {
       console.log('Arquivos JS encontrados:', jsFiles);
@@ -268,25 +273,65 @@ try {
         let fallbackContent = fs.readFileSync('static-index.html', 'utf8');
         
         // Modificar a página estática para tentar carregar a aplicação principal
+        // Usar o arquivo principal identificado se disponível
+        const mainJsPath = mainJsFile ? `/assets/${mainJsFile}` : '/assets/index.js';
+        
         fallbackContent = fallbackContent.replace(
           '<script>',
           `<script>
 // Tentar carregar a aplicação principal dinamicamente
 document.addEventListener('DOMContentLoaded', function() {
   // Verificar se há assets da aplicação
-  fetch("/assets/")
-    .then(function(response) {
-      if (response.ok) {
-        console.log("Assets da aplicação encontrados, tentando carregar...");
-        var script = document.createElement("script");
-        script.type = "module";
-        script.src = "/assets/index.js"; // Nome do arquivo principal do build
-        document.head.appendChild(script);
+  var mainScriptPath = "${mainJsPath}";
+  console.log("Tentando carregar script principal:", mainScriptPath);
+  
+  var script = document.createElement("script");
+  script.type = "module";
+  script.src = mainScriptPath;
+  script.onload = function() {
+    console.log("Script principal carregado com sucesso!");
+  };
+  script.onerror = function() {
+    console.error("Erro ao carregar script principal. Tentando alternativas...");
+    // Tentar arquivos alternativos
+    var alternativeScripts = [
+      "/assets/index.js",
+      "/assets/main.js",
+      "/assets/app.js",
+      "/client/dist/assets/index.js"
+    ];
+    
+    function tryNextAlternative(index) {
+      if (index >= alternativeScripts.length) {
+        console.error("Todos os scripts alternativos falharam.");
+        return;
       }
-    })
-    .catch(function(err) { 
-      console.error("Erro ao verificar assets:", err);
-    });
+      
+      var altScript = document.createElement("script");
+      altScript.type = "module";
+      altScript.src = alternativeScripts[index];
+      altScript.onload = function() {
+        console.log("Script alternativo carregado:", alternativeScripts[index]);
+      };
+      altScript.onerror = function() {
+        console.error("Falha ao carregar:", alternativeScripts[index]);
+        tryNextAlternative(index + 1);
+      };
+      document.head.appendChild(altScript);
+    }
+    
+    tryNextAlternative(0);
+  };
+  document.head.appendChild(script);
+  
+  // Também carregar o CSS se disponível
+  ${cssFiles.length > 0 ? `
+  var mainCssPath = "/assets/${cssFiles[0]}";
+  var linkElement = document.createElement("link");
+  linkElement.rel = "stylesheet";
+  linkElement.href = mainCssPath;
+  document.head.appendChild(linkElement);
+  ` : ''}
 });
 `
         );
@@ -295,6 +340,9 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         // Criar um index.html básico
         console.log('Criando index.html básico para carregamento da aplicação...');
+        // Usar o arquivo principal identificado se disponível
+        const mainJsPath = mainJsFile ? `/assets/${mainJsFile}` : '/assets/index.js';
+        
         const htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -322,34 +370,107 @@ document.addEventListener('DOMContentLoaded', function() {
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       text-align: center;
     }
+    .logs {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #666;
+      text-align: left;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      height: 100px;
+      overflow-y: auto;
+    }
   </style>
+  ${cssFiles.length > 0 ? `<link rel="stylesheet" href="/assets/${cssFiles[0]}">` : ''}
 </head>
 <body>
   <div class="container">
     <h1>Um Chamado à Edificação</h1>
-    <p>Carregando aplicação...</p>
+    <p id="status-message">Carregando aplicação...</p>
     <div id="root"></div>
+    <div class="logs" id="debug-logs"></div>
   </div>
   <script>
+    // Função para adicionar logs
+    function addLog(message) {
+      var logElement = document.getElementById('debug-logs');
+      var logItem = document.createElement('div');
+      logItem.textContent = message;
+      logElement.appendChild(logItem);
+      logElement.scrollTop = logElement.scrollHeight;
+      console.log(message);
+    }
+    
+    // Atualizar mensagem de status
+    function updateStatus(message) {
+      document.getElementById('status-message').textContent = message;
+    }
+    
     // Tentar carregar os assets da aplicação principal
     document.addEventListener('DOMContentLoaded', function() {
-      var mainScript = document.createElement('script');
-      mainScript.type = 'module';
-      mainScript.src = '/assets/index.js';
-      mainScript.onerror = function() {
-        document.querySelector('.container').innerHTML = '<h1>Um Chamado à Edificação</h1><p>Não foi possível carregar a aplicação. Por favor, tente novamente mais tarde.</p>';
-      };
-      document.body.appendChild(mainScript);
+      addLog("Iniciando carregamento da aplicação...");
       
       // Verificar o status da API
       fetch('/api/healthcheck')
         .then(function(response) { return response.json(); })
         .then(function(data) {
-          console.log('API status:', data);
+          addLog("API OK: " + JSON.stringify(data));
         })
         .catch(function(error) {
-          console.error('Erro ao verificar API:', error);
+          addLog("Erro na API: " + error);
         });
+      
+      // Script principal a carregar
+      var mainScriptPath = "${mainJsPath}";
+      addLog("Tentando carregar script principal: " + mainScriptPath);
+      
+      var script = document.createElement('script');
+      script.type = 'module';
+      script.src = mainScriptPath;
+      script.onload = function() {
+        addLog("Script principal carregado com sucesso!");
+        updateStatus("Aplicação carregada!");
+      };
+      script.onerror = function() {
+        addLog("Erro ao carregar script principal. Tentando alternativas...");
+        
+        // Lista de scripts alternativos a tentar
+        var alternativeScripts = [
+          "/assets/index.js",
+          "/assets/main.js",
+          "/assets/app.js",
+          "/dist/assets/index.js",
+          "/client/dist/assets/index.js",
+          "/client/assets/index.js"
+        ];
+        
+        function tryNextAlternative(index) {
+          if (index >= alternativeScripts.length) {
+            addLog("Todos os scripts alternativos falharam.");
+            updateStatus("Não foi possível carregar a aplicação. Por favor, tente novamente mais tarde.");
+            return;
+          }
+          
+          var altScript = document.createElement("script");
+          altScript.type = "module";
+          altScript.src = alternativeScripts[index];
+          addLog("Tentando alternativa: " + alternativeScripts[index]);
+          
+          altScript.onload = function() {
+            addLog("Script alternativo carregado: " + alternativeScripts[index]);
+            updateStatus("Aplicação carregada!");
+          };
+          altScript.onerror = function() {
+            addLog("Falha ao carregar: " + alternativeScripts[index]);
+            tryNextAlternative(index + 1);
+          };
+          document.head.appendChild(altScript);
+        }
+        
+        tryNextAlternative(0);
+      };
+      document.head.appendChild(script);
     });
   </script>
 </body>

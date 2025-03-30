@@ -135,51 +135,147 @@
         }
       }
       
+      // Procurar por scripts com padrão hash
+      async function findMainScript() {
+        console.log('Procurando pelo script principal com padrão de hash...');
+        
+        // Padrões possíveis de arquivo
+        const possiblePatterns = [
+          '/assets/index-', 
+          '/assets/main-',
+          '/dist/assets/index-',
+          '/dist/assets/main-'
+        ];
+        
+        // Tentar os padrões de hash primeiro para arquivos com hash de build
+        for (const pattern of possiblePatterns) {
+          try {
+            // Tentar fazer uma solicitação para o diretório
+            const dirPath = pattern.substring(0, pattern.lastIndexOf('/'));
+            const dirResponse = await fetch(dirPath);
+            
+            if (dirResponse.ok) {
+              console.log(`Diretório encontrado: ${dirPath}`);
+              // Não podemos listar o diretório no navegador, então vamos tentar alguns hashes comuns
+              const possibleHashes = ['', '1', '2', '3', 'a', 'b', 'c', 'd', 'e', 'f'];
+              
+              for (const hash of possibleHashes) {
+                const testPath = `${pattern}${hash}.js`;
+                try {
+                  const response = await fetch(testPath);
+                  if (response.ok) {
+                    console.log(`Script encontrado: ${testPath}`);
+                    return testPath;
+                  }
+                } catch (err) {
+                  // Ignorar erros individuais e continuar tentando
+                }
+              }
+            }
+          } catch (err) {
+            // Ignorar erros e continuar tentando
+          }
+        }
+        
+        // Se não encontrar nenhum script com padrão de hash, tentar os caminhos diretos
+        const directPaths = [
+          '/assets/index.js',
+          '/assets/main.js',
+          '/dist/assets/index.js',
+          '/dist/assets/main.js',
+          '/client/dist/assets/index.js'
+        ];
+        
+        for (const path of directPaths) {
+          try {
+            const response = await fetch(path);
+            if (response.ok) {
+              console.log(`Script encontrado: ${path}`);
+              return path;
+            }
+          } catch (err) {
+            // Ignorar erros individuais e continuar tentando
+          }
+        }
+        
+        // Se não encontrar nenhum script, retornar o padrão
+        return '/assets/index.js';
+      }
+      
       // Tentar carregar a aplicação principal
-      function tryLoadMainApp() {
+      async function tryLoadMainApp() {
         console.log('Tentando carregar a aplicação principal...');
         
-        // Verificar se os assets estão disponíveis
-        fetch('/assets/index.js')
-          .then(response => {
-            if (response.ok) {
-              console.log('Script principal encontrado, carregando aplicação...');
-              
-              // Adicionar o script principal
-              const script = document.createElement('script');
-              script.type = 'module';
-              script.src = '/assets/index.js';
-              document.head.appendChild(script);
-              
-              // Criar div root para a aplicação React
-              if (!document.getElementById('root')) {
-                const root = document.createElement('div');
-                root.id = 'root';
-                document.body.appendChild(root);
-              }
-              
-              // Remover a interface de fallback após um tempo
-              setTimeout(() => {
-                const container = document.querySelector('.container');
-                if (container && document.getElementById('root')) {
-                  container.style.display = 'none';
-                }
-              }, 3000);
-            } else {
-              console.warn('Script principal não disponível, tentando redirecionamento simples');
-              // Se não conseguir carregar o script, tenta redirecionamento
-              setTimeout(() => {
-                window.location.href = '/';
-              }, 3000);
+        try {
+          // Encontrar o script principal
+          const mainScriptPath = await findMainScript();
+          console.log(`Script principal a ser carregado: ${mainScriptPath}`);
+          
+          // Verificar se há um CSS correspondente
+          const cssPath = mainScriptPath.replace('.js', '.css');
+          try {
+            const cssResponse = await fetch(cssPath);
+            if (cssResponse.ok) {
+              console.log(`CSS encontrado: ${cssPath}`);
+              // Adicionar o CSS
+              const link = document.createElement('link');
+              link.rel = 'stylesheet';
+              link.href = cssPath;
+              document.head.appendChild(link);
             }
-          })
-          .catch(error => {
-            console.error('Erro ao carregar script principal:', error);
-            // Se falhar, tentar redirecionamento simples
+          } catch (cssErr) {
+            // Ignorar erros de CSS
+          }
+          
+          // Adicionar o script principal
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.src = mainScriptPath;
+          
+          // Lidar com sucesso ou falha no carregamento
+          script.onload = () => {
+            console.log('Script principal carregado com sucesso!');
+            
+            // Criar div root para a aplicação React se ainda não existir
+            if (!document.getElementById('root')) {
+              const root = document.createElement('div');
+              root.id = 'root';
+              document.body.appendChild(root);
+            }
+            
+            // Remover a interface de fallback após um tempo
             setTimeout(() => {
-              window.location.href = '/';
-            }, 3000);
-          });
+              const container = document.querySelector('.container');
+              if (container && document.getElementById('root')) {
+                container.style.display = 'none';
+              }
+            }, 2000);
+          };
+          
+          script.onerror = () => {
+            console.error(`Erro ao carregar o script principal: ${mainScriptPath}`);
+            // Atualizar a interface para mostrar o erro
+            const statusContainer = document.querySelector('.status-container');
+            statusContainer.innerHTML = `
+              <p style="color: #d32f2f;">❌ Não foi possível carregar o aplicativo principal.</p>
+              <p>Estamos enfrentando dificuldades técnicas.</p>
+              <p>Por favor, tente novamente mais tarde ou entre em contato com o suporte.</p>
+            `;
+          };
+          
+          // Adicionar o script ao documento
+          document.head.appendChild(script);
+          
+        } catch (error) {
+          console.error('Erro ao tentar carregar a aplicação:', error);
+          // Se falhar, mostrar mensagem de erro
+          const statusContainer = document.querySelector('.status-container');
+          statusContainer.innerHTML = `
+            <p style="color: #d32f2f;">❌ Erro ao inicializar a aplicação.</p>
+            <p>Detalhes: ${error.message || 'Erro desconhecido'}</p>
+            <p>Por favor, tente novamente mais tarde.</p>
+          `;
+        }
       }
       
       // Executar verificação após 1 segundo

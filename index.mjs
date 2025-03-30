@@ -119,6 +119,12 @@ export default function handler(req, res) {
       
       // Lista expandida de possíveis caminhos de assets
       var scripts = [
+        // Verificar arquivos com padrão de hash no nome (padrão de build do Vite)
+        '/assets/index-*.js',
+        '/assets/main-*.js',
+        '/client/dist/assets/index-*.js',
+        '/client/dist/assets/main-*.js',
+        // Possíveis localizações diretas
         '/assets/index.js',
         '/assets/main.js',
         '/client/dist/assets/index.js',
@@ -171,6 +177,66 @@ export default function handler(req, res) {
         checkDirectory(0);
       }
       
+      // Função especial para lidar com padrões de arquivo com wildcard
+      function tryWildcardScript(pattern) {
+        // Se o padrão contiver '*', extrair o diretório base e verificar
+        if (pattern.indexOf('*') !== -1) {
+          var baseDir = pattern.substring(0, pattern.lastIndexOf('/'));
+          var filePrefix = pattern.substring(pattern.lastIndexOf('/') + 1, pattern.indexOf('*'));
+          var fileSuffix = pattern.substring(pattern.indexOf('*') + 1);
+          
+          addLog("Verificando diretório " + baseDir + " por arquivos que começam com " + filePrefix);
+          
+          // Tentar fazer request para o diretório para ver se está disponível
+          return fetch(baseDir)
+            .then(function() {
+              // O diretório existe, agora precisamos uma maneira de descobrir os arquivos
+              // No ambiente serverless não é possível listar diretórios, então vamos tentar
+              // adivinhar baseado no padrão comum de nomes do Vite (index-[hash].js)
+              
+              // Tentativa 1: Verificar possíveis arquivos hash mais comuns
+              var possibleHashes = ['abc123', 'def456', 'main', 'app', 'bundle', 'client'];
+              
+              // Criar promessas para todos os possíveis nomes de arquivo
+              var fetchPromises = possibleHashes.map(function(hash) {
+                var testFile = baseDir + '/' + filePrefix + hash + fileSuffix;
+                return fetch(testFile)
+                  .then(function(response) {
+                    if (response.ok) {
+                      addLog("Asset encontrado: " + testFile);
+                      return testFile;
+                    }
+                    return null;
+                  })
+                  .catch(function() {
+                    return null;
+                  });
+              });
+              
+              // Verificar resultados de todas as requisições
+              return Promise.all(fetchPromises)
+                .then(function(results) {
+                  // Filtrar resultados para obter apenas os arquivos válidos
+                  var foundFiles = results.filter(function(file) { return file !== null; });
+                  return foundFiles.length > 0 ? foundFiles[0] : null;
+                });
+            })
+            .catch(function() {
+              addLog("Diretório " + baseDir + " não encontrado");
+              return null;
+            });
+        } else {
+          // Para arquivos sem wildcard, verificar diretamente
+          return fetch(pattern)
+            .then(function(response) {
+              return response.ok ? pattern : null;
+            })
+            .catch(function() {
+              return null;
+            });
+        }
+      }
+      
       // Função para tentar carregar scripts da lista
       function tryNextScript(index) {
         if (index >= scripts.length) {
@@ -183,23 +249,23 @@ export default function handler(req, res) {
         var src = scripts[index];
         addLog("Verificando: " + src);
         
-        fetch(src)
-          .then(function(response) {
-            if (response.ok) {
-              addLog("Encontrado: " + src);
+        tryWildcardScript(src)
+          .then(function(foundSrc) {
+            if (foundSrc) {
+              addLog("Encontrado: " + foundSrc);
               // Verificar se há CSS correspondente
-              var cssPath = src.replace('.js', '.css');
+              var cssPath = foundSrc.replace('.js', '.css');
               tryLoadCSS(cssPath);
               
               // Carregar o script
               var script = document.createElement('script');
               script.type = 'module';
-              script.src = src;
+              script.src = foundSrc;
               script.onload = function() {
                 addLog("Script carregado com sucesso!");
               };
               script.onerror = function() {
-                addLog("Erro ao carregar script: " + src);
+                addLog("Erro ao carregar script: " + foundSrc);
                 tryNextScript(index + 1);
               };
               document.head.appendChild(script);
@@ -207,8 +273,8 @@ export default function handler(req, res) {
               tryNextScript(index + 1);
             }
           })
-          .catch(function() {
-            addLog("Falha ao carregar " + src);
+          .catch(function(error) {
+            addLog("Falha ao verificar " + src + ": " + (error.message || "Erro desconhecido"));
             tryNextScript(index + 1);
           });
       }
