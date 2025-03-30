@@ -6,8 +6,9 @@
     { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
     { "source": "/api/:path*", "destination": "/api/index.mjs" },
     { "source": "/static/:path*", "destination": "/static/:path*" },
+    { "source": "/", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/$1" },
-    { "source": "/(.*)", "destination": "/static/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true,
   "trailingSlash": false,
@@ -32,5 +33,12 @@
   "env": {
     "NODE_ENV": "production",
     "STORAGE_TYPE": "supabase"
-  }
+  },
+  "builds": [
+    { "src": "api/*.mjs", "use": "@vercel/node" },
+    { "src": "index.mjs", "use": "@vercel/node" },
+    { "src": "public/**/*", "use": "@vercel/static" },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "assets/**/*", "use": "@vercel/static" }
+  ]
 }

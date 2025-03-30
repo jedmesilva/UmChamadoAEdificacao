@@ -126,9 +126,35 @@ try {
   }
   
   // Verificar se o index.html principal existe, caso contrário, copiar o fallback
-  if (!fs.existsSync(path.join('dist', 'index.html')) && fs.existsSync('static-index.html')) {
+  if (!fs.existsSync(path.join('dist', 'index.html'))) {
     console.log('Index principal não encontrado, usando fallback...');
-    fs.copyFileSync('static-index.html', path.join('dist', 'index.html'));
+    if (fs.existsSync('static-index.html')) {
+      // Usar o fallback estático se disponível
+      fs.copyFileSync('static-index.html', path.join('dist', 'index.html'));
+    } else if (fs.existsSync(path.join('client', 'index.html'))) {
+      // Tentar usar o index.html do cliente
+      fs.copyFileSync(path.join('client', 'index.html'), path.join('dist', 'index.html'));
+    } else {
+      // Criar um index.html básico
+      console.log('Criando index.html básico para redirecionamento...');
+      const htmlContent = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Um Chamado à Edificação</title>
+  <script>
+    // Redirecionar para a aplicação frontend
+    window.location.href = '/client/';
+  </script>
+</head>
+<body>
+  <h1>Carregando aplicação...</h1>
+  <p>Você será redirecionado automaticamente. Se não for redirecionado, <a href="/client/">clique aqui</a>.</p>
+</body>
+</html>`;
+      fs.writeFileSync(path.join('dist', 'index.html'), htmlContent);
+    }
   }
   
   console.log('Build para Vercel concluído com sucesso!');

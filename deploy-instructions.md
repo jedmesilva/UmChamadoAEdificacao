@@ -36,20 +36,33 @@ Se você estiver enfrentando este erro no Vercel, siga estes passos:
 
 4. **IMPORTANTE**: Para o deploy no Vercel, não use a propriedade `functions` no vercel.json, pois ela está causando problemas com a versão atual do Vercel CLI. Em vez disso, defina a versão do Node.js via configurações do projeto no painel do Vercel:
 
-5. **IMPORTANTE**: No Vercel, você não pode usar `routes` e `rewrites` juntos e a propriedade `fallback` também não é suportada. Use apenas `rewrites` com uma última regra para fallback:
+5. **IMPORTANTE**: No Vercel, você não pode usar `routes` e `rewrites` juntos e a propriedade `fallback` também não é suportada. Use as propriedades corretas para configurar o Vercel:
+
 ```json
 "rewrites": [
   { "source": "/api/healthcheck", "destination": "/api/healthcheck.mjs" },
   { "source": "/api/:path*", "destination": "/api/index.mjs" },
   { "source": "/static/:path*", "destination": "/static/:path*" },
+  { "source": "/", "destination": "/index.html" },
   { "source": "/(.*)", "destination": "/$1" },
-  { "source": "/(.*)", "destination": "/static/index.html" }
+  { "source": "/(.*)", "destination": "/index.html" }
 ],
 "cleanUrls": true,
-"trailingSlash": false
+"trailingSlash": false,
+"builds": [
+  { "src": "api/*.mjs", "use": "@vercel/node" },
+  { "src": "index.mjs", "use": "@vercel/node" },
+  { "src": "public/**/*", "use": "@vercel/static" },
+  { "src": "*.html", "use": "@vercel/static" },
+  { "src": "assets/**/*", "use": "@vercel/static" }
+]
 ```
 
-Importante: A ordem das regras de rewrite é crucial. A última regra só será aplicada se nenhuma das anteriores corresponder.
+Importante: 
+- A ordem das regras de rewrite é crucial. A última regra só será aplicada se nenhuma das anteriores corresponder.
+- A propriedade `builds` especifica como cada tipo de arquivo deve ser tratado pelo Vercel.
+- Arquivos `.mjs` são tratados como funções serverless Node.js.
+- Arquivos estáticos como HTML, CSS, JS e imagens são tratados como ativos estáticos.
 
 ## Estrutura de Arquivos para Deploy
 
@@ -114,6 +127,32 @@ Se o frontend não estiver carregando corretamente, verifique:
    - Acesse `/api/healthcheck` para verificar se a API está respondendo
 
 3. **Logs no Vercel**: Verifique os logs de função no painel do Vercel para identificar erros específicos.
+
+### Problema: Código-fonte é mostrado em vez da aplicação
+
+Se o Vercel estiver mostrando o código-fonte dos arquivos JavaScript em vez de executar a aplicação, isso indica que o servidor está tratando os arquivos como estáticos em vez de executá-los.
+
+**Solução:**
+1. Certifique-se de que a configuração `builds` está correta no vercel.json:
+```json
+"builds": [
+  { "src": "api/*.mjs", "use": "@vercel/node" },
+  { "src": "index.mjs", "use": "@vercel/node" },
+  { "src": "public/**/*", "use": "@vercel/static" },
+  { "src": "*.html", "use": "@vercel/static" },
+  { "src": "assets/**/*", "use": "@vercel/static" }
+]
+```
+
+2. Verifique se o index.html está sendo servido corretamente:
+```json
+"rewrites": [
+  { "source": "/", "destination": "/index.html" },
+  ...
+]
+```
+
+3. Se o problema persistir, tente criar um arquivo `.vercel/output/config.json` personalizado durante o build para definir as rotas com mais precisão.
 
 ### Problemas com CORS
 
