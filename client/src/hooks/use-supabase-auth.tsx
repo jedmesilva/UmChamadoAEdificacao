@@ -244,50 +244,14 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const createProfile = async (name: string, email: string) => {
     try {
       setIsLoading(true);
-      console.log(`Iniciando criação de perfil para ${email} com nome ${name}`);
+      console.log(`Criação de perfil para ${email} com nome ${name} não é mais necessária`);
       
-      if (!session) {
-        throw new Error("Usuário precisa estar autenticado para criar perfil");
-      }
-      
-      console.log("Tentando criar perfil via API em: /api/auth/create-profile");
-      
-      const response = await fetch("/api/auth/create-profile", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          user_id: user?.id,
-          session
-        }),
-        credentials: "include"
-      });
-      
-      console.log(`Resposta do servidor: ${response.status} ${response.statusText}`);
-      
-      let responseData;
-      const responseText = await response.text();
-      
-      try {
-        if (responseText) {
-          responseData = JSON.parse(responseText);
-          console.log("Resposta parseada do servidor:", responseData);
-        }
-      } catch (parseError) {
-        console.error("Erro ao parsear resposta:", parseError, "Texto da resposta:", responseText);
-      }
-      
-      if (!response.ok) {
-        console.error(`Erro na API de criação de perfil: ${response.status} - ${responseText}`);
-        throw new Error(`Erro na criação de perfil: ${response.status} - ${responseText || response.statusText}`);
-      }
+      // O perfil já foi criado durante o registro através da API /api/auth/register
+      // que cria tanto o usuário de autenticação quanto o perfil na tabela account_user
       
       toast({
-        title: "Perfil criado com sucesso",
-        description: "Seu perfil foi configurado corretamente",
+        title: "Conta criada com sucesso",
+        description: "Seu perfil foi configurado automaticamente",
       });
       
       return;
@@ -300,10 +264,10 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         errorMessage = String(error.message);
       }
       
-      console.error("Erro na criação do perfil:", errorMessage);
+      console.error("Erro durante o processo:", errorMessage);
       
       toast({
-        title: "Erro ao criar perfil",
+        title: "Erro durante o processo",
         description: errorMessage,
         variant: "destructive",
       });

@@ -109,10 +109,10 @@ const AuthPage = () => {
 
   const onRegisterSubmit = async (data: RegisterFormValues) => {
     try {
-      console.log("Iniciando fluxo de registro com separação auth/perfil");
+      console.log("Iniciando fluxo de registro simplificado");
       
-      // 1. Primeiro registra na autenticação (apenas email/senha)
-      console.log("1. Registrando usuário na autenticação");
+      // 1. Registra o usuário na autenticação
+      console.log("1. Registrando usuário");
       await signUp(data.email, data.password, data.name);
       
       try {
@@ -120,16 +120,12 @@ const AuthPage = () => {
         console.log("2. Fazendo login após registro bem-sucedido");
         await signIn(data.email, data.password);
         
-        // 3. Cria o perfil do usuário na tabela account_user
-        console.log("3. Criando perfil de usuário no banco de dados");
-        await createProfile(data.name, data.email);
-        
-        // 4. Redireciona para dashboard após todas as etapas
-        console.log("4. Redirecionando para o dashboard");
+        // 3. Redireciona para dashboard após autenticação
+        console.log("3. Redirecionando para o dashboard");
         setLocation("/dashboard");
-      } catch (profileError) {
-        console.error("Erro após autenticação:", profileError);
-        throw profileError;
+      } catch (loginError) {
+        console.error("Erro após registro:", loginError);
+        throw loginError;
       }
     } catch (error) {
       console.error("Erro durante o registro:", error);
