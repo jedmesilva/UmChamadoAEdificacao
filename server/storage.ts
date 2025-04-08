@@ -401,8 +401,8 @@ export function createStorage(type: StorageType): IStorage {
   }
 }
 
-// Usar Supabase conforme solicitado pelo usuário
-const storageType = StorageType.SUPABASE;
+// Usar MemStorage porque as tabelas do Supabase não estão configuradas
+const storageType = StorageType.MEMORY;
 
 console.log(`Usando armazenamento do tipo: ${storageType}`);
 
