@@ -45,13 +45,25 @@ export async function apiRequest<T = any>(
   
   console.log(`Fazendo requisição ${method} para: ${normalizedUrl}`);
   
-  const res = await fetch(normalizedUrl, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-    signal: AbortSignal.timeout(30000) // 30 segundos de timeout
-  });
+  let attempts = 0;
+  const maxAttempts = 3;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const res = await fetch(normalizedUrl, {
+        method,
+        headers: data ? { "Content-Type": "application/json" } : {},
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: "include",
+        signal: AbortSignal.timeout(45000) // 45 segundos de timeout
+      });
+      return res;
+    } catch (error) {
+      attempts++;
+      if (attempts === maxAttempts) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Espera progressiva
+    }
+  }
 
   await throwIfResNotOk(res);
   return await res.json() as T;
