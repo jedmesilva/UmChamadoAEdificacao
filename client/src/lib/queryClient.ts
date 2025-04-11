@@ -48,6 +48,8 @@ export async function apiRequest<T = any>(
   let attempts = 0;
   const maxAttempts = 3;
   
+  let lastResponse = null;
+  
   while (attempts < maxAttempts) {
     try {
       const res = await fetch(normalizedUrl, {
@@ -57,16 +59,17 @@ export async function apiRequest<T = any>(
         credentials: "include",
         signal: AbortSignal.timeout(45000) // 45 segundos de timeout
       });
-      return res;
+      
+      await throwIfResNotOk(res);
+      return await res.json() as T;
+      
     } catch (error) {
       attempts++;
+      console.error(`Tentativa ${attempts} falhou:`, error);
       if (attempts === maxAttempts) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempts)); // Espera progressiva
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
     }
   }
-
-  await throwIfResNotOk(res);
-  return await res.json() as T;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
