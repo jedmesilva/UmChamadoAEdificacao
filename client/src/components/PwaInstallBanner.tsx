@@ -63,7 +63,7 @@ const PwaInstallBanner = () => {
     <div className="fixed bottom-4 left-0 right-0 mx-auto w-[90%] max-w-md bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-in slide-in-from-bottom duration-300">
       <div className="p-4 flex flex-col">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-lg text-gray-900">Instale nossa Newsletter</h3>
+          <h3 className="font-semibold text-lg text-gray-900 font-heading">Instale Um Chamado à Edificação</h3>
           <button 
             onClick={closeBanner} 
             className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -74,7 +74,7 @@ const PwaInstallBanner = () => {
         </div>
         
         <p className="text-gray-600 mb-3 text-sm">
-          Instale o InsightWeekly para acessar a newsletter mesmo offline e receber notificações de novos conteúdos!
+          Instale o aplicativo para acessar as cartas mesmo offline e receber notificações de novos conteúdos!
         </p>
         
         <div className="flex items-center gap-2 mt-1">
@@ -86,7 +86,7 @@ const PwaInstallBanner = () => {
           </button>
           <button
             onClick={handleInstallClick}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-md text-white text-sm font-medium hover:opacity-90 transition-colors shadow-sm"
+            className="px-6 py-3 bg-gray-800 text-white rounded hover:bg-gray-700 text-sm font-medium transition-colors shadow-sm"
           >
             Instalar aplicativo
           </button>
