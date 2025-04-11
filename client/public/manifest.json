@@ -1,11 +1,11 @@
 {
-  "name": "InsightWeekly - Newsletter Semanal",
-  "short_name": "InsightWeekly",
-  "description": "Newsletter semanal com insights sobre tecnologia, negócios e crescimento profissional",
+  "name": "Um Chamado à Edificação",
+  "short_name": "Um chamado",
+  "description": "Cartas semanais para a convocação dos edificadores",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#d20b6e",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/icon-192.png",
