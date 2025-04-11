@@ -1,11 +1,14 @@
 
-const CACHE_NAME = 'chamado-v1';
+const CACHE_NAME = 'insightweekly-v1';
 const CORE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.ico',
   '/ascenoanimation.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/cartas-icon.png',
   '/assets/index.css',
   '/assets/index.js'
 ];
