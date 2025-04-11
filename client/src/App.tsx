@@ -10,6 +10,7 @@ import LetterPage from "@/pages/letter-page";
 import DeployInfo from "@/pages/deploy-info";
 import { ProtectedRoute } from "./lib/protected-route";
 import { SupabaseAuthProvider } from "./hooks/use-supabase-auth";
+import PwaInstallBanner from "./components/PwaInstallBanner";
 
 function Router() {
   return (
@@ -29,6 +30,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <SupabaseAuthProvider>
         <Router />
+        <PwaInstallBanner />
         <Toaster />
       </SupabaseAuthProvider>
     </QueryClientProvider>
