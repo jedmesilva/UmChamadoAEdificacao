@@ -1,0 +1,27 @@
+{
+  "name": "InsightWeekly - Newsletter Semanal",
+  "short_name": "InsightWeekly",
+  "description": "Newsletter semanal com insights sobre tecnologia, negócios e crescimento profissional",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#d20b6e",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/maskable-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
