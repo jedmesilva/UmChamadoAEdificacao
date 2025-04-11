@@ -1,27 +1,47 @@
+
 {
   "name": "Um Chamado à Edificação",
-  "short_name": "Um chamado",
+  "short_name": "Um Chamado",
   "description": "Cartas semanais para a convocação dos edificadores",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "scope": "/",
   "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "lifestyle"],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Ver Cartas",
+      "url": "/dashboard",
+      "description": "Acesse suas cartas do chamado",
+   "icons": [
+      {
+        "src": "/cartas-icon.png",
+        "sizes": "64x64",
+        "type": "image/png"
+      }
+   ]   
     }
   ]
 }
