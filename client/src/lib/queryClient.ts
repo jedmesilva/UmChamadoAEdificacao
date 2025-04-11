@@ -50,6 +50,7 @@ export async function apiRequest<T = any>(
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
+    signal: AbortSignal.timeout(30000) // 30 segundos de timeout
   });
 
   await throwIfResNotOk(res);
