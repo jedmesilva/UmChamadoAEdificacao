@@ -188,12 +188,10 @@ const SubscriptionForm = () => {
         }
       }
     } catch (error) {
-      let errorMessage = "Ocorreu um erro. Tente novamente em alguns instantes.";
+      let errorMessage = "Ocorreu um erro. Tente novamente.";
       
       if (error instanceof Error) {
         errorMessage = error.message;
-        // Remove o prefixo de erro técnico para melhor legibilidade
-        errorMessage = errorMessage.replace('408: ', '');
       } else if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message);
       }

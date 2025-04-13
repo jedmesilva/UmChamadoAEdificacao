@@ -45,31 +45,15 @@ export async function apiRequest<T = any>(
   
   console.log(`Fazendo requisição ${method} para: ${normalizedUrl}`);
   
-  let attempts = 0;
-  const maxAttempts = 3;
-  
-  let lastResponse = null;
-  
-  while (attempts < maxAttempts) {
-    try {
-      const res = await fetch(normalizedUrl, {
-        method,
-        headers: data ? { "Content-Type": "application/json" } : {},
-        body: data ? JSON.stringify(data) : undefined,
-        credentials: "include",
-        signal: AbortSignal.timeout(45000) // 45 segundos de timeout
-      });
-      
-      await throwIfResNotOk(res);
-      return await res.json() as T;
-      
-    } catch (error) {
-      attempts++;
-      console.error(`Tentativa ${attempts} falhou:`, error);
-      if (attempts === maxAttempts) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-    }
-  }
+  const res = await fetch(normalizedUrl, {
+    method,
+    headers: data ? { "Content-Type": "application/json" } : {},
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return await res.json() as T;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
