@@ -3,7 +3,6 @@ import Footer from "@/components/layout/footer";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
 
 const LandingPage = () => {
   const { user } = useSupabaseAuth();
@@ -15,10 +14,6 @@ const LandingPage = () => {
       setLocation("/dashboard");
     }
   }, [user, setLocation]);
-
-  const handleCreateAccount = () => {
-    setLocation("/auth?tab=register");
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -61,18 +56,6 @@ const LandingPage = () => {
         </div>
         
         <p className="text-xl mb-8 font-medium">Você está pronto para edificar?</p>
-        
-        <div className="w-full max-w-md">
-          <Button 
-            onClick={handleCreateAccount}
-            className="w-full sm:w-auto px-6 py-3 bg-gray-800 text-white rounded hover:bg-gray-700"
-          >
-            Criar uma conta
-          </Button>
-          <p className="text-sm text-gray-500 mt-4">
-            Crie uma conta gratuita para acessar todas as cartas.
-          </p>
-        </div>
       </main>
       
       <Footer />
