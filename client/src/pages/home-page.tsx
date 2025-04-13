@@ -13,7 +13,6 @@ const HomePage = () => {
   const [cartasSupabase, setCartasSupabase] = useState<SupabaseCarta[]>([]);
   const [isCartasLoading, setIsCartasLoading] = useState(true);
   const [cartasError, setCartasError] = useState<Error | null>(null);
-  // Removido: estados relacionados a inscrições
   
   // Query para buscar cartas pela API REST (fallback)
   const { data: letters, isLoading: isLettersLoading, error: lettersError } = useQuery<Letter[]>({
@@ -40,8 +39,6 @@ const HomePage = () => {
 
     fetchCartas();
   }, []);
-  
-  // Removido: efeito para verificar status de inscrição
 
   // Determina o estado de carregamento geral
   const isLoading = isCartasLoading || isLettersLoading;
