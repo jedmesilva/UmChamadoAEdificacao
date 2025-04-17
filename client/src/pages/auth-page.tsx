@@ -12,7 +12,8 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { insertUserSchema } from "@shared/schema";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
-import { toast } from "@/components/ui/use-toast"; // Adicione caso não exista
+import { useToast } from "@/components/ui/use-toast"; // Import useToast
+
 
 // Login schema
 const loginSchema = z.object({
@@ -35,6 +36,7 @@ const AuthPage = () => {
   const [showLoginPassword, setShowLoginPassword] = useState<boolean>(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { toast } = useToast(); //Added this line
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
