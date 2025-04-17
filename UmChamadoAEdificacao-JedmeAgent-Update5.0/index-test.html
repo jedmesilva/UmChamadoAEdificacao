@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Supabase em Ambiente Vercel</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+      line-height: 1.6;
+    }
+    h1 { color: #333; }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 1rem;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    button {
+      background: #4299e1;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { background: #3182ce; }
+    .success { color: #38a169; }
+    .error { color: #e53e3e; }
+    .loading { color: #718096; }
+  </style>
+  <script>
+    // Definir variáveis de ambiente de teste semelhantes a como seria na Vercel
+    window.ENV = {
+      VITE_SUPABASE_URL: "https://mizihlfmbcfgomlutiss.supabase.co",
+      VITE_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pemlobGZtYmNmZ29tbHV0aXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MDA0MjYsImV4cCI6MjA1ODQ3NjQyNn0.4AkfkgtPzFwvAIfZFCT8LxxK2mIk9hgXiwbfvBthzRQ"
+    };
+  </script>
+</head>
+<body>
+  <h1>Teste de Ambiente Vercel</h1>
+  
+  <div class="card">
+    <h2>Variáveis de Ambiente</h2>
+    <p>Verificando disponibilidade de variáveis de ambiente:</p>
+    <pre id="env-output">Aguardando verificação...</pre>
+    <button id="check-env">Verificar Variáveis</button>
+  </div>
+  
+  <div class="card">
+    <h2>Teste de Conexão Supabase</h2>
+    <p>Tentando conectar ao Supabase:</p>
+    <pre id="supabase-output">Aguardando teste...</pre>
+    <button id="test-supabase">Testar Conexão</button>
+  </div>
+  
+  <div class="card">
+    <h2>Buscar Dados</h2>
+    <p>Testando consulta na tabela "cartas_um_chamado_a_edificacao":</p>
+    <pre id="query-output">Aguardando consulta...</pre>
+    <button id="test-query">Buscar Dados</button>
+  </div>
+  
+  <div class="card">
+    <h2>Caminhos de Assets</h2>
+    <p>Verificando resolução de caminhos:</p>
+    <pre id="paths-output">Aguardando verificação...</pre>
+    <button id="test-paths">Verificar Caminhos</button>
+  </div>
+  
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+    // Helpers
+    function getElement(id) { return document.getElementById(id); }
+    function getEnvVar(key) {
+      if (window.ENV && window.ENV[key]) return window.ENV[key];
+      if (window[key]) return window[key];
+      return null;
+    }
+    
+    // Verificar variáveis de ambiente
+    getElement('check-env').addEventListener('click', () => {
+      const output = getElement('env-output');
+      output.textContent = 'Verificando...';
+      output.className = 'loading';
+      
+      try {
+        const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+        const supabaseKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+        
+        let result = '';
+        result += `window.ENV existe? ${window.ENV ? 'Sim' : 'Não'}\n`;
+        result += `\nVITE_SUPABASE_URL: ${supabaseUrl || 'Não encontrado'}\n`;
+        result += `VITE_SUPABASE_ANON_KEY: ${supabaseKey ? '[PRESENTE]' : 'Não encontrado'}\n`;
+        
+        output.textContent = result;
+        output.className = supabaseUrl && supabaseKey ? 'success' : 'error';
+      } catch (error) {
+        output.textContent = `Erro: ${error.message}`;
+        output.className = 'error';
+      }
+    });
+    
+    // Testar conexão Supabase
+    getElement('test-supabase').addEventListener('click', async () => {
+      const output = getElement('supabase-output');
+      output.textContent = 'Conectando...';
+      output.className = 'loading';
+      
+      try {
+        const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+        const supabaseKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+        
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error('Variáveis de ambiente do Supabase não encontradas');
+        }
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data, error } = await supabase.from('cartas_um_chamado_a_edificacao').select('count(*)', { count: 'exact' }).limit(1);
+        
+        if (error) throw error;
+        
+        output.textContent = `Conexão estabelecida com sucesso!\nServidor: ${supabaseUrl}`;
+        output.className = 'success';
+      } catch (error) {
+        output.textContent = `Erro: ${error.message}`;
+        output.className = 'error';
+      }
+    });
+    
+    // Testar consulta
+    getElement('test-query').addEventListener('click', async () => {
+      const output = getElement('query-output');
+      output.textContent = 'Consultando...';
+      output.className = 'loading';
+      
+      try {
+        const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+        const supabaseKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+        
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error('Variáveis de ambiente do Supabase não encontradas');
+        }
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { data, error } = await supabase
+          .from('cartas_um_chamado_a_edificacao')
+          .select('id, title, id_sumary_carta')
+          .limit(3);
+        
+        if (error) throw error;
+        
+        output.textContent = `Consulta bem-sucedida! Encontradas ${data.length} cartas:\n\n${JSON.stringify(data, null, 2)}`;
+        output.className = 'success';
+      } catch (error) {
+        output.textContent = `Erro: ${error.message}`;
+        output.className = 'error';
+      }
+    });
+    
+    // Testar caminhos
+    getElement('test-paths').addEventListener('click', async () => {
+      const output = getElement('paths-output');
+      output.textContent = 'Verificando...';
+      output.className = 'loading';
+      
+      try {
+        const paths = [
+          '/assets/index.js',
+          '/public/assets/index.js',
+          '/assets/index.css',
+          '/public/assets/index.css'
+        ];
+        
+        const results = await Promise.all(paths.map(async (path) => {
+          try {
+            const response = await fetch(path, { method: 'HEAD' });
+            return `${path}: ${response.ok ? 'Acessível' : 'Não encontrado (status: ' + response.status + ')'}`;
+          } catch (e) {
+            return `${path}: Erro ao acessar (${e.message})`;
+          }
+        }));
+        
+        output.textContent = results.join('\n');
+        output.className = '';
+      } catch (error) {
+        output.textContent = `Erro: ${error.message}`;
+        output.className = 'error';
+      }
+    });
+  </script>
+</body>
+</html>
