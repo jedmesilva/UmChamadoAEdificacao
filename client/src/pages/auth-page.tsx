@@ -12,6 +12,7 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { insertUserSchema } from "@shared/schema";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { toast } from "@/components/ui/use-toast"; // Adicione caso não exista
 
 // Login schema
 const loginSchema = z.object({
@@ -33,6 +34,7 @@ const AuthPage = () => {
   const [emailFromSubscription, setEmailFromSubscription] = useState<string>("");
   const [showLoginPassword, setShowLoginPassword] = useState<boolean>(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -42,7 +44,7 @@ const AuthPage = () => {
       password: "",
     },
   });
-  
+
   // Register form
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -58,9 +60,9 @@ const AuthPage = () => {
     const searchParams = new URLSearchParams(window.location.search);
     const email = searchParams.get("email");
     const tab = searchParams.get("tab");
-    
+
     console.log('URL params:', { email, tab });
-    
+
     // Se tiver um tab especificado (login ou register), use-o
     if (tab === "login" || tab === "register") {
       console.log('Definindo tab para:', tab);
@@ -70,12 +72,12 @@ const AuthPage = () => {
       console.log('Email presente sem tab, definindo tab para register');
       setActiveTab("register");
     }
-    
+
     // Se tiver email, preenche nos formulários
     if (email) {
       console.log('Preenchendo email nos formulários:', email);
       setEmailFromSubscription(email);
-      
+
       // Use setTimeout para garantir que os forms já estão disponíveis
       setTimeout(() => {
         if (loginForm) loginForm.setValue("email", email);
@@ -98,37 +100,50 @@ const AuthPage = () => {
     }
   }, [emailFromSubscription, registerForm]);
 
+  // Limpar erros quando mudar de aba
+  useEffect(() => {
+    setSubmitError(null);
+  }, [activeTab]);
+
   const onLoginSubmit = async (data: LoginFormValues) => {
     try {
+      setSubmitError(null);
+      console.log("Iniciando login");
       await signIn(data.email, data.password);
+      console.log("Login bem-sucedido, redirecionando");
       setLocation("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro durante o login:", error);
+      setSubmitError(error.message || "Erro ao fazer login. Verifique suas credenciais.");
+      // Se tiver um componente de toast:
+      toast({
+        title: "Erro ao fazer login",
+        description: error.message || "Verifique suas credenciais e tente novamente.",
+        variant: "destructive"
+      });
     }
   };
 
   const onRegisterSubmit = async (data: RegisterFormValues) => {
     try {
-      console.log("Iniciando fluxo de registro simplificado");
-      
-      // 1. Registra o usuário na autenticação
-      console.log("1. Registrando usuário");
+      setSubmitError(null);
+      console.log("Iniciando cadastro do usuário");
+
+      // Registra o usuário - a função signUp já tenta login automático se o usuário existir
       await signUp(data.email, data.password, data.name);
-      
-      try {
-        // 2. Em seguida, faz login para pegar a sessão autenticada
-        console.log("2. Fazendo login após registro bem-sucedido");
-        await signIn(data.email, data.password);
-        
-        // 3. Redireciona para dashboard após autenticação
-        console.log("3. Redirecionando para o dashboard");
-        setLocation("/dashboard");
-      } catch (loginError) {
-        console.error("Erro após registro:", loginError);
-        throw loginError;
-      }
-    } catch (error) {
-      console.error("Erro durante o registro:", error);
+
+      console.log("Processo de cadastro/login concluído, redirecionando");
+      setLocation("/dashboard");
+    } catch (error: any) {
+      console.error("Erro durante o cadastro:", error);
+      setSubmitError(error.message || "Erro ao criar conta. Por favor tente novamente.");
+
+      // Se tiver um componente de toast:
+      toast({
+        title: "Erro no cadastro",
+        description: error.message || "Ocorreu um problema ao criar sua conta.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -149,6 +164,12 @@ const AuthPage = () => {
                 <div className="space-y-4">
                   <h2 className="text-2xl font-bold font-heading text-center">Acesse sua conta</h2>
                   <p className="text-gray-600 text-center mb-6">Entre para acessar as cartas do Chamado à Edificação.</p>
+
+                  {submitError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+                      <span className="block sm:inline">{submitError}</span>
+                    </div>
+                  )}
 
                   <Form {...loginForm}>
                     <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
@@ -220,6 +241,12 @@ const AuthPage = () => {
                       ? "Finalize seu cadastro para acessar as cartas do Chamado." 
                       : "Crie sua conta para acessar as cartas do Chamado à Edificação."}
                   </p>
+
+                  {submitError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+                      <span className="block sm:inline">{submitError}</span>
+                    </div>
+                  )}
 
                   <Form {...registerForm}>
                     <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">

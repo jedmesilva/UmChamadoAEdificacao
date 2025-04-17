@@ -56,8 +56,6 @@ const LandingPage = () => {
         </div>
         
         <p className="text-xl mb-8 font-medium">Você está pronto para edificar?</p>
-        
-        <SubscriptionForm />
       </main>
       
       <Footer />
