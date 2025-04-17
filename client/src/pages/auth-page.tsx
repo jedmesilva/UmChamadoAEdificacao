@@ -12,7 +12,7 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { insertUserSchema } from "@shared/schema";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
-import { useToast } from "@/components/ui/use-toast"; // Import useToast
+import { useToast } from "@/hooks/use-toast"; // Import useToast
 
 
 // Login schema

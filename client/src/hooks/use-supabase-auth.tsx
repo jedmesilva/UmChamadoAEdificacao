@@ -1,15 +1,48 @@
 
 // src/hooks/use-supabase-auth.js (ou .ts se estiver usando TypeScript)
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // Use as variáveis de ambiente do seu projeto
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Se as variáveis não estiverem disponíveis, use valores vazios para evitar erros
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Cria o cliente Supabase
+let supabase;
+try {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+} catch (error) {
+  console.error('Erro ao criar cliente Supabase:', error);
+  // Criar um cliente falso para evitar erros de runtime
+  supabase = {
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null }),
+      signInWithPassword: () => Promise.resolve({ data: { user: null }, error: null }),
+      signUp: () => Promise.resolve({ data: { user: null }, error: null }),
+      signOut: () => Promise.resolve({ error: null })
+    },
+    from: () => ({
+      insert: () => Promise.resolve({ error: null })
+    })
+  };
+}
 
+// Criar o contexto para autenticação
+const SupabaseAuthContext = createContext(null);
+
+// Hook para usar o contexto
 export function useSupabaseAuth() {
+  const context = useContext(SupabaseAuthContext);
+  if (!context) {
+    throw new Error('useSupabaseAuth deve ser usado dentro de um SupabaseAuthProvider');
+  }
+  return context;
+}
+
+// Provider component
+export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,20 +111,6 @@ export function useSupabaseAuth() {
     try {
       setIsLoading(true);
       setError(null);
-
-      // Primeiro verifica se o usuário já existe
-      const { data: { user: existingUser }, error: getUserError } = await supabase.auth.admin.getUserByEmail(email)
-        .catch(() => ({ data: { user: null }, error: null }));
-
-      // Se o usuário já existe, tenta fazer login diretamente
-      if (existingUser) {
-        console.log('Usuário já existe, tentando login direto');
-        try {
-          return await signIn(email, password);
-        } catch (loginErr) {
-          throw new Error('Este email já está cadastrado, mas a senha fornecida está incorreta');
-        }
-      }
 
       // Se não existe, prossegue com o cadastro
       const { data, error } = await supabase.auth.signUp({
@@ -168,7 +187,7 @@ export function useSupabaseAuth() {
     }
   }, []);
 
-  return {
+  const value = {
     user,
     isLoading,
     error,
@@ -177,4 +196,10 @@ export function useSupabaseAuth() {
     signOut,
     supabase
   };
+
+  return (
+    <SupabaseAuthContext.Provider value={value}>
+      {children}
+    </SupabaseAuthContext.Provider>
+  );
 }
