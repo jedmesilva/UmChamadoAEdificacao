@@ -1,6 +1,5 @@
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import SubscriptionForm from "@/components/subscription-form";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
