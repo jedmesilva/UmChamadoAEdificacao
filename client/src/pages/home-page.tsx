@@ -3,11 +3,9 @@ import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import LetterCard from "@/components/letters/letter-card";
-import SubscriptionBanner from "@/components/subscription-banner";
 import { Letter, SupabaseCarta } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { cartaService } from "@/lib/carta-service";
-// import { subscriptionService } from "@/lib/supabase-service"; // Problemas de importação
 import { useEffect, useState } from "react";
 
 const HomePage = () => {
@@ -15,8 +13,6 @@ const HomePage = () => {
   const [cartasSupabase, setCartasSupabase] = useState<SupabaseCarta[]>([]);
   const [isCartasLoading, setIsCartasLoading] = useState(true);
   const [cartasError, setCartasError] = useState<Error | null>(null);
-  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
-  const [checkingSubscription, setCheckingSubscription] = useState(true);
   
   // Query para buscar cartas pela API REST (fallback)
   const { data: letters, isLoading: isLettersLoading, error: lettersError } = useQuery<Letter[]>({
@@ -43,30 +39,7 @@ const HomePage = () => {
 
     fetchCartas();
   }, []);
-  
-  // Efeito para verificar se o usuário já está inscrito com cache local
-  useEffect(() => {
-    const LOCAL_STORAGE_KEY = 'subscription_status';
-    
-    const checkSubscriptionStatus = async () => {
-      if (!user || !user.email) return;
-      
-      try {
-        setCheckingSubscription(true);
         
-        // Verificar se temos cache local
-        const cachedStatus = localStorage.getItem(`${LOCAL_STORAGE_KEY}_${user.email}`);
-        
-        // Se temos um cache local indicando que o usuário já está inscrito,
-        // não precisamos fazer a requisição
-        if (cachedStatus === 'confirmed') {
-          console.log('Usando cache local: usuário já está inscrito');
-          setIsSubscribed(true);
-          setCheckingSubscription(false);
-          return;
-        }
-        
-        console.log('Cache local não encontrado ou inválido, verificando com o servidor');
         
         // Verificar se estamos em ambiente de produção (Vercel) ou desenvolvimento
         const isProduction = window.location.hostname.includes('.vercel.app') || 
@@ -143,15 +116,6 @@ const HomePage = () => {
           throw new Error(`Erro ao verificar status (${response.status}): ${errorText || 'Sem detalhes'}`);
         }
         
-        // Tratativa para resposta vazia
-        const responseText = await response.text();
-        
-        if (!responseText || responseText.trim() === '') {
-          console.log('Resposta de verificação vazia, assumindo não inscrito');
-          setIsSubscribed(false);
-          return;
-        }
-        
         // Tenta parsear o JSON da resposta
         let data;
         try {
@@ -162,46 +126,6 @@ const HomePage = () => {
           throw new Error(`Erro ao processar dados: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
         }
         
-        // Adicionar mais logs para debug
-        console.log('Detalhes da resposta:', {
-          hasSubscriptionStatus: data.hasSubscriptionStatus,
-          isSubscribed: data.isSubscribed,
-          message: data.message,
-          statusField: data.statusField,
-          statusValue: data.statusValue
-        });
-        
-        // Se a resposta indica que o usuário tem o status de inscrição confirmado
-        // Usamos comparação estrita (===) para evitar problemas de tipo
-        if (data.hasSubscriptionStatus === true) {
-          // Armazenamos no cache local para evitar futuras requisições
-          localStorage.setItem(`${LOCAL_STORAGE_KEY}_${user.email}`, 'confirmed');
-          console.log('CONFIRMADO: Status confirmado armazenado no cache local');
-          setIsSubscribed(true);
-        } else if (data.isSubscribed === true) {
-          // Usuário está inscrito mas não tem o status confirmado
-          // Armazenamos no cache local de qualquer forma, já que o usuário está inscrito
-          localStorage.setItem(`${LOCAL_STORAGE_KEY}_${user.email}`, 'confirmed');
-          console.log('INSCRITO SEM STATUS: Usuário inscrito, considerando como inscrito');
-          setIsSubscribed(true); // <-- MUDAMOS DE false PARA true
-        } else {
-          // Usuário não está inscrito
-          console.log('NÃO INSCRITO: Usuário não inscrito');
-          setIsSubscribed(false);
-        }
-      } catch (error) {
-        console.error("Erro ao verificar status de inscrição:", error);
-        // Em caso de erro, assumimos que não está inscrito para mostrar o banner
-        setIsSubscribed(false);
-      } finally {
-        setCheckingSubscription(false);
-      }
-    };
-    
-    if (user) {
-      checkSubscriptionStatus();
-    }
-  }, [user]);
 
   // Determina o estado de carregamento geral
   const isLoading = isCartasLoading || isLettersLoading;
@@ -253,13 +177,6 @@ const HomePage = () => {
           <p className="text-gray-600">Aqui você encontra todas as cartas do Chamado à Edificação.</p>
         </div>
         
-        {/* Banner de inscrição - exibe apenas se o usuário não está inscrito e não está carregando */}
-        {!checkingSubscription && isSubscribed === false && user?.email && (
-          <SubscriptionBanner 
-            email={user.email} 
-            onSubscriptionComplete={() => setIsSubscribed(true)} 
-          />
-        )}
         
         {isLoading ? (
           <div className="flex justify-center items-center py-12">
