@@ -101,7 +101,11 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         };
       } catch (err) {
         console.error('[Auth Provider] Erro ao verificar autenticação:', err);
-        setError(err);
+        if (err instanceof Error) {
+          setError(err);
+        } else {
+          setError(new Error('Erro desconhecido ao verificar autenticação'));
+        }
       } finally {
         setIsLoading(false);
       }
@@ -111,7 +115,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   }, [isSupabaseReady]);
 
   // Login com email/senha
-  const signIn = useCallback(async (email, password) => {
+  const signIn = useCallback(async (email: string, password: string): Promise<User> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -126,7 +130,11 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       return data.user;
     } catch (err) {
       console.error('Erro no login:', err);
-      setError(err);
+      if (err instanceof Error) {
+        setError(err);
+      } else {
+        setError(new Error('Erro desconhecido durante o login'));
+      }
       throw err;
     } finally {
       setIsLoading(false);
@@ -134,7 +142,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Cadastro com tratamento inteligente para usuários existentes
-  const signUp = useCallback(async (email, password, name) => {
+  const signUp = useCallback(async (email: string, password: string, name: string): Promise<User | null> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -188,7 +196,11 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       return data.user;
     } catch (err) {
       console.error('Erro no cadastro:', err);
-      setError(err);
+      if (err instanceof Error) {
+        setError(err);
+      } else {
+        setError(new Error('Erro desconhecido durante o registro'));
+      }
       throw err;
     } finally {
       setIsLoading(false);
@@ -196,7 +208,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   }, [signIn]);
 
   // Logout
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -207,7 +219,11 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     } catch (err) {
       console.error('Erro ao fazer logout:', err);
-      setError(err);
+      if (err instanceof Error) {
+        setError(err);
+      } else {
+        setError(new Error('Erro desconhecido durante o logout'));
+      }
       throw err;
     } finally {
       setIsLoading(false);
