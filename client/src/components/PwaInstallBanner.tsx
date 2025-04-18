@@ -9,14 +9,46 @@ interface BeforeInstallPromptEvent extends Event {
 const PwaInstallBanner = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
+  const [userDismissedNative, setUserDismissedNative] = useState(false);
 
   useEffect(() => {
-    // Armazena o evento para uso posterior
+    // Verificar se o usuário já recusou o prompt nativo nesta sessão
+    const checkNativeDismissal = () => {
+      const dismissed = sessionStorage.getItem('pwaPromptDismissed');
+      return dismissed === 'true';
+    };
+    
+    setUserDismissedNative(checkNativeDismissal());
+
+    // Armazenar o evento para uso posterior e mostrar prompt nativo imediatamente
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
-      setShowBanner(true);
+
+      // Se o usuário não recusou anteriormente o prompt nativo, mostrá-lo automaticamente
+      if (!checkNativeDismissal()) {
+        setTimeout(() => {
+          promptEvent.prompt();
+          
+          promptEvent.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('Usuário aceitou a instalação do prompt nativo');
+              setShowBanner(false);
+            } else {
+              console.log('Usuário recusou a instalação do prompt nativo');
+              // Armazenar que o usuário recusou para não mostrar o prompt nativo novamente nesta sessão
+              sessionStorage.setItem('pwaPromptDismissed', 'true');
+              setUserDismissedNative(true);
+              // Mostrar o banner personalizado depois que o usuário recusou o prompt nativo
+              setShowBanner(true);
+            }
+          });
+        }, 1000); // Pequeno atraso para garantir que a página carregue completamente
+      } else {
+        // Se o usuário já recusou o prompt nativo, mostrar apenas o banner personalizado
+        setShowBanner(true);
+      }
     };
 
     // Verifica se o app já está instalado
@@ -35,21 +67,19 @@ const PwaInstallBanner = () => {
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
 
-    // Mostra o prompt de instalação
+    // Mostra o prompt de instalação novamente se o usuário clicar no botão do banner
     await deferredPrompt.prompt();
     
     // Espera a escolha do usuário
     const choiceResult = await deferredPrompt.userChoice;
     
-    // Limpa o prompt salvo
-    setDeferredPrompt(null);
-    setShowBanner(false);
-    
-    // Pode implementar analytics aqui
+    // Limpa o prompt salvo e fecha o banner se o usuário aceitar
     if (choiceResult.outcome === 'accepted') {
-      console.log('Usuário aceitou a instalação');
+      console.log('Usuário aceitou a instalação do banner personalizado');
+      setDeferredPrompt(null);
+      setShowBanner(false);
     } else {
-      console.log('Usuário recusou a instalação');
+      console.log('Usuário recusou a instalação do banner personalizado');
     }
   };
 
