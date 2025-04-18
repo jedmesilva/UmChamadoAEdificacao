@@ -1,89 +1,136 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 
+// Evento personalizado para o prompt de instalação do PWA
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+// Declaração global para o evento no window
+declare global {
+  interface WindowEventMap {
+    'beforeinstallprompt': BeforeInstallPromptEvent;
+  }
+}
+
 const PwaInstallBanner = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [userDismissedNative, setUserDismissedNative] = useState(false);
+  const [promptTriggered, setPromptTriggered] = useState(false);
+
+  // Função para verificar se o PWA está em critérios de instalação
+  const canInstallPwa = (): boolean => {
+    // Verifica se é HTTPS (requisito para PWA)
+    const isHttps = window.location.protocol === 'https:';
+    
+    // Verifica se está rodando no navegador e não como PWA instalado
+    const isNotStandalone = !window.matchMedia('(display-mode: standalone)').matches;
+    
+    // Verifica se não está no iOS (que tem comportamento diferente)
+    const isNotIOS = !/iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    return isHttps && isNotStandalone;
+  };
+
+  // Função para mostrar o prompt nativo
+  const triggerNativePrompt = () => {
+    if (deferredPrompt && !promptTriggered) {
+      console.log('Tentando mostrar o prompt nativo...');
+      setPromptTriggered(true);
+      
+      // Adiciona um pequeno atraso para garantir que o usuário tenha interagido com a página
+      setTimeout(() => {
+        deferredPrompt.prompt();
+        
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('Usuário aceitou a instalação');
+            setShowBanner(false);
+            setDeferredPrompt(null);
+          } else {
+            console.log('Usuário recusou a instalação');
+            setShowBanner(true);
+          }
+        });
+      }, 1500);
+    } else if (!deferredPrompt) {
+      // Se não conseguir capturar o evento, mostra o banner personalizado mesmo assim
+      console.log('Prompt de instalação não disponível, mostrando banner personalizado');
+      setShowBanner(true);
+    }
+  };
 
   useEffect(() => {
-    // Verificar se o usuário já recusou o prompt nativo nesta sessão
-    const checkNativeDismissal = () => {
-      const dismissed = sessionStorage.getItem('pwaPromptDismissed');
-      return dismissed === 'true';
-    };
+    console.log('PWA: Inicializando componente de instalação');
     
-    setUserDismissedNative(checkNativeDismissal());
-
-    // Armazenar o evento para uso posterior e mostrar prompt nativo imediatamente
-    const handleBeforeInstallPrompt = (e: Event) => {
+    // Captura o evento de instalação e o armazena
+    const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
+      console.log('PWA: Evento beforeinstallprompt capturado');
+      
+      // Previne o comportamento padrão (em alguns navegadores mais antigos)
       e.preventDefault();
-      const promptEvent = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(promptEvent);
+      
+      // Armazena o evento para uso posterior
+      setDeferredPrompt(e);
+      
+      // Podemos mostrar o banner personalizado imediatamente
+      setShowBanner(true);
+    };
 
-      // Se o usuário não recusou anteriormente o prompt nativo, mostrá-lo automaticamente
-      if (!checkNativeDismissal()) {
-        setTimeout(() => {
-          promptEvent.prompt();
-          
-          promptEvent.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-              console.log('Usuário aceitou a instalação do prompt nativo');
-              setShowBanner(false);
-            } else {
-              console.log('Usuário recusou a instalação do prompt nativo');
-              // Armazenar que o usuário recusou para não mostrar o prompt nativo novamente nesta sessão
-              sessionStorage.setItem('pwaPromptDismissed', 'true');
-              setUserDismissedNative(true);
-              // Mostrar o banner personalizado depois que o usuário recusou o prompt nativo
-              setShowBanner(true);
-            }
-          });
-        }, 1000); // Pequeno atraso para garantir que a página carregue completamente
-      } else {
-        // Se o usuário já recusou o prompt nativo, mostrar apenas o banner personalizado
-        setShowBanner(true);
+    // Verifica se o PWA pode ser instalado
+    if (canInstallPwa()) {
+      // Adiciona o listener para o evento
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      
+      // Força a exibição do banner após algum tempo se o evento não for capturado
+      setTimeout(() => {
+        if (!showBanner) {
+          console.log('PWA: Forçando exibição do banner após timeout');
+          setShowBanner(true);
+        }
+      }, 3000);
+    }
+
+    // Adiciona listener para cliques no documento para mostrar o prompt após interação
+    const handleUserInteraction = () => {
+      if (deferredPrompt && !promptTriggered) {
+        console.log('PWA: Interação do usuário detectada, tentando mostrar prompt');
+        triggerNativePrompt();
       }
     };
 
-    // Verifica se o app já está instalado
-    const isAppInstalled = window.matchMedia('(display-mode: standalone)').matches;
-    
-    // Adiciona o listener apenas se não estiver instalado
-    if (!isAppInstalled) {
-      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    }
+    document.addEventListener('click', handleUserInteraction, { once: true });
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      document.removeEventListener('click', handleUserInteraction);
     };
-  }, []);
+  }, [deferredPrompt, promptTriggered]);
 
+  // Função para manipular o clique no botão de instalação
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    // Mostra o prompt de instalação novamente se o usuário clicar no botão do banner
-    await deferredPrompt.prompt();
-    
-    // Espera a escolha do usuário
-    const choiceResult = await deferredPrompt.userChoice;
-    
-    // Limpa o prompt salvo e fecha o banner se o usuário aceitar
-    if (choiceResult.outcome === 'accepted') {
-      console.log('Usuário aceitou a instalação do banner personalizado');
-      setDeferredPrompt(null);
-      setShowBanner(false);
+    if (deferredPrompt) {
+      console.log('PWA: Iniciando instalação a partir do botão');
+      await deferredPrompt.prompt();
+      
+      const choiceResult = await deferredPrompt.userChoice;
+      
+      if (choiceResult.outcome === 'accepted') {
+        console.log('PWA: Usuário aceitou a instalação pelo banner');
+        setDeferredPrompt(null);
+        setShowBanner(false);
+      } else {
+        console.log('PWA: Usuário recusou a instalação pelo banner');
+      }
     } else {
-      console.log('Usuário recusou a instalação do banner personalizado');
+      console.log('PWA: Prompt não disponível');
+      alert('Para instalar, adicione esta página à tela inicial através do menu do seu navegador.');
     }
   };
 
   const closeBanner = () => {
+    console.log('PWA: Banner fechado pelo usuário');
     setShowBanner(false);
   };
 
@@ -93,7 +140,10 @@ const PwaInstallBanner = () => {
     <div className="fixed bottom-4 left-0 right-0 mx-auto w-[90%] max-w-md bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-in slide-in-from-bottom duration-300">
       <div className="p-4 flex flex-col">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-lg text-gray-900 font-heading">Instale Um Chamado à Edificação</h3>
+          <h3 className="font-semibold text-lg text-gray-900 font-heading flex items-center">
+            <Download className="mr-2 h-5 w-5" />
+            Instale Um Chamado à Edificação
+          </h3>
           <button 
             onClick={closeBanner} 
             className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -116,8 +166,9 @@ const PwaInstallBanner = () => {
           </button>
           <button
             onClick={handleInstallClick}
-            className="px-6 py-3 bg-gray-800 text-white rounded hover:bg-gray-700 text-sm font-medium transition-colors shadow-sm"
+            className="px-6 py-3 bg-gray-800 text-white rounded hover:bg-gray-700 text-sm font-medium transition-colors shadow-sm flex items-center"
           >
+            <Download className="mr-2 h-4 w-4" />
             Instalar aplicativo
           </button>
         </div>

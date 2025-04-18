@@ -3,12 +3,16 @@
   "name": "Um Chamado à Edificação",
   "short_name": "Um Chamado",
   "description": "Cartas semanais para a convocação dos edificadores",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "orientation": "portrait",
   "scope": "/",
+  "id": "/",
+  "launch_handler": {
+    "client_mode": "auto"
+  },
   "icons": [
     {
       "src": "/favicon.ico",
@@ -28,20 +32,40 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["education", "lifestyle"],
+  "categories": ["education", "lifestyle", "spirituality"],
   "prefer_related_applications": false,
+  "capture_links": "existing-client-navigate",
   "shortcuts": [
     {
       "name": "Ver Cartas",
       "url": "/dashboard",
       "description": "Acesse suas cartas do chamado",
-   "icons": [
-      {
-        "src": "/cartas-icon.png",
-        "sizes": "64x64",
-        "type": "image/png"
-      }
-   ]   
+      "icons": [
+        {
+          "src": "/cartas-icon.png",
+          "sizes": "64x64",
+          "type": "image/png"
+        }
+      ]   
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "display_override": ["standalone", "window-controls-overlay"],
+  "related_applications": [],
+  "edge_side_panel": {
+    "preferred_width": 480
+  }
 }

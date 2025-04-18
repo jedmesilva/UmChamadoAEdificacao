@@ -14,9 +14,57 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
+          console.log('Iniciando registro do Service Worker...');
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('Service Worker registrado com sucesso:', registration.scope);
+              
+              // Verifica por atualizações do service worker a cada visita
+              registration.update();
+              
+              // Comunica-se com o service worker
+              if (registration.installing) {
+                console.log('Service Worker está instalando');
+              } else if (registration.waiting) {
+                console.log('Service Worker está aguardando para ativar');
+              } else if (registration.active) {
+                console.log('Service Worker ativo');
+              }
+              
+              // Detecta atualizações do service worker
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('Novo Service Worker encontrado', newWorker);
+                
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    console.log('Estado do Service Worker mudou para:', newWorker.state);
+                  });
+                }
+              });
+            })
+            .catch(error => {
+              console.error('Falha ao registrar Service Worker:', error);
+            });
+            
+          // Detecta quando um service worker controlador muda
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('Service Worker controlador mudou');
+          });
         });
+      } else {
+        console.warn('Service Workers não são suportados neste navegador');
       }
+      
+      // Verifica critérios de instalabilidade do PWA
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('beforeinstallprompt disparado - app pode ser instalado');
+      });
+      
+      // Detecta quando um PWA é instalado
+      window.addEventListener('appinstalled', (e) => {
+        console.log('PWA instalado com sucesso');
+      });
     </script>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
