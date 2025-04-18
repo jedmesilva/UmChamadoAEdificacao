@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content="Um Chamado à Edificação - Cartas semanais para a convocação dos edificadores" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Chamado EDF" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Chamado à Edificação</title>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    </script>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Carrega variáveis de ambiente dinâmicas geradas pela Vercel para compatibilidade com ambiente serverless -->
+    <script>
+      // Verifica se o arquivo de ambiente específico da Vercel existe e o carrega dinamicamente
+      (function loadVercelEnv() {
+        var script = document.createElement('script');
+        script.src = '/vercel-env.js';
+        script.onerror = function() {
+          console.log('Executando em ambiente de desenvolvimento local, vercel-env.js não disponível');
+        };
+        document.head.appendChild(script);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Adicionando React via CDN para garantir que ele esteja disponível como fallback -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Carregando o script principal da aplicação -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
