@@ -29,46 +29,42 @@ detectSupabaseImportError();
 
 // Obter as variáveis de ambiente de múltiplas fontes possíveis
 function getEnvVariable(key: string): string {
-  // Tentar obter da janela primeiro (fallback para produção)
+  // 1. Verificar se o ambiente global window.ENV está disponível (prioridade para vercel-env.js)
   if (typeof window !== 'undefined' && window.ENV && window.ENV[key]) {
     const value = window.ENV[key] || '';
-    // Substituir os placeholders se necessário
-    if (value && !(value.startsWith('%') && value.endsWith('%'))) {
-      console.log(`Usando variável ${key} do objeto global window.ENV`);
+    if (value && value.trim() !== '' && !(value.startsWith('%') && value.endsWith('%'))) {
+      console.log(`[Supabase Config] Usando variável ${key} do objeto global window.ENV`);
       return value;
     }
   }
   
-  // Tentar obter das variáveis de ambiente do Vite
+  // 2. Tentar obter das variáveis de ambiente do Vite
   try {
     if (import.meta.env && import.meta.env[key]) {
       const value = import.meta.env[key] as string;
-      if (value) {
-        console.log(`Usando variável ${key} das variáveis de ambiente Vite`);
+      if (value && value.trim() !== '') {
+        console.log(`[Supabase Config] Usando variável ${key} das variáveis de ambiente Vite`);
         return value;
       }
     }
   } catch (err) {
-    console.warn(`Erro ao acessar import.meta.env[${key}]:`, err);
+    console.warn(`[Supabase Config] Erro ao acessar import.meta.env[${key}]:`, err);
   }
   
-  // Valores hardcoded de fallback apenas para desenvolvimento
-  // Esses valores não funcionarão em produção e serão substituídos
-  // pelos valores reais fornecidos através de window.ENV ou import.meta.env
-  if (key === 'VITE_SUPABASE_URL' && process.env.NODE_ENV !== 'production') {
-    console.warn('Usando valor de fallback para SUPABASE_URL - isso só deve ocorrer em desenvolvimento');
-    // Vamos evitar hardcoded aqui, apenas notificamos
-    return '';
-  }
-  
-  if (key === 'VITE_SUPABASE_ANON_KEY' && process.env.NODE_ENV !== 'production') {
-    console.warn('Usando valor de fallback para SUPABASE_ANON_KEY - isso só deve ocorrer em desenvolvimento');
-    // Vamos evitar hardcoded aqui, apenas notificamos
-    return '';
+  // 3. Verifique se estamos em desenvolvimento ou produção
+  const isDevelopment = 
+    process.env.NODE_ENV !== 'production' || 
+    (typeof window !== 'undefined' && window.ENV?.DEPLOYMENT_ENV === 'development');
+    
+  if (isDevelopment) {
+    // Em ambiente de desenvolvimento, exibimos um aviso claro
+    console.warn(`[Supabase Config] ⚠️ Variável ${key} não encontrada - Configure as variáveis de ambiente necessárias`);
+  } else {
+    // Em produção, registramos um erro mais grave
+    console.error(`[Supabase Config] 🔴 Erro crítico: Variável ${key} ausente em ambiente de produção`);
   }
   
   // Não encontrado em nenhum lugar
-  console.warn(`Variável de ambiente ${key} não encontrada em nenhuma fonte`);
   return '';
 }
 
@@ -81,30 +77,64 @@ console.log('Ambiente de execução:', process.env.NODE_ENV || 'desenvolvimento'
 console.log('Supabase URL disponível:', !!supabaseUrl);
 console.log('Supabase Anon Key disponível:', !!supabaseAnonKey);
 
-// Valores de fallback para desenvolvimento (APENAS PARA PROPÓSITOS DE DEMONSTRAÇÃO)
-// Esses valores não devem ser usados em produção e são apenas placeholders
+// Detectar ambiente atual para decisões corretas
+const isDevEnvironment = 
+  process.env.NODE_ENV !== 'production' || 
+  (typeof window !== 'undefined' && window.ENV?.DEPLOYMENT_ENV === 'development');
+
+// Configura os valores finais para uso no cliente
 let finalSupabaseUrl = supabaseUrl;
 let finalSupabaseAnonKey = supabaseAnonKey;
 
 if (!finalSupabaseUrl || !finalSupabaseAnonKey) {
-  console.error('⚠️ Variáveis de ambiente do Supabase ausentes ou inválidas!');
-  console.error('⚠️ Isso resultará em erros nas operações que envolvem o Supabase.');
-  
-  if (process.env.NODE_ENV !== 'production') {
-    // Em desenvolvimento, podemos usar valores de demonstração para evitar erros imediatos
-    // Isso não deve ser feito em produção
-    console.warn('Ambiente de desenvolvimento: usando URLs e chaves de demonstração que não funcionarão com operações reais');
+  if (isDevEnvironment) {
+    console.error('[Supabase Config] ⚠️ Variáveis de ambiente do Supabase ausentes ou inválidas em ambiente de desenvolvimento!');
+    console.error('[Supabase Config] ⚠️ As funcionalidades que dependem do Supabase não funcionarão corretamente.');
+    console.error('[Supabase Config] ⚠️ Configure as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env ou .env.local');
     
-    // Garantimos valores não-vazios para evitar erros ao criar o cliente
-    finalSupabaseUrl = finalSupabaseUrl || 'https://exemplo.supabase.co';
-    finalSupabaseAnonKey = finalSupabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoidW5hdXRoZW50aWNhdGVkIn0.example';
+    // Em desenvolvimento, usamos valores vazios mas sem causar erros na criação do cliente
+    // isso permite que o app ao menos seja carregado, mesmo que a autenticação não funcione
+    finalSupabaseUrl = finalSupabaseUrl || 'https://placeholder-only-for-dev.supabase.co';
+    finalSupabaseAnonKey = finalSupabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder-only-for-dev';
+  } else {
+    // Em produção, isso é um erro crítico
+    console.error('[Supabase Config] 🔴 ERRO CRÍTICO: Variáveis de ambiente do Supabase ausentes em PRODUÇÃO!');
+    console.error('[Supabase Config] 🔴 As funcionalidades que dependem do Supabase NÃO funcionarão!');
+    console.error('[Supabase Config] 🔴 Configure as variáveis de ambiente na Vercel:');
+    console.error('[Supabase Config] 🔴 1. Acesse o dashboard da Vercel');
+    console.error('[Supabase Config] 🔴 2. Vá para Settings > Environment Variables');
+    console.error('[Supabase Config] 🔴 3. Adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY');
+    
+    // Em produção, não usamos valores de fallback, deixamos os erros ocorrerem
+    // para que fique claro o problema e seja corrigido
   }
 }
 
 // Cria o cliente Supabase para o frontend
 export const supabaseClient = createClient(finalSupabaseUrl, finalSupabaseAnonKey);
 
-// Adiciona um método para verificar facilmente se o cliente está configurado corretamente
+// Função para verificar se o Supabase está corretamente configurado
 export const isSupabaseConfigured = (): boolean => {
-  return !!supabaseUrl && !!supabaseAnonKey;
+  const configured = !!supabaseUrl && !!supabaseAnonKey;
+  
+  if (!configured && !isDevEnvironment) {
+    // No ambiente de produção, mostramos um erro mais detalhado no console
+    console.error('[Supabase Config] Falha na verificação de isSupabaseConfigured() em produção!');
+    console.error('[Supabase Config] Isso provavelmente indica um problema com as variáveis de ambiente na Vercel.');
+  }
+  
+  return configured;
+};
+
+// Função auxiliar para mostrar o status atual da configuração
+export const logSupabaseStatus = (): void => {
+  console.log('================================');
+  console.log('[Supabase Status] Ambiente:', isDevEnvironment ? 'Desenvolvimento' : 'Produção');
+  console.log('[Supabase Status] URL configurada:', !!supabaseUrl);
+  console.log('[Supabase Status] Chave configurada:', !!supabaseAnonKey);
+  console.log('[Supabase Status] Cliente inicializado:', !!supabaseClient);
+  console.log('[Supabase Status] Fonte das variáveis: ', 
+    window.ENV?.VITE_SUPABASE_URL ? 'window.ENV (vercel-env.js)' : 
+    import.meta.env.VITE_SUPABASE_URL ? 'import.meta.env (Vite)' : 'Nenhuma');
+  console.log('================================');
 };

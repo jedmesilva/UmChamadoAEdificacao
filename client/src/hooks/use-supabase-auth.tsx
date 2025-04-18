@@ -1,39 +1,37 @@
 
-// src/hooks/use-supabase-auth.js (ou .ts se estiver usando TypeScript)
+// src/hooks/use-supabase-auth.tsx
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseClient, isSupabaseConfigured, logSupabaseStatus } from '@/lib/supabase';
+import { User, SupabaseClient } from '@supabase/supabase-js';
 
-// Use as variáveis de ambiente do seu projeto
-// Se as variáveis não estiverem disponíveis, use valores vazios para evitar erros
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Log do status do Supabase para debug
+if (typeof window !== 'undefined') {
+  // Mostra o status atual do Supabase no console quando o hook é carregado
+  // Isto é útil para debug em diferentes ambientes
+  console.log('[Auth Hook] Inicializando hook de autenticação Supabase');
+  logSupabaseStatus();
+}
 
-// Cria o cliente Supabase
-let supabase;
-try {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
-} catch (error) {
-  console.error('Erro ao criar cliente Supabase:', error);
-  // Criar um cliente falso para evitar erros de runtime
-  supabase = {
-    auth: {
-      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null }),
-      signInWithPassword: () => Promise.resolve({ data: { user: null }, error: null }),
-      signUp: () => Promise.resolve({ data: { user: null }, error: null }),
-      signOut: () => Promise.resolve({ error: null })
-    },
-    from: () => ({
-      insert: () => Promise.resolve({ error: null })
-    })
-  };
+// Utilizamos o cliente já configurado em lib/supabase.ts que gerencia as variáveis
+// de ambiente de forma consistente entre desenvolvimento e produção
+const supabase = supabaseClient;
+
+// Definição da interface para o contexto da autenticação
+interface SupabaseAuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  error: Error | null;
+  signIn: (email: string, password: string) => Promise<User>;
+  signUp: (email: string, password: string, name: string) => Promise<User | null>;
+  signOut: () => Promise<void>;
+  supabase: SupabaseClient;
 }
 
 // Criar o contexto para autenticação
-const SupabaseAuthContext = createContext(null);
+const SupabaseAuthContext = createContext<SupabaseAuthContextType | null>(null);
 
 // Hook para usar o contexto
-export function useSupabaseAuth() {
+export function useSupabaseAuth(): SupabaseAuthContextType {
   const context = useContext(SupabaseAuthContext);
   if (!context) {
     throw new Error('useSupabaseAuth deve ser usado dentro de um SupabaseAuthProvider');
@@ -43,12 +41,36 @@ export function useSupabaseAuth() {
 
 // Provider component
 export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [isSupabaseReady, setIsSupabaseReady] = useState(false);
+
+  // Verificar se o Supabase está devidamente configurado
+  useEffect(() => {
+    const checkSupabaseConfig = () => {
+      const configured = isSupabaseConfigured();
+      setIsSupabaseReady(configured);
+      
+      if (!configured) {
+        console.error('[Auth Provider] Supabase não está configurado corretamente. Autenticação não funcionará.');
+        setError(new Error('Serviço de autenticação não está configurado corretamente. Contate o suporte.'));
+      } else {
+        console.log('[Auth Provider] Supabase configurado corretamente');
+      }
+    };
+    
+    checkSupabaseConfig();
+  }, []);
 
   // Verificar status de autenticação inicial
   useEffect(() => {
+    // Se o Supabase não estiver configurado, não tenta fazer verificações
+    if (!isSupabaseReady) {
+      setIsLoading(false);
+      return () => {}; // Retorna uma função de cleanup vazia
+    }
+    
     const checkUser = async () => {
       try {
         setIsLoading(true);
@@ -60,11 +82,16 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         // Atualizar estado do usuário com base na sessão
         if (session?.user) {
           setUser(session.user);
+          console.log('[Auth Provider] Usuário logado:', session.user.email);
+        } else {
+          console.log('[Auth Provider] Nenhum usuário logado');
         }
 
         // Configurar listener para mudanças de autenticação
         const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-          setUser(session?.user || null);
+          const newUser = session?.user || null;
+          setUser(newUser);
+          console.log('[Auth Provider] Estado de autenticação alterado:', newUser ? 'Logado' : 'Deslogado');
         });
 
         return () => {
@@ -73,7 +100,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
           }
         };
       } catch (err) {
-        console.error('Erro ao verificar autenticação:', err);
+        console.error('[Auth Provider] Erro ao verificar autenticação:', err);
         setError(err);
       } finally {
         setIsLoading(false);
@@ -81,7 +108,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkUser();
-  }, []);
+  }, [isSupabaseReady]);
 
   // Login com email/senha
   const signIn = useCallback(async (email, password) => {
