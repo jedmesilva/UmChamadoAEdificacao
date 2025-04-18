@@ -8,6 +8,16 @@ const path = require('path');
 
 console.log('🚀 Iniciando o build especializado para a Vercel');
 
+// Gera o arquivo vercel-env.js com as variáveis de ambiente
+console.log('🔧 Gerando arquivo vercel-env.js com variáveis de ambiente');
+try {
+  execSync('node generate-vercel-env.cjs', { stdio: 'inherit' });
+  console.log('✅ Arquivo vercel-env.js gerado com sucesso');
+} catch (error) {
+  console.error('⚠️ Aviso: Falha ao gerar vercel-env.js:', error.message);
+  console.log('⚠️ Continuando o build mesmo assim...');
+}
+
 // Usa a configuração de Vite específica para frontend
 console.log('📦 Construindo o frontend React com Vite');
 execSync('npx vite build --config vite.frontend.config.ts', { stdio: 'inherit' });
