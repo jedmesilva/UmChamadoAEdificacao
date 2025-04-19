@@ -51,7 +51,7 @@ const LandingPage = () => {
           <p className="italic leading-relaxed">Uma preparação para o tempo dos edificadores.</p>
         </div>
 
-        <p className="text-xl mb-2 font-medium">A Nova Era começa com uma resposta.</p>
+        <p className="text-xl mb-2 font-medium">A Nova Era começa com uma resposta...</p>
         <p className="text-xl mb-8 font-medium">Você está pronto para edificar?</p>
 
         <form onSubmit={(e) => {
