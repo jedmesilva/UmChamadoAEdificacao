@@ -47,6 +47,10 @@ const HomePage = () => {
       
       <main className="flex-grow p-6 md:p-8 max-w-5xl mx-auto w-full">
         <div className="mb-8">
+          <div className="inline-flex items-center bg-gray-900/5 rounded-md px-3 py-1 mb-3">
+            <span className="text-sm text-gray-600 whitespace-nowrap">{user?.email}</span>
+            <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />
+          </div>
           <h1 className="text-2xl md:text-3xl font-bold font-heading">
             Bem-vindo, {user?.user_metadata?.name || user?.email?.split('@')[0]}
           </h1>
