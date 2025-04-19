@@ -40,11 +40,21 @@ export const letterReadStatus = pgTable("letter_read_status", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Subscrições ao newsletter
+// Tipos de assinatura
+export const subscriptionTypeEnum = pgEnum("subscription_type", ["email", "physical"]);
+
+// Subscrições ao newsletter e assinaturas físicas
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
+  userId: integer("user_id").references(() => users.id),
+  email: text("email").notNull(),
+  type: subscriptionTypeEnum("type").default("email"),
   status: text("status").default("active"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  country: text("country").default("Brasil"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -58,7 +68,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export const insertLetterSchema = createInsertSchema(letters);
 export const insertSubscriptionSchema = createInsertSchema(subscriptions).pick({
+  userId: true,
   email: true,
+  type: true,
+  status: true,
+  address: true,
+  city: true,
+  state: true,
+  zipCode: true,
+  country: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
