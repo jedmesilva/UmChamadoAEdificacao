@@ -53,25 +53,25 @@ const HomePage = () => {
           <p className="text-gray-600">Aqui você encontra todas as cartas do Chamado à Edificação.</p>
         </div>
 
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4 shadow-sm">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-4 shadow-sm">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Receba os pergaminhos em casa!</h2>
-              <p className="text-gray-600">Assine para receber as cartas impressas em pergaminhos especiais diretamente em sua casa.</p>
+              <h2 className="text-xl font-semibold text-amber-900 mb-2">Receba os pergaminhos em casa!</h2>
+              <p className="text-amber-800">Assine para receber as cartas impressas em pergaminhos especiais diretamente em sua casa.</p>
             </div>
-            <button className="bg-gray-900 text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors font-medium">
+            <button className="bg-amber-700 text-white px-5 py-2 rounded-md hover:bg-amber-800 transition-colors font-medium text-sm">
               Receber cartas em casa
             </button>
           </div>
         </div>
 
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8 shadow-sm">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 shadow-sm">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Receba as cartas no seu email!</h2>
-              <p className="text-gray-600">Inscreva-se para receber as novas cartas diretamente na sua caixa de entrada.</p>
+              <h2 className="text-xl font-semibold text-blue-900 mb-2">Receba as cartas no seu email!</h2>
+              <p className="text-blue-800">Inscreva-se para receber as novas cartas diretamente na sua caixa de entrada.</p>
             </div>
-            <button className="bg-gray-900 text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors font-medium">
+            <button className="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">
               Receber cartas no email!
             </button>
           </div>
