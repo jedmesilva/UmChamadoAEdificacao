@@ -60,7 +60,7 @@ const HomePage = () => {
               <p className="text-gray-600">Inscreva-se para receber as novas cartas diretamente na sua caixa de entrada.</p>
             </div>
             <button className="bg-gray-900 text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors font-medium">
-              Ativar inscrição
+              Receber cartas no email!
             </button>
           </div>
         </div>
