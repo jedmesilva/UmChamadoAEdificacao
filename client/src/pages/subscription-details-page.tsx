@@ -239,7 +239,13 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
                             variant="outline" 
                             size="sm"
                             className="w-full mb-2"
-                            onClick={() => setLocation(`/letter/${carta.id}`)}
+                            onClick={() => {
+                              // Seguindo a lógica implementada no LetterCard
+                              // Para cartas do Supabase, usamos id_sumary_carta como id para navegação
+                              const cartaId = carta.id_sumary_carta;
+                              console.log('Abrindo carta com ID:', cartaId);
+                              setLocation(`/letter/${cartaId}`);
+                            }}
                           >
                             Ver carta
                           </Button>
