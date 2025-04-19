@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { useLocation } from "wouter";
 import { ChevronRight } from "lucide-react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
@@ -10,6 +11,7 @@ import { cartaService } from "@/lib/carta-service";
 
 const HomePage = () => {
   const { user } = useSupabaseAuth();
+  const [_, setLocation] = useLocation();
 
   // Usamos o React Query para gerenciar o estado de carregamento, dados e erros
   const { 
@@ -50,7 +52,7 @@ const HomePage = () => {
         <div className="mb-8">
           <div 
             className="inline-flex items-center bg-gray-900/5 rounded-md px-3 py-1 mb-3 cursor-pointer hover:bg-gray-900/10 transition-colors"
-            onClick={() => window.location.href = "/account"}
+            onClick={() => setLocation("/account")}
           >
             <span className="text-sm text-gray-600 whitespace-nowrap">{user?.email}</span>
             <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />

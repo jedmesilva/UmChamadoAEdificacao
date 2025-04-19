@@ -34,17 +34,19 @@ import {
 import { Loader2 } from "lucide-react";
 
 interface SubscriptionDetailsPageProps {
-  params: {
-    type: string;
+  params?: {
+    type?: string;
   };
 }
 
 const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
-  const { type } = params;
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Definindo um tipo padrão caso não seja fornecido
+  const type = params?.type || "email";
   
   // Determinar se é assinatura de email ou física
   const isEmailSubscription = type === "email";
