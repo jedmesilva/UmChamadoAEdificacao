@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { ChevronRight } from "lucide-react";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import LetterCard from "@/components/letters/letter-card";
