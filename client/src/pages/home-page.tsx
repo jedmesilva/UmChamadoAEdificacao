@@ -52,6 +52,18 @@ const HomePage = () => {
           </h1>
           <p className="text-gray-600">Aqui você encontra todas as cartas do Chamado à Edificação.</p>
         </div>
+
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8 shadow-sm">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Receba as cartas no seu email!</h2>
+              <p className="text-gray-600">Inscreva-se para receber as novas cartas diretamente na sua caixa de entrada.</p>
+            </div>
+            <button className="bg-gray-900 text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors font-medium">
+              Ativar inscrição
+            </button>
+          </div>
+        </div>
         
         {isLoading ? (
           <div className="flex justify-center items-center py-12">
