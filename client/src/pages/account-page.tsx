@@ -141,10 +141,10 @@ const AccountPage = () => {
           <h1 className="text-2xl font-bold ml-2">Minha Conta</h1>
         </div>
 
-        <Tabs defaultValue="profile" className="w-full">
+        <Tabs defaultValue="subscriptions" className="w-full">
           <TabsList className="mb-4">
-            <TabsTrigger value="profile">Perfil</TabsTrigger>
             <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
+            <TabsTrigger value="profile">Perfil</TabsTrigger>
           </TabsList>
           
           {/* Tab de Perfil */}
