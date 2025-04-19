@@ -71,7 +71,7 @@ export default function handler(req, res) {
 </head>
 <body>
   <div class="container">
-    <h1>Um Chamado à Edificação</h1>
+    <h1>Chamado à Edificação</h1>
     <p>Carregando aplicação...</p>
     <div>
       <a href="/api/healthcheck" class="button">Verificar API</a>

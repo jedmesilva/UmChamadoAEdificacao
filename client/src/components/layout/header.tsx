@@ -21,7 +21,7 @@ const Header = ({ hideAuthButton = false }: HeaderProps) => {
     <header className="py-4 px-6 flex justify-between items-center border-b border-gray-200">
       <div className="text-xl font-bold tracking-tight font-heading">
         <Link href={user ? "/dashboard" : "/"}>
-          UM CHAMADO À EDIFICAÇÃO
+          CHAMADO À EDIFICAÇÃO
         </Link>
       </div>
       
