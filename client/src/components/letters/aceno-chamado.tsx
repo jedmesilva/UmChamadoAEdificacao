@@ -1,8 +1,6 @@
-
 import { useState } from "react";
 import { supabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Player } from "@lottiefiles/react-lottie-player";
 
 interface AcenoChamadoProps {
   userId: string;
@@ -11,12 +9,10 @@ interface AcenoChamadoProps {
 
 export default function AcenoChamado({ userId, cartaId }: AcenoChamadoProps) {
   const [acenou, setAcenou] = useState(false);
-  const [animando, setAnimando] = useState(false);
 
   const handleAceno = async () => {
     if (acenou) return;
 
-    setAnimando(true);
     try {
       console.log("Tentando registrar aceno:", { userId, cartaId });
       const { data, error } = await supabaseClient.from("acenos").insert([
@@ -33,13 +29,9 @@ export default function AcenoChamado({ userId, cartaId }: AcenoChamadoProps) {
       }
 
       console.log("Aceno registrado com sucesso:", data);
-      setTimeout(() => {
-        setAnimando(false);
-        setAcenou(true);
-      }, 1000);
+      setAcenou(true);
     } catch (error) {
       console.error("Erro ao registrar aceno:", error);
-      setAnimando(false);
     }
   };
 
@@ -47,31 +39,18 @@ export default function AcenoChamado({ userId, cartaId }: AcenoChamadoProps) {
     <div className="flex flex-col items-start mt-12">
       <Button
         onClick={handleAceno}
-        disabled={animando}
+        disabled={acenou}
         variant="ghost"
-        className="hover:bg-transparent pl-0"
+        className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+          acenou 
+          ? "bg-gray-900/10 text-gray-900" 
+          : "bg-gray-900/5 hover:bg-gray-900/10 text-gray-600 hover:text-gray-900"
+        }`}
       >
-        <div className="flex items-center gap-1">
-          <Player
-            src={"/ascenoanimation.json"}
-            className="w-16 h-16"
-            autoplay={false}
-            loop={false}
-            style={{ cursor: 'pointer' }}
-            ref={(player: any) => {
-              if (player && animando) {
-                player.play();
-              }
-            }}
-            onEvent={event => {
-              if (event === 'complete') {
-                setAnimando(false);
-                setAcenou(true);
-              }
-            }}
-          />
-          <span className="text-xs text-gray-600 font-sans">{acenou ? "Recebi o chamado!" : "Acenar ao chamado!"}</span>
-        </div>
+        <span className="text-lg">🫡</span>
+        <span className="text-sm">
+          {acenou ? "Recebi o chamado!" : "Receber o chamado"}
+        </span>
       </Button>
     </div>
   );
