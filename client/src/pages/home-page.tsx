@@ -59,7 +59,7 @@ const HomePage = () => {
               <h2 className="text-xl font-semibold text-amber-900 mb-2">Receba os pergaminhos em casa!</h2>
               <p className="text-amber-800">Assine para receber as cartas impressas em pergaminhos especiais diretamente em sua casa.</p>
             </div>
-            <button className="bg-amber-700 text-white px-5 py-2 rounded-md hover:bg-amber-800 transition-colors font-medium text-sm">
+            <button className="bg-amber-700 text-white px-5 py-2 rounded-md hover:bg-amber-800 transition-colors font-medium text-sm whitespace-nowrap">
               Receber cartas em casa
             </button>
           </div>
