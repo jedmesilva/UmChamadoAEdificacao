@@ -41,10 +41,10 @@ export default function AcenoChamado({ userId, cartaId }: AcenoChamadoProps) {
         onClick={handleAceno}
         disabled={acenou}
         variant="ghost"
-        className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${
+        className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 transform active:scale-95 ${
           acenou 
           ? "bg-gray-900/5 text-gray-900" 
-          : "bg-gray-900/[0.02] hover:bg-gray-900/5 text-gray-600 hover:text-gray-900"
+          : "bg-gray-900/[0.02] hover:bg-gray-900/5 hover:scale-105 text-gray-600 hover:text-gray-900"
         }`}
       >
         <span className="text-lg">🫡</span>
