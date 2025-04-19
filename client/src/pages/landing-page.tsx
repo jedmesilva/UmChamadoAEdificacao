@@ -70,7 +70,7 @@ const LandingPage = () => {
             />
             <button
               type="submit"
-              className="w-full md:w-auto px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
+              className="w-full md:w-auto px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors whitespace-nowrap"
             >
               Receber o chamado
             </button>
