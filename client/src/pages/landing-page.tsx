@@ -22,7 +22,7 @@ const LandingPage = () => {
       <main className="flex-grow flex flex-col items-center justify-center px-6 py-12 text-center max-w-3xl mx-auto">
         <p className="text-sm uppercase tracking-wider text-gray-600 mb-3">Carta Semanal</p>
         
-        <h1 className="text-4xl md:text-5xl font-bold mb-8 font-heading tracking-tight">UM CHAMADO À EDIFICAÇÃO</h1>
+        <h1 className="text-4xl md:text-5xl font-bold mb-8 font-heading tracking-tight">CHAMADO À EDIFICAÇÃO</h1>
         
         <div className="space-y-6 text-gray-700 mb-12 max-w-2xl">
           <p className="leading-relaxed">

@@ -1,6 +1,6 @@
 
 {
-  "name": "Um Chamado à Edificação",
+  "name": "Chamado à Edificação",
   "short_name": "Um Chamado",
   "description": "Cartas semanais para a convocação dos edificadores",
   "start_url": "/?source=pwa",
