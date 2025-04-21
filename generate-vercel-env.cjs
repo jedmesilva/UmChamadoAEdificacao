@@ -49,7 +49,9 @@ envVarsToExport.forEach(varName => {
 });
 
 // Adiciona a variável de ambiente identificando o ambiente
-exportedVars.DEPLOYMENT_ENV = isVercel ? 'production' : 'development';
+exportedVars.DEPLOYMENT_ENV = isVercel ? process.env.VERCEL_ENV || 'production' : 'development';
+// Adiciona flag explícita para identificar a versão hospedada na Vercel
+exportedVars.IS_VERCEL = isVercel ? 'true' : 'false';
 
 // Constrói o conteúdo do arquivo
 const fileContent = `/**

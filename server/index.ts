@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 import { StorageType } from './storage';
 dotenv.config();
 
-// Usa armazenamento Supabase conforme configurado
-process.env.STORAGE_TYPE = StorageType.SUPABASE;
+// Usa o tipo de armazenamento configurado (padrão: MEMORY)
+// process.env.STORAGE_TYPE já é definido nas variáveis de ambiente ou terá valor padrão
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -79,13 +79,41 @@ async function initializeServer() {
 
     // Se não estiver no ambiente da Vercel, inicia o servidor
     if (!isVercel) {
-      const port = process.env.PORT || 5000;
-      server.listen({
-        port,
-        host: "0.0.0.0",
-      }, () => {
-        log(`serving on port ${port}`);
-      });
+      // Usar portas alternativas caso ocorra erro
+      const portOptions = [3000, 4000, 8080, 8000, 9000];
+      
+      const tryPort = (index = 0) => {
+        if (index >= portOptions.length) {
+          console.error('Não foi possível iniciar o servidor em nenhuma porta disponível');
+          return;
+        }
+        
+        const port = portOptions[index];
+        console.log(`Tentando iniciar servidor na porta ${port}...`);
+        
+        server.listen({
+          port: port,
+          host: "0.0.0.0",
+        })
+        .on('listening', () => {
+          const address = server.address();
+          const actualPort = typeof address === 'object' && address ? address.port : port;
+          console.log(`✅ Servidor iniciado com sucesso na porta ${actualPort}`);
+          console.log(`🔗 Acesse: http://localhost:${actualPort}`);
+          console.log(`🔗 API: http://localhost:${actualPort}/api/healthcheck`);
+        })
+        .on('error', (err: any) => {
+          // Verificar o erro pelo código (tipicamente é um NodeJS.ErrnoException)
+          if (err && typeof err === 'object' && 'code' in err && err.code === 'EADDRINUSE') {
+            console.log(`Porta ${port} já está em uso, tentando próxima...`);
+            tryPort(index + 1);
+          } else {
+            console.error('Erro ao iniciar o servidor:', err);
+          }
+        });
+      };
+      
+      tryPort();
     }
     
     return { app, server };

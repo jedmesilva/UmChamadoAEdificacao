@@ -1,13 +1,14 @@
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "@/hooks/use-toast";
 
 const LandingPage = () => {
   const { user } = useSupabaseAuth();
   const [, setLocation] = useLocation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect to dashboard if already logged in
   useEffect(() => {
@@ -57,56 +58,115 @@ const LandingPage = () => {
 
         <form onSubmit={async (e) => {
           e.preventDefault();
+          
+          if (isSubmitting) return; // Previne envios múltiplos
+          
           const form = e.target as HTMLFormElement;
           const email = (form.elements.namedItem('email') as HTMLInputElement).value;
-
+          
+          // Atualiza estado para indicar que o formulário está sendo enviado
+          setIsSubmitting(true);
+          
+          // Mostrar toast de processamento
+          toast({
+            title: "Processando...",
+            description: "Estamos processando sua inscrição"
+          });
+          
           try {
+            console.log('Enviando inscrição para /api/subscribe:', email);
+            
+            // Primeira tentativa usando a API Express local ou Vercel
             const response = await fetch('/api/subscribe', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email }),
             });
-
+            
+            if (!response.ok && response.status !== 200) {
+              console.warn(`Resposta com status ${response.status}`);
+            }
+            
             const data = await response.json();
-
+            console.log('Resposta da API:', data);
+            
             if (data.success) {
-              // Se tem alreadySubscribed ou alreadyRegistered, mostra a mensagem específica
+              // Exibe mensagem baseada no tipo de resposta
               if (data.alreadySubscribed || data.alreadyRegistered) {
                 toast({
                   title: "Aviso",
                   description: data.message
                 });
               } else {
-                // Caso contrário é uma nova inscrição
                 toast({
                   title: "Sucesso!",
                   description: data.message || "Inscrição realizada com sucesso!"
                 });
               }
 
+              // Redireciona se necessário
               if (data.redirect) {
                 const searchParams = new URLSearchParams({
-                  email: data.redirect.email,
-                  tab: data.redirect.tab
+                  email: data.redirect.email || email,
+                  tab: data.redirect.tab || 'register'
                 });
                 setLocation(`${data.redirect.path}?${searchParams.toString()}`);
               }
             } else {
               toast({
                 title: "Erro",
-                description: data.message,
+                description: data.message || "Ocorreu um erro ao processar sua inscrição",
                 variant: "destructive"
               });
             }
           } catch (error) {
-            console.error('Erro ao processar inscrição:', error);
-            toast({
-              title: "Erro",
-              description: "Erro ao processar sua inscrição. Por favor, tente novamente.",
-              variant: "destructive"
-            });
+            console.error('Erro na primeira tentativa:', error);
+            
+            try {
+              // Segunda tentativa usando rota alternativa da Vercel
+              // Na Vercel, o caminho pode ser diferente do desenvolvimento local
+              const vercelPath = window.location.hostname.includes('vercel') || 
+                                window.location.hostname.includes('replit.app') ? 
+                                '/api/subscribe' : '/_/api/subscribe';
+              
+              console.log(`Tentando rota alternativa: ${vercelPath}`);
+              
+              const fallbackResponse = await fetch(vercelPath, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+              });
+              
+              const fallbackData = await fallbackResponse.json();
+              
+              if (fallbackData.success) {
+                toast({
+                  title: "Sucesso!",
+                  description: fallbackData.message || "Inscrição realizada com sucesso!"
+                });
+                
+                if (fallbackData.redirect) {
+                  const searchParams = new URLSearchParams({
+                    email: fallbackData.redirect.email || email,
+                    tab: fallbackData.redirect.tab || 'register'
+                  });
+                  setLocation(`${fallbackData.redirect.path}?${searchParams.toString()}`);
+                }
+              } else {
+                throw new Error(fallbackData.message || "Falha na segunda tentativa");
+              }
+            } catch (fallbackError) {
+              console.error('Erro na segunda tentativa:', fallbackError);
+              
+              toast({
+                title: "Erro",
+                description: "Erro ao processar sua inscrição. Por favor, tente novamente mais tarde.",
+                variant: "destructive"
+              });
+            }
+          } finally {
+            // Sempre reseta o estado de submissão
+            setIsSubmitting(false);
           }
         }} className="w-full max-w-md mx-auto space-y-4">
           <div className="flex flex-col md:flex-row gap-2">
@@ -119,9 +179,10 @@ const LandingPage = () => {
             />
             <button
               type="submit"
-              className="w-full md:w-auto px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors whitespace-nowrap"
+              disabled={isSubmitting}
+              className={`w-full md:w-auto px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors whitespace-nowrap ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              Receber o chamado
+              {isSubmitting ? 'Processando...' : 'Receber o chamado'}
             </button>
           </div>
         </form>
