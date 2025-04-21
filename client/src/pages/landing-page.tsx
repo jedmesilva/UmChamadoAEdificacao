@@ -83,10 +83,10 @@ const LandingPage = () => {
             
             console.log(`Ambiente detectado: ${isDev ? 'desenvolvimento' : 'produção'}, hostname: ${window.location.hostname}`);
             
-            // Em desenvolvimento usamos o endpoint do Express, em produção usamos o da Vercel
-            // No desenvolvimento (localhost ou replit) usamos /api/subscribe-status que vai para server/routes.ts
-            // Na produção (vercel) usamos /api/subscribe que vai para api/subscribe.js
-            const endpoint = isDev ? '/api/subscribe-status' : '/api/subscribe';
+            // Usamos um único endpoint para ambos os ambientes
+            // Em desenvolvimento, Express vai processar /api/subscribe
+            // Em produção, Vercel vai processar /api/subscribe
+            const endpoint = '/api/subscribe';
             console.log(`Usando endpoint: ${endpoint} para ambiente: ${isDev ? 'desenvolvimento' : 'produção'}`);
             
             const response = await fetch(endpoint, {
@@ -166,14 +166,12 @@ const LandingPage = () => {
                            !window.location.hostname.includes('127.0.0.1') &&
                            !window.location.hostname.includes('.repl.co');
               
-              // Tenta uma rota alternativa baseada no ambiente
-              // Se estivermos em produção, tente a API direta da Vercel como fallback
-              // Se estivermos em desenvolvimento, tente a mesma rota novamente
-              const vercelPath = isProd ? '/api/subscribe' : '/api/subscribe-status';
+              // Tentativa de fallback usando o mesmo endpoint mas com configurações diferentes
+              const fallbackPath = '/api/subscribe';
               
-              console.log(`Tentando rota alternativa: ${vercelPath} (ambiente: ${isProd ? 'produção' : 'desenvolvimento'})`);
+              console.log(`Tentando rota novamente com cabeçalhos adicionais: ${fallbackPath}`);
               
-              const fallbackResponse = await fetch(vercelPath, {
+              const fallbackResponse = await fetch(fallbackPath, {
                 method: 'POST',
                 headers: { 
                   'Content-Type': 'application/json',

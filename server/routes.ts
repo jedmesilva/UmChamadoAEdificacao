@@ -90,13 +90,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Rota para verificar o status de inscrição - redirecionada para a API serverless em produção
-  app.post("/api/subscribe-status", async (req, res) => {
+  // Rota para verificar o status de inscrição e fazer inscrição
+  // Usamos a mesma rota '/api/subscribe' para desenvolvimento e produção
+  app.post("/api/subscribe", async (req, res) => {
     try {
       const { email } = req.body;
       if (!email) {
         return res.status(400).json({ success: false, message: "Email é obrigatório" });
       }
+      
+      // Também manter o endpoint antigo '/api/subscribe-status' como alias para compatibilidade
+      app.post("/api/subscribe-status", (req2, res2) => {
+        // Simplesmente encaminhar a requisição para /api/subscribe
+        req.body = req2.body;
+        app._router.handle(req, res);
+      });
       
       // Importar os serviços do Supabase
       const { subscriptionService, authService } = await import("../lib/supabase-service");
