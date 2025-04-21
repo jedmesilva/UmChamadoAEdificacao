@@ -84,7 +84,7 @@ const LandingPage = () => {
                 });
                 setLocation(`${data.redirect.path}?${searchParams.toString()}`);
               }
-            } else if (data.alreadySubscribed) {
+            } else if (data.alreadySubscribed || data.alreadyRegistered) {
               toast({
                 title: "Aviso",
                 description: data.message
