@@ -65,7 +65,7 @@ export default async function handler(req, res) {
 
   try {
     console.log('Inicializando cliente Supabase com Service Role...');
-    
+
     // Inicializar cliente Supabase com SERVICE ROLE KEY para contornar problemas de RLS
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
@@ -81,27 +81,21 @@ export default async function handler(req, res) {
         },
       }
     });
-    
-    // 1. Verificar se usuário existe na tabela account_user (mais simples e confiável)
+
+    // 1. Verificar se usuário existe via auth
     let userExists = false;
-    
+
     try {
-      // Verificar na tabela account_user
-      const { data: existingUser } = await supabase
-        .from('account_user')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-      
-      if (existingUser) {
+      const { data: user } = await supabase.auth.admin.getUserByEmail(email);
+      if (user) {
         userExists = true;
-        console.log('Usuário encontrado em account_user');
+        console.log('Usuário encontrado via auth');
       }
     } catch (userCheckError) {
       console.error('Erro ao verificar usuário:', userCheckError);
       // Assume que o usuário não existe em caso de erro
     }
-    
+
     // 2. Se usuário existe, enviar para login
     if (userExists) {
       console.log(`Usuário já está cadastrado com email: ${email}, redirecionando para login`);
@@ -116,7 +110,7 @@ export default async function handler(req, res) {
         }
       });
     }
-    
+
     // 3. Verificar inscrição existente
     try {
       const { data: existingSubscription } = await supabase
@@ -124,7 +118,7 @@ export default async function handler(req, res) {
         .select('id')
         .eq('email_subscription', email)
         .maybeSingle();
-      
+
       if (existingSubscription) {
         console.log(`Email já inscrito: ${email}, redirecionando para completar o cadastro`);
         return res.status(200).json({
@@ -142,7 +136,7 @@ export default async function handler(req, res) {
       console.error('Erro ao verificar inscrição:', subscriptionCheckError);
       // Continue mesmo em caso de erro
     }
-    
+
     // 4. Criar nova inscrição
     try {
       const { error: insertError } = await supabase
@@ -152,7 +146,7 @@ export default async function handler(req, res) {
           created_at: new Date().toISOString(),
           status_subscription: 'is_subscription_um_chamado'
         });
-      
+
       if (insertError) {
         // Se for erro de duplicado, assume que foi bem-sucedido
         if (insertError.code === '23505' || 
@@ -167,7 +161,7 @@ export default async function handler(req, res) {
       console.error('Erro ao criar inscrição:', insertError);
       // Tente prosseguir, mesmo com erro
     }
-    
+
     // 5. Retornar resposta de sucesso
     return res.status(200).json({
       success: true,
@@ -178,11 +172,11 @@ export default async function handler(req, res) {
         tab: "register"
       }
     });
-  
+
   } catch (error) {
     // Log detalhado do erro para diagnóstico
     console.error('Erro geral ao processar inscrição:', error);
-    
+
     // Resposta amigável para o usuário
     return res.status(200).json({ // Use 200 para que o cliente ainda receba a resposta
       success: false, 
