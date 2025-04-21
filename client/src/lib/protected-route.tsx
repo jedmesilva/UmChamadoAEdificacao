@@ -15,7 +15,6 @@ export function ProtectedRoute({
   return (
     <Route path={path}>
       {(params) => {
-        // Enquanto estiver carregando o estado de autenticação, mostra o loader e NÃO redireciona
         if (isLoading) {
           return (
             <div className="flex items-center justify-center min-h-screen">
@@ -24,18 +23,12 @@ export function ProtectedRoute({
           );
         }
 
-        // Se o usuário não estiver autenticado, redireciona para a página de login
-        // com o parâmetro de redirecionamento para voltar à mesma página após o login
         if (!user) {
           // Salvar a URL atual para redirecionamento após login
           const currentPath = window.location.pathname;
-          const searchParams = window.location.search;
-          const fullPath = searchParams ? `${currentPath}${searchParams}` : currentPath;
-          return <Redirect to={`/auth?redirect=${encodeURIComponent(fullPath)}`} />;
+          return <Redirect to={`/auth?redirect=${encodeURIComponent(currentPath)}`} />;
         }
 
-        // Se o usuário estiver autenticado, renderiza o componente normalmente
-        // mantendo os parâmetros da URL e a posição na página
         return <Component params={params} />;
       }}
     </Route>
