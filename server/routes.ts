@@ -90,6 +90,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rota específica para inscrição na landing page
+  app.post("/api/subscribe", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, message: "Email é obrigatório" });
+      }
+      
+      const subscription = await storage.createSubscription(email);
+      res.status(200).json({ 
+        success: true, 
+        message: "Inscrição realizada com sucesso", 
+        redirect: {
+          path: "/auth",
+          email: email,
+          tab: "register"
+        }
+      });
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      res.status(200).json({ success: false, message: "Erro ao processar sua inscrição" });
+    }
+  });
+  
   app.get(apiRouter("/subscriptions/:email"), async (req, res) => {
     try {
       const email = req.params.email;
