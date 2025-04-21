@@ -59,7 +59,7 @@ const HomePage = () => {
           </div>
           <div 
             className="bg-blue-50/50 text-blue-800 px-4 py-2 rounded-full mb-3 text-sm cursor-pointer hover:bg-blue-50 transition-colors inline-flex items-center"
-            onClick={() => setLocation("/account")}
+            onClick={() => setLocation("/account?tab=profile")}
           >
             Complete a sua conta
             <ChevronRight className="h-4 w-4 ml-1 text-blue-600" />

@@ -67,6 +67,10 @@ const AccountPage = () => {
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
+  
+  // Obtém o parâmetro tab da URL
+  const params = new URLSearchParams(window.location.search);
+  const defaultTab = params.get('tab') || 'subscriptions';
 
   // Estado para controlar as assinaturas
   const [emailSubscription, setEmailSubscription] = useState(true);
@@ -141,7 +145,7 @@ const AccountPage = () => {
           <h1 className="text-2xl font-bold ml-2">Minha Conta</h1>
         </div>
 
-        <Tabs defaultValue="subscriptions" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
             <TabsTrigger value="profile">Perfil</TabsTrigger>
