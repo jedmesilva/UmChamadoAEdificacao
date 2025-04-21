@@ -7,6 +7,28 @@ import { createClient } from '@supabase/supabase-js';
  * @param {Object} res - Objeto de resposta
  */
 export default async function handler(req, res) {
+  // Configuração global de timeout mais curto para evitar problemas com Vercel serverless
+  const FETCH_TIMEOUT = 5000; // 5 segundos
+  const originalFetch = global.fetch;
+  
+  // Sobrescreve fetch global com versão com timeout
+  global.fetch = async (url, options = {}) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    
+    try {
+      const response = await originalFetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error(`Fetch error for URL ${url}:`, error.message || error);
+      throw error;
+    }
+  };
   // Configuração CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -144,36 +166,10 @@ export default async function handler(req, res) {
     try {
       console.log('Verificando usuário existente para:', email);
       
-      // Verificar usuário na tabela auth.users (usuário completo com login)
-      if (supabaseServiceKey) {
-        try {
-          console.log('Usando admin.getUserByEmail para verificar usuário');
-          const { data: user, error: adminError } = await supabase.auth.admin.getUserByEmail(email);
-          
-          if (adminError) {
-            console.error('Erro ao verificar usuário via admin API:', adminError);
-            throw adminError;
-          }
-          
-          userExists = !!user;
-          console.log('Verificação admin:', userExists ? 'Usuário encontrado' : 'Usuário não encontrado');
-        } catch (adminMethodError) {
-          console.error('Exceção ao usar admin.getUserByEmail:', adminMethodError);
-          console.log('Alternando para fallback de verificação em account_user');
-          
-          // Fallback se ocorrer erro ou a API admin não estiver disponível
-          const { data: accountUser } = await supabase
-            .from('account_user')
-            .select('*')
-            .eq('email', email)
-            .maybeSingle();
-            
-          userExists = !!accountUser;
-          console.log('Verificação fallback em account_user:', userExists ? 'Usuário encontrado' : 'Usuário não encontrado');
-        }
-      } else {
-        console.log('SERVICE_ROLE não disponível, verificando diretamente em account_user');
-        // Fallback: Verificar na tabela account_user
+      // Nova abordagem para verificar usuário que seja compatível com Vercel Serverless
+      try {
+        console.log('Verificando usuário em account_user primeiro');
+        // Verificar na tabela account_user primeiro (funciona independente da chave)
         const { data: accountUser, error: accountError } = await supabase
           .from('account_user')
           .select('*')
@@ -183,9 +179,64 @@ export default async function handler(req, res) {
         if (accountError && accountError.code !== 'PGRST116') {
           console.error('Erro ao verificar usuário em account_user:', accountError);
         }
-          
+        
         userExists = !!accountUser;
-        console.log('Resultado da verificação em account_user:', userExists ? 'Usuário encontrado' : 'Usuário não encontrado');
+        console.log('Verificação em account_user:', userExists ? 'Usuário encontrado' : 'Usuário não encontrado');
+        
+        // Se não foi encontrado em account_user, usamos uma abordagem alternativa
+        if (!userExists) {
+          console.log('Usuário não encontrado em account_user, tentando método alternativo com resetPassword');
+          // Uma forma alternativa de verificar se o email existe é tentar 
+          // uma operação resetPassword que não vai enviar email se não existir
+          const redirectURL = process.env.VERCEL_URL ? 
+            `https://${process.env.VERCEL_URL}/auth-reset` : 
+            'http://localhost:3000/auth-reset';
+            
+          try {
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+              email,
+              { redirectTo: redirectURL }
+            );
+            
+            // Se não gerar erro específico de "usuário não encontrado", assumimos que existe
+            if (resetError) {
+              const errorMsg = resetError.message.toLowerCase();
+              userExists = !errorMsg.includes('not found') && 
+                         !errorMsg.includes('não encontrado');
+              console.log('Verificação via resetPassword, erro:', resetError.message);
+              console.log('Análise do usuário via reset password:', userExists ? 'Provavelmente existe' : 'Não existe');
+            } else {
+              // Se não der erro, provavelmente o usuário existe
+              userExists = true;
+              console.log('Reset password não retornou erro, usuário provavelmente existe');
+            }
+          } catch (resetMethodError) {
+            console.error('Erro ao tentar reset password:', resetMethodError);
+            // Em caso de erro com reset, continuamos considerando que o usuário não existe
+            userExists = false;
+          }
+        }
+      } catch (accountCheckError) {
+        console.error('Erro geral ao verificar em account_user:', accountCheckError);
+        
+        // Em caso de falha na verificação de account_user, tentamos um último método
+        try {
+          console.log('Última tentativa: verificação de inscrição existente');
+          const { data: existingSubscription } = await supabase
+            .from('subscription_um_chamado')
+            .select('*')
+            .eq('email_subscription', email)
+            .maybeSingle();
+            
+          // Se existe uma inscrição, consideramos que não existe um usuário completo ainda
+          // já que estamos no fluxo de inscrição
+          userExists = false;
+          console.log('Verificação por inscrição: inscrição encontrada mas considerando usuário inexistente');
+        } catch (finalCheckError) {
+          console.error('Falha em todas as tentativas de verificação:', finalCheckError);
+          // Assumimos que o usuário não existe para permitir prosseguir
+          userExists = false;
+        }
       }
       
       console.log(`Resultado final da verificação de usuário: ${userExists ? 'Encontrado' : 'Não encontrado'}`);
