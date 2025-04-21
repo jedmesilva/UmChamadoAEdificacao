@@ -420,6 +420,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
         const userExists = users?.users.some(u => u.email?.toLowerCase() === email.toLowerCase());
 
+        // 4. Retorna resposta com redirecionamento apropriado
+        console.log(`Retornando sucesso com redirecionamento para ${userExists ? 'login' : 'registro'}`);
         return res.status(200).json({
           success: true,
           message: "Inscrição realizada com sucesso",
@@ -429,14 +431,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tab: userExists ? "login" : "register",
             email: email
           }
-        });
-        
-        // 4. Retorna o email para redirecionamento para página de cadastro completo
-        console.log(`Retornando sucesso com redirecionamento para registro`);
-        res.status(200).json({ 
-          message: "Email registrado com sucesso",
-          email, 
-          redirect: "register" 
         });
       } catch (error: any) {
         console.error("Erro ao processar inscrição:", error);
