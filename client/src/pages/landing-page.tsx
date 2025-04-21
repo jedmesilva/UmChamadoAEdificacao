@@ -10,9 +10,9 @@ const LandingPage = () => {
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect to dashboard if already logged in
+  // Redirect to dashboard if already logged in, but only if accessing root path
   useEffect(() => {
-    if (user) {
+    if (user && window.location.pathname === '/') {
       setLocation("/dashboard");
     }
   }, [user, setLocation]);

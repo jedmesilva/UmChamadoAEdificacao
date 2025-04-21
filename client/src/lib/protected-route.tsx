@@ -1,3 +1,4 @@
+
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
@@ -23,7 +24,9 @@ export function ProtectedRoute({
         }
 
         if (!user) {
-          return <Redirect to="/auth" />;
+          // Salvar a URL atual para redirecionamento após login
+          const currentPath = window.location.pathname;
+          return <Redirect to={`/auth?redirect=${encodeURIComponent(currentPath)}`} />;
         }
 
         return <Component params={params} />;

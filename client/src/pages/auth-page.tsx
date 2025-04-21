@@ -91,7 +91,9 @@ const AuthPage = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      setLocation("/dashboard");
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirect');
+      setLocation(redirectTo || "/dashboard");
     }
   }, [user, setLocation]);
 
