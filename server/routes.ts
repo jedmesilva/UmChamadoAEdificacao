@@ -430,36 +430,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: email
           }
         });
-        console.log(`Usuário existe: ${userExists}`);
-        
-        // Se o usuário já existe, redireciona para o login
-        if (userExists) {
-          return res.status(200).json({ 
-            message: "Usuário já cadastrado",
-            email,
-            redirect: "login"
-          });
-        }
-        
-        // 2. Verifica se já existe uma subscrição para este email
-        console.log(`Verificando se o email ${email} já existe como subscrição...`);
-        const existingSubscription = await subscriptionService.checkSubscription(email);
-        console.log(`Subscrição existente:`, existingSubscription);
-        
-        // 3. Se não existir, faz inserção direta no banco de dados usando raw SQL
-        // Isso pode ajudar a contornar problemas de permissão nas APIs do Supabase
-        if (!existingSubscription) {
-          console.log(`Criando nova subscrição para ${email}...`);
-          
-          try {
-            // Vamos direto pelo serviço de subscrição que já está funcionando em outros lugares
-            const subscription = await subscriptionService.createSubscription(email);
-            console.log(`Subscrição criada com sucesso via serviço:`, subscription);
-          } catch (subscriptionError: any) {
-            console.error(`Erro ao criar subscrição:`, subscriptionError);
-            // Não interrompe o fluxo
-          }
-        }
         
         // 4. Retorna o email para redirecionamento para página de cadastro completo
         console.log(`Retornando sucesso com redirecionamento para registro`);
