@@ -72,23 +72,19 @@ const LandingPage = () => {
             const data = await response.json();
 
             if (data.success) {
-              toast({
-                title: "Sucesso!",
-                description: "Inscrição realizada com sucesso!"
-              });
-
-              if (data.redirect) {
-                const searchParams = new URLSearchParams({
-                  email: data.redirect.email,
-                  tab: data.redirect.tab
+              // Se tem alreadySubscribed ou alreadyRegistered, mostra a mensagem específica
+              if (data.alreadySubscribed || data.alreadyRegistered) {
+                toast({
+                  title: "Aviso",
+                  description: data.message
                 });
-                setLocation(`${data.redirect.path}?${searchParams.toString()}`);
+              } else {
+                // Caso contrário é uma nova inscrição
+                toast({
+                  title: "Sucesso!",
+                  description: data.message || "Inscrição realizada com sucesso!"
+                });
               }
-            } else if (data.alreadySubscribed || data.alreadyRegistered) {
-              toast({
-                title: "Aviso",
-                description: data.message
-              });
 
               if (data.redirect) {
                 const searchParams = new URLSearchParams({
