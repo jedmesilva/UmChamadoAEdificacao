@@ -132,6 +132,7 @@ const PwaInstallBanner = () => {
   const closeBanner = () => {
     console.log('PWA: Banner fechado pelo usuário');
     setShowBanner(false);
+    setDeferredPrompt(null); // Previne o prompt nativo de aparecer
     // Salva a preferência do usuário
     localStorage.setItem('pwa-banner-closed', 'true');
   };
