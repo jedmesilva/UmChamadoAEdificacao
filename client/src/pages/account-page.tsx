@@ -57,11 +57,13 @@ const profileFormSchema = z.object({
     message: "Email inválido.",
   }),
   phone: z.string()
-    .regex(/^\+55\s?[1-9]{2}\s?9?[0-9]{8}$/, {
-      message: "Formato inválido. Use: +55 DDD NÚMERO (ex: +55 11 999999999)",
+    .regex(/^[0-9]+$/, {
+      message: "Digite apenas números",
     })
+    .min(10, { message: "Telefone deve ter no mínimo 10 números" })
+    .max(11, { message: "Telefone deve ter no máximo 11 números" })
     .optional()
-    .transform(val => val ? val.replace(/\s/g, '') : val),
+    .transform(val => val ? `+55${val}` : val),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -349,7 +351,19 @@ const AccountPage = () => {
                           <FormItem>
                             <FormLabel>Telefone</FormLabel>
                             <FormControl>
-                              <Input placeholder="+55 11 999999999" {...field} />
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+55</span>
+                                <Input 
+                                  placeholder="11999999999"
+                                  className="pl-12"
+                                  maxLength={11}
+                                  value={field.value?.replace(/^\+55/, '') || ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    field.onChange(value);
+                                  }}
+                                />
+                              </div>
                             </FormControl>
                             <FormDescription>
                               Digite no formato: +55 DDD NÚMERO (Ex: +55 11 999999999)
