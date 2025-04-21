@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { authService, subscriptionService, cartasService } from "../lib/supabase-service";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseClient } from "../lib/supabase";
 import crypto from 'crypto';
 
 export async function registerRoutes(app: Express): Promise<Server> {
