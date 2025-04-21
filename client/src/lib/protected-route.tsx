@@ -1,6 +1,7 @@
+
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { Loader2 } from "lucide-react";
-import { Route } from "wouter";
+import { Route, useLocation } from "wouter";
 import { ReactNode } from "react";
 
 interface ProtectedRouteProps {
@@ -13,6 +14,7 @@ export function ProtectedRoute({
   component: Component,
 }: ProtectedRouteProps) {
   const { user, isLoading } = useSupabaseAuth();
+  const [, setLocation] = useLocation();
 
   return (
     <Route path={path}>
@@ -26,8 +28,15 @@ export function ProtectedRoute({
           );
         }
 
-        // Se não houver usuário, mantém o componente mas deixa o hook de auth
-        // redirecionar de forma suave quando confirmar que não há sessão
+        // Se não houver usuário, redireciona para a página de login
+        if (!user) {
+          // Redireciona para login com parâmetro de redirecionamento
+          const redirectUrl = `/auth?redirect=${encodeURIComponent(path)}`;
+          setLocation(redirectUrl);
+          return null;
+        }
+
+        // Se houver usuário, renderiza o componente normalmente
         return <Component params={params} />;
       }}
     </Route>
