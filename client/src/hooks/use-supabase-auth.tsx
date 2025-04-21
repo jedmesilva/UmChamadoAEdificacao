@@ -1,4 +1,3 @@
-
 // src/hooks/use-supabase-auth.tsx
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { supabaseClient, isSupabaseConfigured, logSupabaseStatus } from '@/lib/supabase';
@@ -24,7 +23,7 @@ interface SupabaseAuthContextType {
   signIn: (email: string, password: string) => Promise<User>;
   signUp: (email: string, password: string, name: string) => Promise<User | null>;
   signOut: () => Promise<void>;
-  supabase: SupabaseClient;
+  supabase: SupaClient;
 }
 
 // Criar o contexto para autenticação
@@ -51,7 +50,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     const checkSupabaseConfig = () => {
       const configured = isSupabaseConfigured();
       setIsSupabaseReady(configured);
-      
+
       if (!configured) {
         console.error('[Auth Provider] Supabase não está configurado corretamente. Autenticação não funcionará.');
         setError(new Error('Serviço de autenticação não está configurado corretamente. Contate o suporte.'));
@@ -59,32 +58,28 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         console.log('[Auth Provider] Supabase configurado corretamente');
       }
     };
-    
+
     checkSupabaseConfig();
   }, []);
 
-  // Verificar status de autenticação inicial
+  // Verificar status de autenticação inicial  - Enhanced for persistence
   useEffect(() => {
     // Se o Supabase não estiver configurado, não tenta fazer verificações
     if (!isSupabaseReady) {
       setIsLoading(false);
       return () => {}; // Retorna uma função de cleanup vazia
     }
-    
+
     const checkUser = async () => {
       try {
         setIsLoading(true);
 
-        // Verificar sessão atual
+        // Verificar sessão atual AO MONTAR O COMPONENTE
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
-
-        // Atualizar estado do usuário com base na sessão
         if (session?.user) {
           setUser(session.user);
-          console.log('[Auth Provider] Usuário logado:', session.user.email);
-        } else {
-          console.log('[Auth Provider] Nenhum usuário logado');
+          console.log('[Auth Provider] Usuário logado (sessão inicial):', session.user.email);
         }
 
         // Configurar listener para mudanças de autenticação
