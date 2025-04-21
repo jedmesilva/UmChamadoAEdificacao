@@ -83,8 +83,10 @@ const LandingPage = () => {
             
             console.log(`Ambiente detectado: ${isDev ? 'desenvolvimento' : 'produção'}, hostname: ${window.location.hostname}`);
             
-            // Em desenvolvimento usamos subscribe-status, em produção usamos subscribe
-            const endpoint = isDev ? '/api/subscribe-status' : '/api/subscribe';
+            // Sempre usamos o mesmo endpoint, independentemente do ambiente
+            // No desenvolvimento o /api/subscribe-status existe e é processado pelo servidor Express
+            // Na produção, o /api/subscribe existe e é processado pela Vercel
+            const endpoint = '/api/subscribe-status';
             console.log(`Usando endpoint: ${endpoint}`);
             
             const response = await fetch(endpoint, {
@@ -166,10 +168,8 @@ const LandingPage = () => {
               
               // Tenta uma rota alternativa baseada no ambiente
               // Se estivermos em produção, tente a API direta da Vercel como fallback
-              // Se estivermos em desenvolvimento, tente a API de desenvolvimento alternativa
-              const vercelPath = isProd 
-                  ? '/api/subscribe' 
-                  : '/api/subscribe-status';
+              // Se estivermos em desenvolvimento, tente a mesma rota novamente
+              const vercelPath = isProd ? '/api/subscribe' : '/api/subscribe-status';
               
               console.log(`Tentando rota alternativa: ${vercelPath} (ambiente: ${isProd ? 'produção' : 'desenvolvimento'})`);
               
