@@ -71,14 +71,6 @@ export default async function handler(req, res) {
       auth: {
         autoRefreshToken: false,
         persistSession: false
-      },
-      global: {
-        headers: {
-          'X-Client-Info': 'api-vercel',
-          // Headers especiais para contornar o RLS
-          'Authorization': `Bearer ${supabaseKey}`,
-          'X-Supabase-Auth': 'service_role'
-        },
       }
     });
 
@@ -86,10 +78,16 @@ export default async function handler(req, res) {
     let userExists = false;
 
     try {
-      const { data: user } = await supabase.auth.admin.getUserByEmail(email);
-      if (user) {
+      // Em vez de usar admin.getUserByEmail, consultamos diretamente a tabela account_user
+      const { data: existingUser, error: userError } = await supabase
+        .from('account_user')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingUser) {
         userExists = true;
-        console.log('Usuário encontrado via auth');
+        console.log('Usuário encontrado via account_user');
       }
     } catch (userCheckError) {
       console.error('Erro ao verificar usuário:', userCheckError);
