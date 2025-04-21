@@ -98,7 +98,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "Email é obrigatório" });
       }
       
-      const subscription = await storage.createSubscription(email);
+      // Importar o serviço de subscrição do Supabase
+      const { subscriptionService } = await import("../lib/supabase-service");
+      
+      // Verificar se já existe uma inscrição com este email
+      const existingSubscription = await subscriptionService.checkSubscription(email);
+      
+      if (existingSubscription) {
+        return res.status(200).json({
+          success: true,
+          alreadySubscribed: true,
+          message: "Você já está inscrito! Você será redirecionado para a página de login.",
+          redirect: {
+            path: "/auth",
+            email: email,
+            tab: "login"
+          }
+        });
+      }
+      
+      // Criar nova inscrição no Supabase
+      const subscription = await subscriptionService.createSubscription(email);
+      
       res.status(200).json({ 
         success: true, 
         message: "Inscrição realizada com sucesso", 
