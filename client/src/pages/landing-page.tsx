@@ -83,11 +83,11 @@ const LandingPage = () => {
             
             console.log(`Ambiente detectado: ${isDev ? 'desenvolvimento' : 'produção'}, hostname: ${window.location.hostname}`);
             
-            // Sempre usamos o mesmo endpoint, independentemente do ambiente
-            // No desenvolvimento o /api/subscribe-status existe e é processado pelo servidor Express
-            // Na produção, o /api/subscribe existe e é processado pela Vercel
-            const endpoint = '/api/subscribe-status';
-            console.log(`Usando endpoint: ${endpoint}`);
+            // Em desenvolvimento usamos o endpoint do Express, em produção usamos o da Vercel
+            // No desenvolvimento (localhost ou replit) usamos /api/subscribe-status que vai para server/routes.ts
+            // Na produção (vercel) usamos /api/subscribe que vai para api/subscribe.js
+            const endpoint = isDev ? '/api/subscribe-status' : '/api/subscribe';
+            console.log(`Usando endpoint: ${endpoint} para ambiente: ${isDev ? 'desenvolvimento' : 'produção'}`);
             
             const response = await fetch(endpoint, {
               method: 'POST',
