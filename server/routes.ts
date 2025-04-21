@@ -401,14 +401,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (error) throw error;
 
+        // Verificar se já existe um usuário com este email no auth
+        const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
+        const userExists = users?.users.some(u => u.email?.toLowerCase() === email.toLowerCase());
+
         return res.status(200).json({
           success: true,
           message: "Inscrição realizada com sucesso",
-          subscription: newSubscription
+          subscription: newSubscription,
+          redirect: {
+            path: "/auth",
+            tab: userExists ? "login" : "register",
+            email: email
+          }
         });
-        
-        // Utiliza uma abordagem mais simples usando só o cliente normal
-        const userExists = false; // Simplificamos este check
         console.log(`Usuário existe: ${userExists}`);
         
         // Se o usuário já existe, redireciona para o login

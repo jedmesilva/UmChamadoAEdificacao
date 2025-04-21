@@ -3,6 +3,7 @@ import Footer from "@/components/layout/footer";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { toast } from "@/components/ui/use-toast";
 
 const LandingPage = () => {
   const { user } = useSupabaseAuth();
@@ -58,7 +59,7 @@ const LandingPage = () => {
           e.preventDefault();
           const form = e.target as HTMLFormElement;
           const email = (form.elements.namedItem('email') as HTMLInputElement).value;
-          
+
           try {
             const response = await fetch('/api/subscribe', {
               method: 'POST',
@@ -67,20 +68,37 @@ const LandingPage = () => {
               },
               body: JSON.stringify({ email }),
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
-              alert('Inscrição realizada com sucesso!');
-              form.reset();
-            } else if (data.message === "Email já cadastrado") {
-              alert('Este email já está inscrito para receber as cartas.');
+              toast({
+                title: "Sucesso!",
+                description: "Inscrição realizada com sucesso!"
+              });
+
+              // Redirecionar para a página de autenticação com os parâmetros apropriados
+              if (data.redirect) {
+                const searchParams = new URLSearchParams({
+                  email: data.redirect.email,
+                  tab: data.redirect.tab
+                });
+                setLocation(`${data.redirect.path}?${searchParams.toString()}`);
+              }
             } else {
-              alert('Erro ao realizar inscrição. Por favor, tente novamente.');
+              toast({
+                title: "Aviso",
+                description: data.message,
+                variant: "destructive"
+              });
             }
           } catch (error) {
             console.error('Erro ao processar inscrição:', error);
-            alert('Erro ao processar sua inscrição. Por favor, tente novamente.');
+            toast({
+              title: "Erro",
+              description: "Erro ao processar sua inscrição. Por favor, tente novamente.",
+              variant: "destructive"
+            });
           }
         }} className="w-full max-w-md mx-auto space-y-4">
           <div className="flex flex-col md:flex-row gap-2">
