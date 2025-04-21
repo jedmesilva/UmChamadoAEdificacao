@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useToast } from "@/hooks/use-toast";
+import { signatureService } from "@/lib/signature-service";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +48,9 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
         ? await signatureService.createEmailSignature(user.id)
         : await signatureService.createParchmentSignature(user.id);
         
-      if (!result) throw new Error("Falha ao criar assinatura");
+      if (!result) {
+        throw new Error("Falha ao criar assinatura. Por favor, tente novamente.");
+      }
       
       toast({
         title: "Assinatura ativada!",
