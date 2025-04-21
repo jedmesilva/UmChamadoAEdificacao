@@ -54,13 +54,39 @@ const LandingPage = () => {
         <p className="text-xl mb-2 font-medium">A Nova Era começa com uma resposta...</p>
         <p className="text-xl mb-8 font-medium">Você está pronto para edificar?</p>
 
-        <form onSubmit={(e) => {
+        <form onSubmit={async (e) => {
           e.preventDefault();
-          // TODO: Implementar lógica de inscrição
+          const form = e.target as HTMLFormElement;
+          const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+          
+          try {
+            const response = await fetch('/api/subscribe', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ email }),
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              alert('Inscrição realizada com sucesso!');
+              form.reset();
+            } else if (data.message === "Email já cadastrado") {
+              alert('Este email já está inscrito para receber as cartas.');
+            } else {
+              alert('Erro ao realizar inscrição. Por favor, tente novamente.');
+            }
+          } catch (error) {
+            console.error('Erro ao processar inscrição:', error);
+            alert('Erro ao processar sua inscrição. Por favor, tente novamente.');
+          }
         }} className="w-full max-w-md mx-auto space-y-4">
           <div className="flex flex-col md:flex-row gap-2">
             <input
               type="email"
+              name="email"
               placeholder="Digite seu email"
               className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
               required

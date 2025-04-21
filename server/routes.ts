@@ -365,10 +365,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email } = req.body;
       
       if (!email) {
-        return res.status(400).json({ message: "Email é obrigatório" });
+        return res.status(400).json({ 
+          success: false,
+          message: "Email é obrigatório" 
+        });
       }
 
       try {
+        // Verificar se o email já existe
+        const { data: existingSubscription } = await supabaseClient
+          .from('subscription_um_chamado')
+          .select('*')
+          .eq('email_subscription', email)
+          .single();
+
+        if (existingSubscription) {
+          return res.status(200).json({ 
+            success: false,
+            message: "Email já cadastrado" 
+          });
+        }
+
+        // Inserir nova inscrição
+        const { data: newSubscription, error } = await supabaseClient
+          .from('subscription_um_chamado')
+          .insert([
+            { 
+              email_subscription: email,
+              status_subscription: 'is_subscription_um_chamado'
+            }
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return res.status(200).json({
+          success: true,
+          message: "Inscrição realizada com sucesso",
+          subscription: newSubscription
+        });
         // 1. Verifica se o usuário já existe no sistema de autenticação
         // Evitamos usar checkUserExists aqui, que parece estar causando problemas de permissão
         console.log(`Verificando se o email ${email} já existe como usuário...`);
