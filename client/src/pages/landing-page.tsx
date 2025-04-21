@@ -77,7 +77,19 @@ const LandingPage = () => {
                 description: "Inscrição realizada com sucesso!"
               });
 
-              // Redirecionar para a página de autenticação com os parâmetros apropriados
+              if (data.redirect) {
+                const searchParams = new URLSearchParams({
+                  email: data.redirect.email,
+                  tab: data.redirect.tab
+                });
+                setLocation(`${data.redirect.path}?${searchParams.toString()}`);
+              }
+            } else if (data.alreadySubscribed) {
+              toast({
+                title: "Aviso",
+                description: data.message
+              });
+
               if (data.redirect) {
                 const searchParams = new URLSearchParams({
                   email: data.redirect.email,
@@ -87,7 +99,7 @@ const LandingPage = () => {
               }
             } else {
               toast({
-                title: "Aviso",
+                title: "Erro",
                 description: data.message,
                 variant: "destructive"
               });

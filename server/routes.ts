@@ -373,17 +373,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // Verificar se o email já existe
+        // Verificar se o email já existe na tabela de inscrições
         const { data: subscription, error: checkError } = await supabaseClient
           .from('subscription_um_chamado')
           .select('*')
           .eq('email_subscription', email)
           .single();
 
+        // Verificar se existe um usuário com este email
+        const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers();
+        const userExists = users?.users.some(u => u.email?.toLowerCase() === email.toLowerCase());
+
         if (subscription) {
           return res.status(200).json({ 
             success: false,
-            message: "Email já cadastrado" 
+            alreadySubscribed: true,
+            hasUser: userExists,
+            message: userExists ? "Email já cadastrado" : "Email já inscrito. Por favor, crie sua conta para acessar as cartas.",
+            redirect: userExists ? {
+              path: "/auth",
+              tab: "login",
+              email
+            } : {
+              path: "/auth",
+              tab: "register",
+              email
+            }
           });
         }
 
