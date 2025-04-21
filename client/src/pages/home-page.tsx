@@ -10,8 +10,26 @@ import { Loader2 } from "lucide-react";
 import { cartaService } from "@/lib/carta-service";
 
 const HomePage = () => {
-  const { user } = useSupabaseAuth();
+  const { user, supabase } = useSupabaseAuth();
   const [_, setLocation] = useLocation();
+  const [hasProfile, setHasProfile] = useState(false);
+
+  // Verificar se o usuário tem perfil na tabela account_user
+  useEffect(() => {
+    const checkUserProfile = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('account_user')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+        
+      setHasProfile(!!data && !error);
+    };
+    
+    checkUserProfile();
+  }, [user, supabase]);
 
   // Usamos o React Query para gerenciar o estado de carregamento, dados e erros
   const { 
@@ -57,13 +75,15 @@ const HomePage = () => {
             <span className="text-sm text-gray-600 whitespace-nowrap">{user?.email}</span>
             <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />
           </div>
-          <div 
-            className="bg-blue-50/50 text-blue-800 px-4 py-2 rounded-full mb-3 text-sm cursor-pointer hover:bg-blue-50 transition-colors inline-flex items-center"
-            onClick={() => setLocation("/account?tab=profile")}
-          >
-            Complete a sua conta
-            <ChevronRight className="h-4 w-4 ml-1 text-blue-600" />
-          </div>
+          {!hasProfile && (
+            <div 
+              className="bg-blue-50/50 text-blue-800 px-4 py-2 rounded-full mb-3 text-sm cursor-pointer hover:bg-blue-50 transition-colors inline-flex items-center"
+              onClick={() => setLocation("/account?tab=profile")}
+            >
+              Complete a sua conta
+              <ChevronRight className="h-4 w-4 ml-1 text-blue-600" />
+            </div>
+          )}
           <h1 className="text-2xl md:text-3xl font-bold font-heading">
             Bem-vindo, {user?.user_metadata?.name || user?.email?.split('@')[0]}
           </h1>
