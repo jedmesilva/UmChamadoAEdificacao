@@ -132,7 +132,17 @@ const PwaInstallBanner = () => {
   const closeBanner = () => {
     console.log('PWA: Banner fechado pelo usuário');
     setShowBanner(false);
+    // Salva a preferência do usuário
+    localStorage.setItem('pwa-banner-closed', 'true');
   };
+
+  useEffect(() => {
+    // Verifica se o usuário já fechou o banner anteriormente
+    const bannerClosed = localStorage.getItem('pwa-banner-closed') === 'true';
+    if (bannerClosed) {
+      setShowBanner(false);
+    }
+  }, []);
 
   if (!showBanner) return null;
 
