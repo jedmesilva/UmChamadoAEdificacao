@@ -56,7 +56,12 @@ const profileFormSchema = z.object({
   email: z.string().email({
     message: "Email inválido.",
   }),
-  phone: z.string().optional(),
+  phone: z.string()
+    .regex(/^\+55\s?[1-9]{2}\s?9?[0-9]{8}$/, {
+      message: "Formato inválido. Use: +55 DDD NÚMERO (ex: +55 11 999999999)",
+    })
+    .optional()
+    .transform(val => val ? val.replace(/\s/g, '') : val),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -181,11 +186,10 @@ const AccountPage = () => {
               'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
             },
             body: JSON.stringify({
-              id: user?.id,
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsapp: data.phone || null,
+              whatsapp: data.phone ? data.phone.replace(/\s/g, '') : null,
               status: 'is_complit',
               created_at: new Date().toISOString()
             })
@@ -345,8 +349,11 @@ const AccountPage = () => {
                           <FormItem>
                             <FormLabel>Telefone</FormLabel>
                             <FormControl>
-                              <Input placeholder="(00) 00000-0000" {...field} />
+                              <Input placeholder="+55 11 999999999" {...field} />
                             </FormControl>
+                            <FormDescription>
+                              Digite no formato: +55 DDD NÚMERO (Ex: +55 11 999999999)
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
