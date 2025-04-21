@@ -130,7 +130,8 @@ const LetterPage = ({ params }: LetterPageProps) => {
           
           <div className="prose max-w-none text-gray-700 space-y-5">
             {formatLetterContent(
-              cartaSupabase.body_html || 
+              (cartaSupabase as any).body_html || 
+              cartaSupabase.markdonw_carta ||
               'Sem conteúdo'
             )}
           </div>
