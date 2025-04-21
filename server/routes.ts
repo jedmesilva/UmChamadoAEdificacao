@@ -405,7 +405,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Inscrição realizada com sucesso",
           subscription: newSubscription
         });
-        // 1. Verifica se o usuário já existe no sistema de autenticação
         // Evitamos usar checkUserExists aqui, que parece estar causando problemas de permissão
         console.log(`Verificando se o email ${email} já existe como usuário...`);
         
