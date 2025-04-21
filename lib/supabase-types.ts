@@ -12,11 +12,18 @@ export interface AccountUser {
   status: string;
 }
 
-export interface Subscription {
+export interface EmailSignature {
   id: string;
-  email_subscription: string;
+  user_id: string;
+  status_signature: string;
   created_at: string;
-  status_subscription?: string; // Campo para armazenar o status da subscrição
+}
+
+export interface ParchmentSignature {
+  id: string;
+  user_id: string;
+  status_signature: string;
+  created_at: string;
 }
 
 export interface Carta {
@@ -51,10 +58,15 @@ export interface SupabaseSchema {
         Insert: Carta;
         Update: Partial<Carta>;
       };
-      subscription_um_chamado: {
-        Row: Subscription;
-        Insert: Omit<Subscription, 'id' | 'created_at'> & { id?: string };
-        Update: Partial<Subscription>;
+      signature_email: {
+        Row: EmailSignature;
+        Insert: Omit<EmailSignature, 'id' | 'created_at'> & { id?: string };
+        Update: Partial<EmailSignature>;
+      };
+      signature_parchment: {
+        Row: ParchmentSignature;
+        Insert: Omit<ParchmentSignature, 'id' | 'created_at'> & { id?: string };
+        Update: Partial<ParchmentSignature>;
       };
       status_carta: {
         Row: StatusCarta;

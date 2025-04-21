@@ -37,10 +37,17 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
   ];
 
   const handleSubscribe = async () => {
+    if (!user?.id) return;
+    
     setIsProcessing(true);
     try {
-      // Aqui implementaremos a integração com o gateway de pagamento
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulação
+      // Aqui implementaremos a integração com o gateway de pagamento no futuro
+      // Por enquanto apenas criamos o registro da assinatura
+      const result = isEmailSubscription 
+        ? await signatureService.createEmailSignature(user.id)
+        : await signatureService.createParchmentSignature(user.id);
+        
+      if (!result) throw new Error("Falha ao criar assinatura");
       
       toast({
         title: "Assinatura ativada!",

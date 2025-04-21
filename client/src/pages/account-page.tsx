@@ -76,6 +76,9 @@ const AccountPage = () => {
   // Estado para controlar as assinaturas
   const [emailSubscription, setEmailSubscription] = useState(true);
   const [physicalSubscription, setPhysicalSubscription] = useState(false);
+  const [emailSignature, setEmailSignature] = useState(null); // Added state for email signature data
+  const [physicalSignature, setPhysicalSignature] = useState(null); // Added state for physical signature data
+
 
   // Dados iniciais do formulário
   const defaultValues: Partial<ProfileFormValues> = {
@@ -429,11 +432,11 @@ const AccountPage = () => {
                       <CardTitle>Assinatura por Email</CardTitle>
                     </div>
                     <Button 
-                      variant={emailSubscription ? "destructive" : "default"}
+                      variant={emailSignature?.status_signature === 'active' ? "destructive" : "default"}
                       onClick={() => setLocation(`/checkout/email`)}
                       className="w-32"
                     >
-                      {emailSubscription ? "Desativar" : "Ativar"}
+                      {emailSignature?.status_signature === 'active' ? "Desativar" : "Ativar"}
                     </Button>
                   </div>
                   <CardDescription>
@@ -443,7 +446,7 @@ const AccountPage = () => {
                 <CardContent>
                   <div className="flex items-center text-sm mb-2">
                     <span className="font-medium mr-2">Status:</span> 
-                    {emailSubscription ? (
+                    {emailSignature?.status_signature === 'active' ? (
                       <span className="flex items-center text-green-600">
                         <CheckCircle className="h-4 w-4 mr-1" /> Ativa
                       </span>
@@ -457,7 +460,7 @@ const AccountPage = () => {
                     <span className="font-medium">Email de envio:</span> {user?.email}
                   </div>
                   <div className="text-sm text-gray-600">
-                    {emailSubscription ? (
+                    {emailSignature?.status_signature === 'active' ? (
                       <p>Você receberá notificações quando novas cartas forem disponibilizadas.</p>
                     ) : (
                       <p>Ative esta assinatura para receber as cartas diretamente em seu email.</p>
@@ -484,11 +487,11 @@ const AccountPage = () => {
                       <CardTitle>Assinatura Física</CardTitle>
                     </div>
                     <Button 
-                      variant={physicalSubscription ? "destructive" : "default"}
+                      variant={physicalSignature?.status_signature === 'active' ? "destructive" : "default"}
                       onClick={() => setLocation(`/checkout/physical`)}
                       className="w-32"
                     >
-                      {physicalSubscription ? "Desativar" : "Ativar"}
+                      {physicalSignature?.status_signature === 'active' ? "Desativar" : "Ativar"}
                     </Button>
                   </div>
                   <CardDescription>
@@ -498,7 +501,7 @@ const AccountPage = () => {
                 <CardContent>
                   <div className="flex items-center text-sm mb-2">
                     <span className="font-medium mr-2">Status:</span> 
-                    {physicalSubscription ? (
+                    {physicalSignature?.status_signature === 'active' ? (
                       <span className="flex items-center text-green-600">
                         <CheckCircle className="h-4 w-4 mr-1" /> Ativa
                       </span>
