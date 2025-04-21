@@ -64,9 +64,10 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const AccountPage = () => {
-  const { user } = useSupabaseAuth();
+  const { user, supabase } = useSupabaseAuth();
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Obtém o parâmetro tab da URL
   const params = new URLSearchParams(window.location.search);
@@ -96,13 +97,108 @@ const AccountPage = () => {
 
   // Função para salvar o perfil
   const onSubmit = async (data: ProfileFormValues) => {
-    // Aqui você implementaria a lógica para salvar os dados no banco de dados
-    console.log('Dados do perfil a serem salvos:', data);
-    
-    toast({
-      title: "Perfil atualizado",
-      description: "Seus dados foram atualizados com sucesso.",
-    });
+    try {
+      setIsSubmitting(true);
+      console.log('Dados do perfil a serem salvos:', data);
+      
+      // 1. Primeiro atualizar os metadados do usuário no Auth
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          name: data.name,
+          phone: data.phone,
+          address: data.address,
+          city: data.city,
+          state: data.state,
+          zipCode: data.zipCode,
+        }
+      });
+      
+      if (updateError) throw updateError;
+      
+      // 2. Verificar se já existe um registro em account_user para este usuário
+      const { data: existingProfile } = await supabase
+        .from('account_user')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+      
+      if (existingProfile) {
+        // 3A. Se já existe, atualizar
+        const { error: updateProfileError } = await supabase
+          .from('account_user')
+          .update({
+            name: data.name,
+            email: data.email,
+            whatsapp: data.phone,
+            status: 'is_complit'
+          })
+          .eq('user_id', user?.id);
+          
+        if (updateProfileError) {
+          console.error('Erro ao atualizar perfil:', updateProfileError);
+          throw updateProfileError;
+        }
+      } else {
+        // 3B. Se não existe, criar novo perfil
+        // Primeiro, tenta criar via API com SERVICE_ROLE
+        try {
+          const response = await fetch('/api/create-profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+            },
+            body: JSON.stringify({
+              id: user?.id,
+              user_id: user?.id,
+              email: data.email,
+              name: data.name,
+              whatsapp: data.phone,
+              status: 'is_complit'
+            })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erro ao criar perfil via API:', errorText);
+            
+            // Tentativa alternativa: inserir diretamente
+            const { error: insertError } = await supabase
+              .from('account_user')
+              .insert({
+                id: user?.id,
+                user_id: user?.id,
+                email: data.email,
+                name: data.name,
+                whatsapp: data.phone,
+                status: 'is_complit'
+              });
+              
+            if (insertError) {
+              console.error('Erro ao inserir perfil diretamente:', insertError);
+              throw new Error('Não foi possível criar seu perfil. Por favor, tente novamente mais tarde.');
+            }
+          }
+        } catch (apiError) {
+          console.error('Erro na chamada para criar perfil:', apiError);
+          throw apiError;
+        }
+      }
+      
+      toast({
+        title: "Perfil atualizado",
+        description: "Seus dados foram atualizados com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao salvar perfil:', error);
+      toast({
+        title: "Erro ao atualizar perfil",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar seus dados. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Função para alternar o status da assinatura de email
@@ -280,8 +376,12 @@ const AccountPage = () => {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full md:w-auto">
-                      Salvar alterações
+                    <Button 
+                      type="submit" 
+                      className="w-full md:w-auto"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Salvando..." : "Salvar alterações"}
                     </Button>
                   </form>
                 </Form>

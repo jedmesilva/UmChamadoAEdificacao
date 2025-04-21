@@ -170,61 +170,10 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
 
-      // Se o registro foi bem-sucedido, também cria o perfil na tabela de usuários
+      // Não criaremos mais o perfil do usuário aqui
+      // Agora o perfil será criado apenas quando o usuário completar seu cadastro na página de conta
       if (data.user) {
-        try {
-          // Verificação se já existe um usuário com esse ID na tabela account_user
-          const { data: existingUser } = await supabase
-            .from('account_user')
-            .select('*')
-            .eq('user_id', data.user.id)
-            .maybeSingle();
-            
-          if (existingUser) {
-            console.log('Perfil de usuário já existe, não é necessário criar novamente');
-          } else {
-            // Tenta criar o perfil diretamente usando RPC para bypass do RLS
-            // Usando function no banco de dados que tem permissão para inserir
-            const { error: rpcError } = await supabase
-              .rpc('create_user_profile', {
-                user_id_param: data.user.id,
-                email_param: email,
-                name_param: name,
-                status_param: 'is_complit'
-              }).single();
-              
-            if (rpcError) {
-              console.log('Erro ao usar RPC, tentando método alternativo:', rpcError);
-              
-              // Método alternativo: API backend
-              try {
-                const response = await fetch('/api/create-profile', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-                  },
-                  body: JSON.stringify({
-                    id: data.user.id,
-                    user_id: data.user.id,
-                    email: email,
-                    name: name,
-                    status: 'is_complit'
-                  })
-                });
-                
-                if (!response.ok) {
-                  console.error('Erro ao criar perfil via API:', await response.text());
-                }
-              } catch (apiError) {
-                console.error('Erro na chamada API para criar perfil:', apiError);
-              }
-            }
-          }
-        } catch (profileErr) {
-          console.error('Exceção ao criar perfil:', profileErr);
-          // Não falha o processo por isso, continua usando o usuário criado
-        }
+        console.log('Usuário registrado com sucesso. O perfil será criado quando o usuário completar seus dados na página de conta.');
       }
 
       setUser(data.user);
