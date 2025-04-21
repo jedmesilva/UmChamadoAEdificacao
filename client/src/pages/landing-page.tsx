@@ -76,19 +76,46 @@ const LandingPage = () => {
           try {
             console.log('Enviando inscrição para /api/subscribe:', email);
             
-            // Primeira tentativa usando a API Express local ou Vercel
-            const response = await fetch('/api/subscribe', {
+            // Determina URLs de acordo com o ambiente
+            const isDev = window.location.hostname === 'localhost' || 
+                         window.location.hostname.includes('127.0.0.1') ||
+                         window.location.hostname.includes('.repl.co');
+            
+            console.log(`Ambiente detectado: ${isDev ? 'desenvolvimento' : 'produção'}, hostname: ${window.location.hostname}`);
+            
+            // Em desenvolvimento usamos subscribe-status, em produção usamos subscribe
+            const endpoint = isDev ? '/api/subscribe-status' : '/api/subscribe';
+            console.log(`Usando endpoint: ${endpoint}`);
+            
+            const response = await fetch(endpoint, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
               body: JSON.stringify({ email }),
             });
             
-            if (!response.ok && response.status !== 200) {
-              console.warn(`Resposta com status ${response.status}`);
+            // Log detalhado do status da resposta
+            const status = response.status;
+            console.log(`Resposta recebida: status ${status}, ok: ${response.ok}`);
+            
+            if (!response.ok && status !== 200) {
+              console.warn(`Resposta com status ${status} - ${response.statusText}`);
             }
             
-            const data = await response.json();
-            console.log('Resposta da API:', data);
+            // Tenta obter o corpo da resposta com tratamento de erro
+            let data;
+            try {
+              const text = await response.text();
+              console.log('Resposta bruta:', text);
+              data = text ? JSON.parse(text) : {};
+            } catch (parseError) {
+              console.error('Erro ao processar resposta JSON:', parseError);
+              throw new Error('Falha ao processar resposta do servidor');
+            }
+            
+            console.log('Resposta da API processada:', data);
             
             if (data.success) {
               // Mostrar mensagem adequada de acordo com o status
@@ -133,19 +160,45 @@ const LandingPage = () => {
             try {
               // Segunda tentativa usando rota alternativa da Vercel
               // Na Vercel, o caminho pode ser diferente do desenvolvimento local
-              const vercelPath = window.location.hostname.includes('vercel') || 
-                                window.location.hostname.includes('replit.app') ? 
-                                '/api/subscribe' : '/_/api/subscribe';
+              const isProd = !window.location.hostname.includes('localhost') && 
+                           !window.location.hostname.includes('127.0.0.1') &&
+                           !window.location.hostname.includes('.repl.co');
               
-              console.log(`Tentando rota alternativa: ${vercelPath}`);
+              // Tenta uma rota alternativa baseada no ambiente
+              // Se estivermos em produção, tente a API direta da Vercel como fallback
+              // Se estivermos em desenvolvimento, tente a API de desenvolvimento alternativa
+              const vercelPath = isProd 
+                  ? '/api/subscribe' 
+                  : '/api/subscribe-status';
+              
+              console.log(`Tentando rota alternativa: ${vercelPath} (ambiente: ${isProd ? 'produção' : 'desenvolvimento'})`);
               
               const fallbackResponse = await fetch(vercelPath, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                  'X-Requested-With': 'XMLHttpRequest'  // Identificador AJAX 
+                },
                 body: JSON.stringify({ email }),
               });
               
-              const fallbackData = await fallbackResponse.json();
+              // Log detalhado da resposta fallback
+              const fallbackStatus = fallbackResponse.status;
+              console.log(`Resposta fallback: status ${fallbackStatus}, ok: ${fallbackResponse.ok}`);
+              
+              // Tenta obter o corpo da resposta com tratamento de erro
+              let fallbackData;
+              try {
+                const fallbackText = await fallbackResponse.text();
+                console.log('Resposta fallback bruta:', fallbackText);
+                fallbackData = fallbackText ? JSON.parse(fallbackText) : {};
+              } catch (parseError) {
+                console.error('Erro ao processar resposta JSON (fallback):', parseError);
+                throw new Error('Falha ao processar resposta do servidor');
+              }
+              
+              console.log('Resposta da API fallback processada:', fallbackData);
               
               if (fallbackData.success) {
                 // Também tratar os diferentes casos na resposta de fallback

@@ -79,41 +79,55 @@ async function initializeServer() {
 
     // Se não estiver no ambiente da Vercel, inicia o servidor
     if (!isVercel) {
-      // Usar portas alternativas caso ocorra erro
-      const portOptions = [3000, 4000, 8080, 8000, 9000];
+      // Verificar se estamos no Replit
+      const isReplit = process.env.REPL_ID !== undefined;
+      let port: number;
       
-      const tryPort = (index = 0) => {
-        if (index >= portOptions.length) {
-          console.error('Não foi possível iniciar o servidor em nenhuma porta disponível');
-          return;
+      if (isReplit) {
+        // No Replit, usamos a porta 5000 que é esperada pelo workflow
+        port = 5000;
+        console.log('Ambiente Replit detectado, usando porta 5000...');
+      } else {
+        // Em outros ambientes de desenvolvimento, tentamos várias portas
+        port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+        console.log(`Usando porta definida em variável de ambiente: ${port}`);
+      }
+      
+      console.log(`Iniciando servidor na porta ${port}...`);
+      
+      server.listen({
+        port: port,
+        host: "0.0.0.0",
+      })
+      .on('listening', () => {
+        const address = server.address();
+        const actualPort = typeof address === 'object' && address ? address.port : port;
+        console.log(`✅ Servidor iniciado com sucesso na porta ${actualPort}`);
+        console.log(`🔗 Acesse: http://localhost:${actualPort}`);
+        console.log(`🔗 API: http://localhost:${actualPort}/api/healthcheck`);
+      })
+      .on('error', (err: any) => {
+        console.error('Erro ao iniciar o servidor na porta principal:', err);
+        
+        // Se a porta principal falhar, tentamos 4000 como alternativa
+        if (err && typeof err === 'object' && 'code' in err && err.code === 'EADDRINUSE') {
+          const fallbackPort = 4000;
+          console.log(`Porta ${port} em uso, tentando porta alternativa ${fallbackPort}...`);
+          
+          server.listen({
+            port: fallbackPort,
+            host: "0.0.0.0",
+          })
+          .on('listening', () => {
+            console.log(`✅ Servidor iniciado com sucesso na porta alternativa ${fallbackPort}`);
+            console.log(`🔗 Acesse: http://localhost:${fallbackPort}`);
+            console.log(`🔗 API: http://localhost:${fallbackPort}/api/healthcheck`);
+          })
+          .on('error', (fallbackErr: any) => {
+            console.error('Erro ao iniciar na porta alternativa:', fallbackErr);
+          });
         }
-        
-        const port = portOptions[index];
-        console.log(`Tentando iniciar servidor na porta ${port}...`);
-        
-        server.listen({
-          port: port,
-          host: "0.0.0.0",
-        })
-        .on('listening', () => {
-          const address = server.address();
-          const actualPort = typeof address === 'object' && address ? address.port : port;
-          console.log(`✅ Servidor iniciado com sucesso na porta ${actualPort}`);
-          console.log(`🔗 Acesse: http://localhost:${actualPort}`);
-          console.log(`🔗 API: http://localhost:${actualPort}/api/healthcheck`);
-        })
-        .on('error', (err: any) => {
-          // Verificar o erro pelo código (tipicamente é um NodeJS.ErrnoException)
-          if (err && typeof err === 'object' && 'code' in err && err.code === 'EADDRINUSE') {
-            console.log(`Porta ${port} já está em uso, tentando próxima...`);
-            tryPort(index + 1);
-          } else {
-            console.error('Erro ao iniciar o servidor:', err);
-          }
-        });
-      };
-      
-      tryPort();
+      });
     }
     
     return { app, server };

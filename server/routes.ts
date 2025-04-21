@@ -90,8 +90,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Rota específica para inscrição na landing page
-  app.post("/api/subscribe", async (req, res) => {
+  // Rota para verificar o status de inscrição - redirecionada para a API serverless em produção
+  app.post("/api/subscribe-status", async (req, res) => {
     try {
       const { email } = req.body;
       if (!email) {
