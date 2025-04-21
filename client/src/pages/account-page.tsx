@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { signatureService } from "@/lib/signature-service";
+import type { EmailSignature, ParchmentSignature } from "../../../lib/supabase-types";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -66,6 +68,34 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 const AccountPage = () => {
   const { user, supabase } = useSupabaseAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loadSignatures = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const [emailSig, parchmentSig] = await Promise.all([
+          signatureService.getEmailSignature(user.id),
+          signatureService.getParchmentSignature(user.id)
+        ]);
+        
+        setEmailSignature(emailSig);
+        setPhysicalSignature(parchmentSig);
+      } catch (error) {
+        console.error('Erro ao carregar assinaturas:', error);
+        toast({
+          title: "Erro ao carregar assinaturas",
+          description: "Não foi possível carregar o status das suas assinaturas.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSignatures();
+  }, [user]);
   const [_, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,10 +104,9 @@ const AccountPage = () => {
   const defaultTab = params.get('tab') || 'subscriptions';
 
   // Estado para controlar as assinaturas
-  const [emailSubscription, setEmailSubscription] = useState(true);
-  const [physicalSubscription, setPhysicalSubscription] = useState(false);
-  const [emailSignature, setEmailSignature] = useState(null); // Added state for email signature data
-  const [physicalSignature, setPhysicalSignature] = useState(null); // Added state for physical signature data
+  const [emailSignature, setEmailSignature] = useState<EmailSignature | null>(null);
+  const [physicalSignature, setPhysicalSignature] = useState<ParchmentSignature | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
 
   // Dados iniciais do formulário
@@ -232,27 +261,7 @@ const AccountPage = () => {
     }
   };
 
-  // Função para alternar o status da assinatura de email
-  const toggleEmailSubscription = () => {
-    setEmailSubscription(!emailSubscription);
-    toast({
-      title: !emailSubscription ? "Assinatura email ativada" : "Assinatura email desativada",
-      description: !emailSubscription 
-        ? "Você receberá novas cartas no seu email." 
-        : "Você não receberá mais cartas no seu email.",
-    });
-  };
-
-  // Função para alternar o status da assinatura física
-  const togglePhysicalSubscription = () => {
-    setPhysicalSubscription(!physicalSubscription);
-    toast({
-      title: !physicalSubscription ? "Assinatura física ativada" : "Assinatura física desativada",
-      description: !physicalSubscription 
-        ? "Você receberá as cartas em sua casa." 
-        : "Você não receberá mais cartas físicas.",
-    });
-  };
+  
 
   return (
     <div className="min-h-screen flex flex-col">
