@@ -1,7 +1,8 @@
 
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
+import { Route } from "wouter";
+import { useEffect } from "react";
 
 export function ProtectedRoute({
   path,
@@ -11,6 +12,16 @@ export function ProtectedRoute({
   component: React.ComponentType<any>;
 }) {
   const { user, isLoading } = useSupabaseAuth();
+
+  // Efeito para verificar autenticação sem redirecionamento forçado
+  useEffect(() => {
+    if (!isLoading && !user) {
+      const currentPath = window.location.pathname;
+      // Armazena a página atual para retornar depois
+      sessionStorage.setItem('lastProtectedPath', currentPath);
+      window.location.href = `/auth?redirect=${encodeURIComponent(currentPath)}`;
+    }
+  }, [user, isLoading]);
 
   return (
     <Route path={path}>
@@ -23,13 +34,17 @@ export function ProtectedRoute({
           );
         }
 
-        if (!user) {
-          // Salvar a URL atual para redirecionamento após login
-          const currentPath = window.location.pathname;
-          return <Redirect to={`/auth?redirect=${encodeURIComponent(currentPath)}`} />;
+        // Renderiza o componente se o usuário estiver autenticado
+        if (user) {
+          return <Component params={params} />;
         }
 
-        return <Component params={params} />;
+        // Mantém a tela de loading enquanto verifica autenticação
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="h-8 w-8 animate-spin text-border" />
+          </div>
+        );
       }}
     </Route>
   );
