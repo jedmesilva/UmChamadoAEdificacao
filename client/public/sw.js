@@ -1,5 +1,6 @@
 
 const CACHE_NAME = 'um-chamado-v1';
+const CARTA_CACHE = 'cartas-v1';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -102,7 +103,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle API requests with network-first strategy
+  // Cache cartas requests
+  if (request.url.includes('/api/cartas/')) {
+    console.log('[Service Worker] Carta request:', request.url);
+    event.respondWith(
+      caches.open(CARTA_CACHE).then((cache) => {
+        return cache.match(request).then((response) => {
+          if (response) {
+            console.log('[Service Worker] Serving carta from cache:', request.url);
+            // Atualiza o cache em background
+            fetch(request).then((networkResponse) => {
+              cache.put(request, networkResponse);
+            });
+            return response;
+          }
+          return fetch(request).then((networkResponse) => {
+            cache.put(request, networkResponse.clone());
+            return networkResponse;
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // Handle other API requests with network-first strategy
   if (request.url.includes('/api/')) {
     console.log('[Service Worker] API request:', request.url);
     event.respondWith(networkFirst(request));
