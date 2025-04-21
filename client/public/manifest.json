@@ -42,8 +42,8 @@
       "description": "Acesse suas cartas do chamado",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192",
+          "src": "/cartas-icon.png",
+          "sizes": "64x64",
           "type": "image/png",
           "purpose": "any"
         }
