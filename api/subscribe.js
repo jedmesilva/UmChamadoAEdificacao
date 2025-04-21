@@ -1,11 +1,6 @@
 // API específica para inscrição (/api/subscribe)
 import { createClient } from '@supabase/supabase-js';
 
-/**
- * Handler para API de inscrição no Vercel
- * @param {Object} req - Objeto de requisição
- * @param {Object} res - Objeto de resposta
- */
 export default async function handler(req, res) {
   // Configuração CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -51,9 +46,8 @@ export default async function handler(req, res) {
 
   console.log(`Processando inscrição para o email: ${email}`);
 
-  // Obter configurações do Supabase - simplificado
+  // Obter configurações do Supabase
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  // Usar a service role key para contornar RLS
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
@@ -64,9 +58,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Inicializando cliente Supabase com Service Role...');
+    console.log('Inicializando cliente Supabase...');
 
-    // Inicializar cliente Supabase com SERVICE ROLE KEY para contornar problemas de RLS
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
@@ -82,29 +75,28 @@ export default async function handler(req, res) {
       }
     });
 
-    // 1. Verificar se usuário existe via auth
-    let userExists = false;
+    // 1. Verificar se existe usuário autenticado com este email
+    const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+    const userExists = users?.users?.some(u => u.email?.toLowerCase() === email.toLowerCase());
 
-    try {
-      // Em vez de usar admin.getUserByEmail, consultamos diretamente a tabela account_user
-      const { data: existingUser, error: userError } = await supabase
-        .from('account_user')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingUser) {
-        userExists = true;
-        console.log('Usuário encontrado via account_user');
-      }
-    } catch (userCheckError) {
-      console.error('Erro ao verificar usuário:', userCheckError);
-      // Assume que o usuário não existe em caso de erro
+    if (usersError) {
+      console.error('Erro ao verificar usuários:', usersError);
     }
 
-    // 2. Se usuário existe, enviar para login
+    // 2. Verificar se já existe inscrição
+    const { data: existingSubscription, error: subscriptionError } = await supabase
+      .from('subscription_um_chamado')
+      .select('*')
+      .eq('email_subscription', email)
+      .maybeSingle();
+
+    if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+      console.error('Erro ao verificar inscrição:', subscriptionError);
+    }
+
+    // 3. Decidir fluxo baseado nas verificações
     if (userExists) {
-      console.log(`Usuário já está cadastrado com email: ${email}, redirecionando para login`);
+      // Existe usuário autenticado
       return res.status(200).json({
         success: true,
         alreadyRegistered: true,
@@ -117,33 +109,21 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Verificar inscrição existente
-    try {
-      const { data: existingSubscription } = await supabase
-        .from('subscription_um_chamado')
-        .select('id')
-        .eq('email_subscription', email)
-        .maybeSingle();
-
-      if (existingSubscription) {
-        console.log(`Email já inscrito: ${email}, redirecionando para completar o cadastro`);
-        return res.status(200).json({
-          success: true,
-          alreadySubscribed: true,
-          message: "Seu email já está inscrito! Complete seu cadastro para acessar o sistema.",
-          redirect: {
-            path: "/auth",
-            email: email,
-            tab: "register"
-          }
-        });
-      }
-    } catch (subscriptionCheckError) {
-      console.error('Erro ao verificar inscrição:', subscriptionCheckError);
-      // Continue mesmo em caso de erro
+    if (existingSubscription) {
+      // Existe inscrição mas não existe usuário
+      return res.status(200).json({
+        success: true,
+        alreadySubscribed: true,
+        message: "Seu email já está inscrito! Complete seu cadastro para acessar o sistema.",
+        redirect: {
+          path: "/auth",
+          email: email,
+          tab: "register"
+        }
+      });
     }
 
-    // 4. Criar nova inscrição com retry
+    // 4. Criar nova inscrição se não existe
     let attempts = 3;
     while (attempts > 0) {
       try {
@@ -155,16 +135,14 @@ export default async function handler(req, res) {
             status_subscription: 'is_subscription_um_chamado'
           });
 
-      if (insertError) {
-          // Se for erro de duplicado, assume que foi bem-sucedido
+        if (insertError) {
           if (insertError.code === '23505' || 
               insertError.message?.includes('duplicate') || 
               insertError.message?.includes('violates unique constraint')) {
             console.log('Email já estava inscrito (detectado via erro de duplicação)');
             break;
-          } else {
-            throw insertError;
           }
+          throw insertError;
         }
         break; // Sucesso, sai do loop
       } catch (insertError) {
@@ -174,11 +152,11 @@ export default async function handler(req, res) {
           throw insertError;
         }
         console.warn(`Tentativa falhou, restam ${attempts} tentativas:`, insertError);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Espera 1s entre tentativas
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
-    // 5. Retornar resposta de sucesso
+    // 5. Retornar sucesso para nova inscrição
     return res.status(200).json({
       success: true,
       message: "Inscrição realizada com sucesso! Complete seu cadastro agora.",
@@ -190,15 +168,12 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    // Log detalhado do erro para diagnóstico
     console.error('Erro geral ao processar inscrição:', error);
-
-    // Resposta amigável para o usuário
-    return res.status(500).json({ // Changed to 500 for server errors
+    return res.status(500).json({
       success: false, 
       message: "Estamos com dificuldades no processamento. Tente novamente mais tarde ou entre em contato com suporte.",
       redirect: {
-        path: "/auth", // Ainda redireciona para página de auth
+        path: "/auth",
         email: email
       }
     });
