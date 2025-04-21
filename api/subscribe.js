@@ -90,10 +90,16 @@ export default async function handler(req, res) {
       }
     });
     
-    // 1. Verificar se o usuário já existe na tabela auth
+    // Verificar em ordem:
+    // 1. Se já existe um usuário cadastrado (auth.users)
+    // 2. Se já existe uma inscrição (subscription_um_chamado)
+    
+    // Primeiro, verificamos se o usuário já existe na autenticação
     let userExists = false;
     try {
-      // Apenas tente usar o método admin se tivermos a chave de serviço
+      console.log('Verificando usuário existente para:', email);
+      
+      // Verificar usuário na tabela auth.users (usuário completo com login)
       if (supabaseServiceKey) {
         const { data: user } = await supabase.auth.admin.getUserByEmail(email);
         userExists = !!user;
@@ -107,17 +113,19 @@ export default async function handler(req, res) {
           
         userExists = !!accountUser;
       }
+      
+      console.log(`Resultado da verificação de usuário: ${userExists ? 'Encontrado' : 'Não encontrado'}`);
     } catch (userError) {
       console.error('Erro ao verificar usuário existente:', userError);
-      // Não interrompemos o fluxo, apenas logamos o erro
     }
     
+    // Se o usuário já tem cadastro completo, enviar para login
     if (userExists) {
-      console.log(`Usuário já existe: ${email}`);
+      console.log(`Usuário já está cadastrado com email: ${email}, redirecionando para login`);
       return res.status(200).json({
         success: true,
         alreadyRegistered: true,
-        message: "Você já possui cadastro! Entre com sua conta para continuar.",
+        message: "Você já possui uma conta! Entre com suas credenciais para acessar o sistema.",
         redirect: {
           path: "/auth",
           email: email,
@@ -126,7 +134,8 @@ export default async function handler(req, res) {
       });
     }
     
-    // 2. Verificar se já existe uma inscrição
+    // Se não existe usuário, verificamos se já existe uma inscrição (subscription)
+    console.log('Verificando inscrição existente para:', email);
     const { data: subscription, error: subError } = await supabase
       .from('subscription_um_chamado')
       .select('*')
@@ -135,15 +144,15 @@ export default async function handler(req, res) {
     
     if (subError && subError.code !== 'PGRST116') {
       console.error('Erro ao verificar inscrição:', subError);
-      // Continuamos com o fluxo, apenas logamos o erro
     }
     
+    // Se já existe inscrição mas não existe usuário, direcionar para registro
     if (subscription) {
-      console.log(`Inscrição já existe para: ${email}`);
+      console.log(`Email já inscrito: ${email}, redirecionando para completar o cadastro`);
       return res.status(200).json({
         success: true,
         alreadySubscribed: true,
-        message: "Email já inscrito! Complete seu cadastro agora.",
+        message: "Seu email já está inscrito! Complete seu cadastro para acessar o sistema.",
         redirect: {
           path: "/auth",
           email: email,

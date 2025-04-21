@@ -91,13 +91,21 @@ const LandingPage = () => {
             console.log('Resposta da API:', data);
             
             if (data.success) {
-              // Exibe mensagem baseada no tipo de resposta
-              if (data.alreadySubscribed || data.alreadyRegistered) {
+              // Mostrar mensagem adequada de acordo com o status
+              if (data.alreadyRegistered) {
+                // Usuário já cadastrado (tem conta completa)
                 toast({
-                  title: "Aviso",
-                  description: data.message
+                  title: "Usuário Encontrado",
+                  description: data.message || "Você já tem uma conta. Faça login para continuar."
+                });
+              } else if (data.alreadySubscribed) {
+                // Apenas inscrito, precisa completar cadastro
+                toast({
+                  title: "Inscrição Encontrada",
+                  description: data.message || "Seu email já está inscrito. Complete seu cadastro para continuar."
                 });
               } else {
+                // Nova inscrição
                 toast({
                   title: "Sucesso!",
                   description: data.message || "Inscrição realizada com sucesso!"
@@ -140,10 +148,23 @@ const LandingPage = () => {
               const fallbackData = await fallbackResponse.json();
               
               if (fallbackData.success) {
-                toast({
-                  title: "Sucesso!",
-                  description: fallbackData.message || "Inscrição realizada com sucesso!"
-                });
+                // Também tratar os diferentes casos na resposta de fallback
+                if (fallbackData.alreadyRegistered) {
+                  toast({
+                    title: "Usuário Encontrado",
+                    description: fallbackData.message || "Você já tem uma conta. Faça login para continuar."
+                  });
+                } else if (fallbackData.alreadySubscribed) {
+                  toast({
+                    title: "Inscrição Encontrada",
+                    description: fallbackData.message || "Seu email já está inscrito. Complete seu cadastro para continuar."
+                  });
+                } else {
+                  toast({
+                    title: "Sucesso!",
+                    description: fallbackData.message || "Inscrição realizada com sucesso!"
+                  });
+                }
                 
                 if (fallbackData.redirect) {
                   const searchParams = new URLSearchParams({
