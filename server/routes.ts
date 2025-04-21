@@ -108,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(200).json({
           success: true,
           alreadyRegistered: true,
-          message: "Email já inscrito! Entre na sua conta para continuar.",
+          message: "Você já possui cadastro! Entre com sua conta para continuar.",
           redirect: {
             path: "/auth",
             email: email,
