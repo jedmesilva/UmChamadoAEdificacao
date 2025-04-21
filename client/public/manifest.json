@@ -1,7 +1,7 @@
 
 {
   "name": "Chamado à Edificação",
-  "short_name": "Um Chamado",
+  "short_name": "Chamado EDF",
   "description": "Cartas semanais para a convocação dos edificadores",
   "start_url": "/?source=pwa",
   "display": "standalone",
