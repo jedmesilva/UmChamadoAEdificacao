@@ -191,9 +191,8 @@ const AccountPage = () => {
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsapp: data.phone ? data.phone.replace(/\s/g, '') : null,
-              status: 'is_complit',
-              created_at: new Date().toISOString()
+              whatsapp: data.phone || null,
+              status: 'is_complit'
             })
           });
 
@@ -357,6 +356,9 @@ const AccountPage = () => {
                                   placeholder="11999999999"
                                   className="pl-12"
                                   maxLength={11}
+                                  inputMode="numeric"
+                                  type="text"
+                                  pattern="[0-9]*"
                                   value={field.value?.replace(/^\+55/, '') || ''}
                                   onChange={(e) => {
                                     const value = e.target.value.replace(/\D/g, '');
