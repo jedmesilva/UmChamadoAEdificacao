@@ -7,6 +7,8 @@ import { createClient } from '@supabase/supabase-js';
  * @param {Object} res - Objeto de resposta
  */
 export default async function handler(req, res) {
+  console.log('API /create-profile: chamada iniciada');
+  
   // Configuração CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,6 +22,7 @@ export default async function handler(req, res) {
 
   // Verificar se o método é POST
   if (req.method !== 'POST') {
+    console.log('API /create-profile: método não permitido:', req.method);
     return res.status(405).json({
       success: false,
       message: 'Método não permitido'
@@ -28,9 +31,12 @@ export default async function handler(req, res) {
 
   // Garantindo que req.body esteja parseado se for string
   let body = req.body;
+  console.log('API /create-profile: body recebido:', JSON.stringify(body));
+  
   if (body && typeof body === 'string' && req.headers['content-type']?.includes('application/json')) {
     try {
       body = JSON.parse(body);
+      console.log('API /create-profile: body parseado:', JSON.stringify(body));
     } catch (error) {
       console.error('Erro ao parsear JSON do body:', error);
       return res.status(400).json({
@@ -87,13 +93,19 @@ export default async function handler(req, res) {
     }
     
     // 3. Verificar se o perfil já existe
-    const { data: existingProfile } = await authClient
+    console.log('API /create-profile: Verificando se já existe perfil para o usuário:', user.id);
+    const { data: existingProfile, error: profileError } = await authClient
       .from('account_user')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
+    
+    if (profileError) {
+      console.error('API /create-profile: Erro ao verificar perfil existente:', profileError);
+    }
       
     if (existingProfile) {
+      console.log('API /create-profile: Perfil já existe:', existingProfile);
       return res.status(200).json({
         success: true,
         message: "Perfil já existe",
@@ -102,17 +114,24 @@ export default async function handler(req, res) {
     }
     
     // 4. Criar o perfil com a service_role que tem permissão para bypass do RLS
+    console.log('API /create-profile: Criando novo perfil para usuário:', user.id);
+    
+    // Preparando dados para inserção
+    const profileData = {
+      id: body.id,
+      user_id: body.user_id,
+      email: body.email,
+      name: body.name,
+      whatsapp: body.whatsapp,
+      status: body.status || 'is_complit',
+      created_at: body.created_at || new Date().toISOString()
+    };
+    
+    console.log('API /create-profile: Dados para inserção:', JSON.stringify(profileData));
+    
     const { data: profile, error: createError } = await authClient
       .from('account_user')
-      .insert({
-        id: body.id,
-        user_id: body.user_id,
-        email: body.email,
-        name: body.name,
-        whatsapp: body.whatsapp,
-        status: body.status || 'is_complit',
-        created_at: body.created_at || new Date().toISOString()
-      })
+      .insert(profileData)
       .select()
       .single();
       
@@ -123,6 +142,8 @@ export default async function handler(req, res) {
         message: `Erro ao criar perfil: ${createError.message}`
       });
     }
+    
+    console.log('API /create-profile: Perfil criado com sucesso:', profile);
     
     return res.status(201).json({
       success: true,

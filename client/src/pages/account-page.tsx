@@ -139,8 +139,10 @@ const AccountPage = () => {
     try {
       setIsSubmitting(true);
       console.log('Dados do perfil a serem salvos:', data);
+      console.log('ID do usuário atual:', user?.id);
 
       // 1. Primeiro atualizar os metadados do usuário no Auth
+      console.log('Atualizando metadados do usuário no Auth...');
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           name: data.name,
@@ -152,31 +154,48 @@ const AccountPage = () => {
         }
       });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Erro ao atualizar metadados do usuário:', updateError);
+        throw updateError;
+      }
+      
+      console.log('Metadados do usuário atualizados com sucesso');
 
       // 2. Verificar se já existe um registro em account_user para este usuário
-      const { data: existingProfile } = await supabase
+      console.log('Verificando se o perfil já existe na tabela account_user...');
+      const { data: existingProfile, error: existingProfileError } = await supabase
         .from('account_user')
         .select('*')
         .eq('user_id', user?.id)
         .maybeSingle();
-
+      
+      if (existingProfileError) {
+        console.error('Erro ao verificar perfil existente:', existingProfileError);
+      }
+      
+      console.log('Perfil existente?', existingProfile ? 'Sim' : 'Não');
+      
       if (existingProfile) {
+        console.log('Atualizando perfil existente para userId:', user?.id);
         // 3A. Se já existe, atualizar
+        const updateData = {
+          name: data.name,
+          email: data.email,
+          whatsapp: data.phone,
+          status: 'is_complit'
+        };
+        console.log('Dados para atualização:', updateData);
+        
         const { error: updateProfileError } = await supabase
           .from('account_user')
-          .update({
-            name: data.name,
-            email: data.email,
-            whatsapp: data.phone,
-            status: 'is_complit'
-          })
+          .update(updateData)
           .eq('user_id', user?.id);
 
         if (updateProfileError) {
           console.error('Erro ao atualizar perfil:', updateProfileError);
           throw updateProfileError;
         }
+        console.log('Perfil atualizado com sucesso');
       } else {
         // 3B. Se não existe, criar novo perfil
         // Primeiro, tenta criar via API com SERVICE_ROLE
@@ -201,40 +220,49 @@ const AccountPage = () => {
             console.error('Erro ao criar perfil via API:', errorText);
 
             // Tentativa alternativa: inserir diretamente
-            const { error: insertError } = await supabase
+            console.log('Tentando criar perfil diretamente no Supabase...');
+            const userProfileData = {
+              id: user?.id,
+              user_id: user?.id,
+              email: data.email,
+              name: data.name,
+              whatsapp: data.phone,
+              status: 'is_complit'
+            };
+            
+            console.log('Dados para inserção direta:', userProfileData);
+            
+            const { data: insertedData, error: insertError } = await supabase
               .from('account_user')
-              .insert({
-                id: user?.id,
-                user_id: user?.id,
-                email: data.email,
-                name: data.name,
-                whatsapp: data.phone,
-                status: 'is_complit'
-              });
+              .insert(userProfileData)
+              .select();
 
             if (insertError) {
               console.error('Erro ao inserir perfil diretamente:', insertError);
               throw new Error('Não foi possível criar seu perfil. Por favor, tente novamente mais tarde.');
             }
+            
+            console.log('Perfil inserido diretamente:', insertedData);
           }
 
           // Verificar se existia um perfil antes
-          const { data: existingProfile } = await supabase
+          console.log('Verificando estado do perfil após tentativa de criação...');
+          const { data: finalCheckProfile, error: finalCheckProfileError } = await supabase
             .from('account_user')
             .select('*')
             .eq('user_id', user?.id)
             .single();
-
-          // Verificar se o perfil foi realmente criado
-          const { data: checkProfile, error: checkError } = await supabase
-            .from('account_user')
-            .select('*')
-            .eq('user_id', user?.id)
-            .single();
-
-          if (checkError || !checkProfile) {
+          
+          if (finalCheckProfileError) {
+            console.error('Erro ao verificar criação final do perfil:', finalCheckProfileError);
             throw new Error('Erro ao verificar criação do perfil. Por favor, tente novamente.');
           }
+          
+          console.log('Estado final do perfil:', finalCheckProfile);
+          
+          // Para compatibilidade com o código existente
+          const existingProfile = null; // Consideramos que não existia antes
+          const checkProfile = finalCheckProfile;
 
           // Se não existia perfil antes e agora existe, redirecionar para homepage
           if (!existingProfile && checkProfile) {
