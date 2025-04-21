@@ -428,10 +428,13 @@ const AccountPage = () => {
                       <Mail className="h-6 w-6 mr-2 text-blue-600" />
                       <CardTitle>Assinatura por Email</CardTitle>
                     </div>
-                    <Switch
-                      checked={emailSubscription}
-                      onCheckedChange={toggleEmailSubscription}
-                    />
+                    <Button 
+                      variant={emailSubscription ? "destructive" : "default"}
+                      onClick={() => setLocation(`/checkout/email`)}
+                      className="w-32"
+                    >
+                      {emailSubscription ? "Desativar" : "Ativar"}
+                    </Button>
                   </div>
                   <CardDescription>
                     Receba as cartas diretamente no seu email assim que forem lançadas
@@ -480,10 +483,13 @@ const AccountPage = () => {
                       <Scroll className="h-6 w-6 mr-2 text-amber-600" />
                       <CardTitle>Assinatura Física</CardTitle>
                     </div>
-                    <Switch
-                      checked={physicalSubscription}
-                      onCheckedChange={togglePhysicalSubscription}
-                    />
+                    <Button 
+                      variant={physicalSubscription ? "destructive" : "default"}
+                      onClick={() => setLocation(`/checkout/physical`)}
+                      className="w-32"
+                    >
+                      {physicalSubscription ? "Desativar" : "Ativar"}
+                    </Button>
                   </div>
                   <CardDescription>
                     Receba pergaminhos especiais impressos entregues em sua casa

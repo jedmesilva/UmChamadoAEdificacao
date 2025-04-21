@@ -13,6 +13,7 @@ import SubscriptionDetailsPage from "@/pages/subscription-details-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { SupabaseAuthProvider } from "./hooks/use-supabase-auth";
 import PwaInstallBanner from "./components/PwaInstallBanner";
+import CheckoutPage from "@/pages/checkout-page"; // Import the CheckoutPage component
 
 function Router() {
   return (
@@ -23,7 +24,8 @@ function Router() {
       <ProtectedRoute path="/dashboard" component={HomePage} />
       <ProtectedRoute path="/letter/:id" component={LetterPage} />
       <ProtectedRoute path="/account" component={AccountPage} />
-      <ProtectedRoute path="/subscriptions/:type" component={SubscriptionDetailsPage} />
+      <Route path="/subscriptions/:type" component={SubscriptionDetailsPage} />
+      <Route path="/checkout/:type" component={CheckoutPage} /> {/* Added route for checkout page */}
       <Route component={NotFound} />
     </Switch>
   );
