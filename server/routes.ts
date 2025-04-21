@@ -98,17 +98,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "Email é obrigatório" });
       }
       
-      // Importar o serviço de subscrição do Supabase
-      const { subscriptionService } = await import("../lib/supabase-service");
+      // Importar os serviços do Supabase
+      const { subscriptionService, authService } = await import("../lib/supabase-service");
       
-      // Verificar se já existe uma inscrição com este email
-      const existingSubscription = await subscriptionService.checkSubscription(email);
+      // 1. Verificar se já existe um usuário registrado com este email
+      const userExists = await subscriptionService.checkUserExists(email);
       
-      if (existingSubscription) {
+      if (userExists) {
         return res.status(200).json({
           success: true,
-          alreadySubscribed: true,
-          message: "Você já está inscrito! Você será redirecionado para a página de login.",
+          alreadyRegistered: true,
+          message: "Você já possui uma conta! Faça login para continuar.",
           redirect: {
             path: "/auth",
             email: email,
@@ -117,12 +117,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Criar nova inscrição no Supabase
+      // 2. Verificar se já existe uma inscrição com este email
+      const existingSubscription = await subscriptionService.checkSubscription(email);
+      
+      if (existingSubscription) {
+        // Já existe uma inscrição, mas não uma conta de usuário completa
+        return res.status(200).json({
+          success: true,
+          alreadySubscribed: true,
+          message: "Você já está inscrito! Complete seu cadastro agora.",
+          redirect: {
+            path: "/auth",
+            email: email,
+            tab: "register"
+          }
+        });
+      }
+      
+      // 3. Criar nova inscrição no Supabase
       const subscription = await subscriptionService.createSubscription(email);
+      
+      console.log("Subscrição criada com sucesso:", subscription);
       
       res.status(200).json({ 
         success: true, 
-        message: "Inscrição realizada com sucesso", 
+        message: "Inscrição realizada com sucesso! Complete seu cadastro agora.", 
         redirect: {
           path: "/auth",
           email: email,
