@@ -79,14 +79,14 @@ const AccountPage = () => {
   useEffect(() => {
     const loadSignatures = async () => {
       if (!user) return;
-      
+
       setIsLoading(true);
       try {
         const [emailSig, parchmentSig] = await Promise.all([
           signatureService.getEmailSignature(user.id),
           signatureService.getParchmentSignature(user.id)
         ]);
-        
+
         setEmailSignature(emailSig);
         setPhysicalSignature(parchmentSig);
       } catch (error) {
@@ -266,7 +266,7 @@ const AccountPage = () => {
     }
   };
 
-  
+
 
   return (
     <div className="min-h-screen flex flex-col">
