@@ -57,6 +57,12 @@ const HomePage = () => {
             <span className="text-sm text-gray-600 whitespace-nowrap">{user?.email}</span>
             <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />
           </div>
+          <div 
+            className="bg-blue-50/50 text-blue-800 px-4 py-2 rounded-full mb-3 text-sm cursor-pointer hover:bg-blue-50 transition-colors"
+            onClick={() => setLocation("/account")}
+          >
+            Complete a sua conta
+          </div>
           <h1 className="text-2xl md:text-3xl font-bold font-heading">
             Bem-vindo, {user?.user_metadata?.name || user?.email?.split('@')[0]}
           </h1>
