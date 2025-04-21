@@ -180,16 +180,27 @@ const AccountPage = () => {
               throw new Error('Não foi possível criar seu perfil. Por favor, tente novamente mais tarde.');
             }
           }
+
+          // Verificar se o perfil foi realmente criado
+          const { data: checkProfile, error: checkError } = await supabase
+            .from('account_user')
+            .select('*')
+            .eq('user_id', user?.id)
+            .single();
+
+          if (checkError || !checkProfile) {
+            throw new Error('Erro ao verificar criação do perfil. Por favor, tente novamente.');
+          }
+
+          toast({
+            title: "Perfil atualizado",
+            description: "Seus dados foram atualizados com sucesso.",
+          });
         } catch (apiError) {
           console.error('Erro na chamada para criar perfil:', apiError);
           throw apiError;
         }
       }
-
-      toast({
-        title: "Perfil atualizado",
-        description: "Seus dados foram atualizados com sucesso.",
-      });
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
       toast({
