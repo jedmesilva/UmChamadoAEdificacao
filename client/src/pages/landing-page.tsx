@@ -3,7 +3,7 @@ import Footer from "@/components/layout/footer";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 const LandingPage = () => {
   const { user } = useSupabaseAuth();
