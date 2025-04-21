@@ -109,7 +109,9 @@ export default async function handler(req, res) {
         user_id: body.user_id,
         email: body.email,
         name: body.name,
-        status: body.status || 'is_complit'
+        whatsapp: body.whatsapp,
+        status: body.status || 'is_complit',
+        created_at: body.created_at || new Date().toISOString()
       })
       .select()
       .single();

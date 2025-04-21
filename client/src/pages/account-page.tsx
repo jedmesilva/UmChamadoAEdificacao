@@ -68,7 +68,7 @@ const AccountPage = () => {
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Obtém o parâmetro tab da URL
   const params = new URLSearchParams(window.location.search);
   const defaultTab = params.get('tab') || 'subscriptions';
@@ -100,7 +100,7 @@ const AccountPage = () => {
     try {
       setIsSubmitting(true);
       console.log('Dados do perfil a serem salvos:', data);
-      
+
       // 1. Primeiro atualizar os metadados do usuário no Auth
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
@@ -112,16 +112,16 @@ const AccountPage = () => {
           zipCode: data.zipCode,
         }
       });
-      
+
       if (updateError) throw updateError;
-      
+
       // 2. Verificar se já existe um registro em account_user para este usuário
       const { data: existingProfile } = await supabase
         .from('account_user')
         .select('*')
         .eq('user_id', user?.id)
         .maybeSingle();
-      
+
       if (existingProfile) {
         // 3A. Se já existe, atualizar
         const { error: updateProfileError } = await supabase
@@ -133,7 +133,7 @@ const AccountPage = () => {
             status: 'is_complit'
           })
           .eq('user_id', user?.id);
-          
+
         if (updateProfileError) {
           console.error('Erro ao atualizar perfil:', updateProfileError);
           throw updateProfileError;
@@ -153,15 +153,16 @@ const AccountPage = () => {
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsapp: data.phone,
-              status: 'is_complit'
+              whatsapp: data.phone || null,
+              status: 'is_complit',
+              created_at: new Date().toISOString()
             })
           });
-          
+
           if (!response.ok) {
             const errorText = await response.text();
             console.error('Erro ao criar perfil via API:', errorText);
-            
+
             // Tentativa alternativa: inserir diretamente
             const { error: insertError } = await supabase
               .from('account_user')
@@ -173,7 +174,7 @@ const AccountPage = () => {
                 whatsapp: data.phone,
                 status: 'is_complit'
               });
-              
+
             if (insertError) {
               console.error('Erro ao inserir perfil diretamente:', insertError);
               throw new Error('Não foi possível criar seu perfil. Por favor, tente novamente mais tarde.');
@@ -184,7 +185,7 @@ const AccountPage = () => {
           throw apiError;
         }
       }
-      
+
       toast({
         title: "Perfil atualizado",
         description: "Seus dados foram atualizados com sucesso.",
@@ -226,7 +227,7 @@ const AccountPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow p-6 max-w-5xl mx-auto w-full">
         <div className="flex items-center mb-6">
           <Button 
@@ -246,7 +247,7 @@ const AccountPage = () => {
             <TabsTrigger value="subscriptions">Assinaturas</TabsTrigger>
             <TabsTrigger value="profile">Perfil</TabsTrigger>
           </TabsList>
-          
+
           {/* Tab de Perfil */}
           <TabsContent value="profile">
             <Card>
@@ -273,7 +274,7 @@ const AccountPage = () => {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="email"
@@ -330,7 +331,7 @@ const AccountPage = () => {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="city"
@@ -360,7 +361,7 @@ const AccountPage = () => {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="zipCode"
@@ -388,7 +389,7 @@ const AccountPage = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Tab de Assinaturas */}
           <TabsContent value="subscriptions">
             <div className="grid gap-6 md:grid-cols-2">
@@ -509,7 +510,7 @@ const AccountPage = () => {
           </TabsContent>
         </Tabs>
       </main>
-      
+
       <Footer />
     </div>
   );
