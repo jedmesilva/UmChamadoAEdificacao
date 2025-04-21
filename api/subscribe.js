@@ -178,7 +178,7 @@ export default async function handler(req, res) {
     console.error('Erro geral ao processar inscrição:', error);
 
     // Resposta amigável para o usuário
-    return res.status(200).json({ // Use 200 para que o cliente ainda receba a resposta
+    return res.status(500).json({ // Changed to 500 for server errors
       success: false, 
       message: "Estamos com dificuldades no processamento. Tente novamente mais tarde ou entre em contato com suporte.",
       redirect: {
