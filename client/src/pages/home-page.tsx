@@ -76,7 +76,7 @@ const HomePage = () => {
             <span className="text-sm text-gray-600 whitespace-nowrap">{user?.email}</span>
             <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />
           </div>
-          {!hasProfile && (
+          {user && !hasProfile && (
             <div 
               className="bg-blue-50/50 text-blue-800 px-4 py-2 rounded-full mb-3 text-sm cursor-pointer hover:bg-blue-50 transition-colors inline-flex items-center"
               onClick={() => setLocation("/account?tab=profile")}
