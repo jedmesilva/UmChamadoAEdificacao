@@ -64,6 +64,13 @@ const PwaInstallBanner = () => {
   useEffect(() => {
     console.log('PWA: Inicializando componente de instalação');
     
+    // Verifica primeiro se o banner já foi fechado
+    const bannerClosed = localStorage.getItem('pwa-banner-closed') === 'true';
+    if (bannerClosed) {
+      setShowBanner(false);
+      return;
+    }
+    
     // Captura o evento de instalação e o armazena
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
       console.log('PWA: Evento beforeinstallprompt capturado');
@@ -74,8 +81,10 @@ const PwaInstallBanner = () => {
       // Armazena o evento para uso posterior
       setDeferredPrompt(e);
       
-      // Podemos mostrar o banner personalizado imediatamente
-      setShowBanner(true);
+      // Mostra o banner apenas se não tiver sido fechado anteriormente
+      if (!bannerClosed) {
+        setShowBanner(true);
+      }
     };
 
     // Verifica se o PWA pode ser instalado
@@ -83,9 +92,9 @@ const PwaInstallBanner = () => {
       // Adiciona o listener para o evento
       window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       
-      // Força a exibição do banner após algum tempo se o evento não for capturado
+      // Força a exibição do banner após algum tempo se o evento não for capturado e o banner não tiver sido fechado
       setTimeout(() => {
-        if (!showBanner) {
+        if (!showBanner && !bannerClosed) {
           console.log('PWA: Forçando exibição do banner após timeout');
           setShowBanner(true);
         }
@@ -137,13 +146,7 @@ const PwaInstallBanner = () => {
     localStorage.setItem('pwa-banner-closed', 'true');
   };
 
-  useEffect(() => {
-    // Verifica se o usuário já fechou o banner anteriormente
-    const bannerClosed = localStorage.getItem('pwa-banner-closed') === 'true';
-    if (bannerClosed) {
-      setShowBanner(false);
-    }
-  }, []);
+  
 
   if (!showBanner) return null;
 
