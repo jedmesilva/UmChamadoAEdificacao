@@ -70,7 +70,15 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+      },
+      db: {
+        schema: 'public'
       }
     });
 
@@ -135,29 +143,39 @@ export default async function handler(req, res) {
       // Continue mesmo em caso de erro
     }
 
-    // 4. Criar nova inscrição
-    try {
-      const { error: insertError } = await supabase
-        .from('subscription_um_chamado')
-        .insert({
-          email_subscription: email,
-          created_at: new Date().toISOString(),
-          status_subscription: 'is_subscription_um_chamado'
-        });
+    // 4. Criar nova inscrição com retry
+    let attempts = 3;
+    while (attempts > 0) {
+      try {
+        const { error: insertError } = await supabase
+          .from('subscription_um_chamado')
+          .insert({
+            email_subscription: email,
+            created_at: new Date().toISOString(),
+            status_subscription: 'is_subscription_um_chamado'
+          });
 
       if (insertError) {
-        // Se for erro de duplicado, assume que foi bem-sucedido
-        if (insertError.code === '23505' || 
-            insertError.message?.includes('duplicate') || 
-            insertError.message?.includes('violates unique constraint')) {
-          console.log('Email já estava inscrito (detectado via erro de duplicação)');
-        } else {
+          // Se for erro de duplicado, assume que foi bem-sucedido
+          if (insertError.code === '23505' || 
+              insertError.message?.includes('duplicate') || 
+              insertError.message?.includes('violates unique constraint')) {
+            console.log('Email já estava inscrito (detectado via erro de duplicação)');
+            break;
+          } else {
+            throw insertError;
+          }
+        }
+        break; // Sucesso, sai do loop
+      } catch (insertError) {
+        attempts--;
+        if (attempts === 0) {
+          console.error('Erro ao criar inscrição após todas tentativas:', insertError);
           throw insertError;
         }
+        console.warn(`Tentativa falhou, restam ${attempts} tentativas:`, insertError);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Espera 1s entre tentativas
       }
-    } catch (insertError) {
-      console.error('Erro ao criar inscrição:', insertError);
-      // Tente prosseguir, mesmo com erro
     }
 
     // 5. Retornar resposta de sucesso
