@@ -373,13 +373,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         // Verificar se o email já existe
-        const { data: existingSubscription } = await supabaseClient
+        const { data: subscription, error: checkError } = await supabaseClient
           .from('subscription_um_chamado')
           .select('*')
           .eq('email_subscription', email)
           .single();
 
-        if (existingSubscription) {
+        if (subscription) {
           return res.status(200).json({ 
             success: false,
             message: "Email já cadastrado" 
@@ -405,8 +405,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Inscrição realizada com sucesso",
           subscription: newSubscription
         });
-        // Evitamos usar checkUserExists aqui, que parece estar causando problemas de permissão
-        console.log(`Verificando se o email ${email} já existe como usuário...`);
         
         // Utiliza uma abordagem mais simples usando só o cliente normal
         const userExists = false; // Simplificamos este check
