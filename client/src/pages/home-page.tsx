@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useLocation } from "wouter";
 import { ChevronRight } from "lucide-react";
