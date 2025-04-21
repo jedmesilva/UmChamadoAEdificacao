@@ -156,7 +156,7 @@ const PwaInstallBanner = () => {
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-lg text-gray-900 font-heading flex items-center">
             <Download className="mr-2 h-5 w-5" />
-            Instale Um Chamado à Edificação
+            Instale Chamado à Edificação
           </h3>
           <button 
             onClick={closeBanner} 
