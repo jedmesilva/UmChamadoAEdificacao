@@ -232,17 +232,25 @@ const AccountPage = () => {
             
             console.log('Dados para inserção direta:', userProfileData);
             
-            const { data: insertedData, error: insertError } = await supabase
+            // Primeiro fazemos a inserção simples
+            const { error: insertError } = await supabase
               .from('account_user')
-              .insert(userProfileData)
-              .select();
+              .insert(userProfileData);
+              
+            if (!insertError) {
+              console.log('Inserção direta bem-sucedida, buscando dados inseridos...');
+            }
 
             if (insertError) {
-              console.error('Erro ao inserir perfil diretamente:', insertError);
-              throw new Error('Não foi possível criar seu perfil. Por favor, tente novamente mais tarde.');
+              console.error('Erro ao inserir perfil diretamente:', JSON.stringify(insertError, null, 2));
+              console.error('Detalhes do erro:', insertError.message);
+              console.error('Código do erro:', insertError.code);
+              console.error('Detalhes:', insertError.details);
+              console.error('Hint:', insertError.hint);
+              throw new Error(`Não foi possível criar seu perfil: ${insertError.message}`);
             }
             
-            console.log('Perfil inserido diretamente:', insertedData);
+            console.log('Perfil tentativa de inserção direta concluída');
           }
 
           // Verificar se existia um perfil antes

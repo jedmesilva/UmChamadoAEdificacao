@@ -127,21 +127,42 @@ export default async function handler(req, res) {
       created_at: body.created_at || new Date().toISOString()
     };
     
-    console.log('API /create-profile: Dados para inserção:', JSON.stringify(profileData));
+    console.log('API /create-profile: Dados para inserção:', JSON.stringify(profileData, null, 2));
+    console.log('API /create-profile: URL Supabase:', supabaseUrl);
+    console.log('API /create-profile: Chave Service Role disponível:', !!supabaseServiceKey);
     
-    const { data: profile, error: createError } = await authClient
+    // Primeiro fazemos a inserção sem tentar retornar os dados
+    const { error: insertError } = await authClient
       .from('account_user')
-      .insert(profileData)
-      .select()
-      .single();
+      .insert(profileData);
       
-    if (createError) {
-      console.error('Erro ao criar perfil:', createError);
+    if (insertError) {
+      console.error('Erro na inserção inicial:', JSON.stringify(insertError, null, 2));
+      console.error('Detalhes do erro:', insertError.message);
       return res.status(500).json({
         success: false,
-        message: `Erro ao criar perfil: ${createError.message}`
+        message: `Erro ao criar perfil: ${insertError.message}`,
+        error: insertError
       });
     }
+    
+    // Depois buscamos o perfil recém-criado
+    const { data: profile, error: fetchError } = await authClient
+      .from('account_user')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+      
+    if (fetchError) {
+      console.error('Erro ao buscar perfil após criação:', JSON.stringify(fetchError, null, 2));
+      return res.status(500).json({
+        success: false,
+        message: `Perfil criado, mas erro ao recuperar os dados: ${fetchError.message}`,
+        error: fetchError
+      });
+    }
+    
+    // Chegando aqui, significa que tudo deu certo na inserção e busca do perfil
     
     console.log('API /create-profile: Perfil criado com sucesso:', profile);
     
