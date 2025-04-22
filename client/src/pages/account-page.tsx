@@ -260,9 +260,28 @@ const AccountPage = () => {
           console.error('Erro ao criar perfil:', error);
           throw error;
         }
-            if (formattedPhone && !formattedPhone.startsWith('+')) {
-              formattedPhone = `+${formattedPhone}`;
-              console.log('Corrigindo formato do whatsapp para:', formattedPhone);
+      }
+
+      // Verificar estado final do perfil após todas as tentativas
+      const { data: finalCheckProfile, error: finalCheckError } = await supabase
+        .from('account_user')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (finalCheckError) {
+        console.error('Erro ao verificar estado final do perfil:', finalCheckError);
+        throw new Error('Erro ao verificar criação do perfil');
+      }
+
+      // Se o perfil foi criado com sucesso, redirecionar
+      if (finalCheckProfile) {
+        toast({
+          title: "Perfil criado",
+          description: "Seu perfil foi criado com sucesso.",
+        });
+        setLocation('/');
+      }
             }
             
             // Importante: o id deve ser o mesmo do user_id (auth.uid)
