@@ -419,173 +419,72 @@ const AccountPage = () => {
                         control={form.control}
                         name="phone"
                         render={({ field }) => {
-                          const [countryCode, setCountryCode] = useState<string>("55"); // Brasil como padrão
-                          const [phoneNumber, setPhoneNumber] = useState<string>(
-                            field.value ? field.value.replace(/^\+\d+/, '') : ''
-                          );
-                          
-                          // Cada vez que o número ou o código do país mudar, atualiza o campo
-                          useEffect(() => {
-                            if (phoneNumber) {
-                              field.onChange(`+${countryCode}${phoneNumber}`);
-                            } else {
-                              field.onChange(''); // Se não tiver número, enviar string vazia
+                          const formatPhoneNumber = (value: string) => {
+                            // Remove todos os caracteres não numéricos
+                            const rawValue = value.replace(/\D/g, '');
+                            
+                            if (!rawValue) return '';
+                            
+                            // Identifica o código do país nos primeiros dígitos
+                            let countryCode = '';
+                            let phoneNumber = '';
+                            
+                            if (rawValue.startsWith('55')) {
+                              countryCode = '55';
+                              phoneNumber = rawValue.substring(2);
+                              // Brasil: +55 (XX) XXXXX-XXXX
+                              if (phoneNumber.length > 2) {
+                                phoneNumber = `(${phoneNumber.substring(0, 2)}) ${phoneNumber.substring(2, 7)}${phoneNumber.length > 7 ? '-' + phoneNumber.substring(7) : phoneNumber.substring(7)}`;
+                              }
+                            } else if (rawValue.startsWith('1')) {
+                              countryCode = '1';
+                              phoneNumber = rawValue.substring(1);
+                              // EUA/CA: +1 (XXX) XXX-XXXX
+                              if (phoneNumber.length > 3) {
+                                phoneNumber = `(${phoneNumber.substring(0, 3)}) ${phoneNumber.substring(3, 6)}${phoneNumber.length > 6 ? '-' + phoneNumber.substring(6) : phoneNumber.substring(6)}`;
+                              }
+                            } else if (rawValue.startsWith('351')) {
+                              countryCode = '351';
+                              phoneNumber = rawValue.substring(3);
+                            } else if (rawValue.startsWith('44')) {
+                              countryCode = '44';
+                              phoneNumber = rawValue.substring(2);
+                            } else if (rawValue.startsWith('34')) {
+                              countryCode = '34';
+                              phoneNumber = rawValue.substring(2);
+                            } else if (rawValue.startsWith('33')) {
+                              countryCode = '33';
+                              phoneNumber = rawValue.substring(2);
+                            } else if (rawValue.startsWith('49')) {
+                              countryCode = '49';
+                              phoneNumber = rawValue.substring(2);
+                            } else if (rawValue.startsWith('39')) {
+                              countryCode = '39';
+                              phoneNumber = rawValue.substring(2);
+                            } else if (rawValue.startsWith('81')) {
+                              countryCode = '81';
+                              phoneNumber = rawValue.substring(2);
                             }
-                          }, [countryCode, phoneNumber, field]);
-                          
-                          // Define limite de caracteres baseado no país
-                          const getMaxPhoneLength = (country: string): number => {
-                            switch(country) {
-                              case "55": return 11; // Brasil (11 com DDD)
-                              case "1": return 10;  // EUA/Canadá
-                              case "351": return 9; // Portugal
-                              case "44": return 10; // Reino Unido
-                              case "34": return 9;  // Espanha
-                              case "33": return 9;  // França
-                              case "49": return 11; // Alemanha
-                              case "39": return 10; // Itália
-                              case "81": return 10; // Japão
-                              default: return 15;   // Limite padrão
-                            }
+                            
+                            return countryCode ? `+${countryCode} ${phoneNumber}` : rawValue;
                           };
-                          
+
                           return (
                             <FormItem>
                               <FormLabel>Telefone</FormLabel>
                               <FormControl>
-                                <div className="flex">
-                                  <div className="relative w-32 mr-2">
-                                    <Select 
-                                      value={countryCode} 
-                                      onValueChange={(value) => setCountryCode(value)}
-                                    >
-                                      <SelectTrigger className="pl-3">
-                                        <SelectValue>
-                                          <span className="flex items-center">
-                                            <img 
-                                              src={`https://flagcdn.com/${countryCode === '55' ? 'br' : 
-                                                   countryCode === '1' ? 'us' : 
-                                                   countryCode === '351' ? 'pt' :
-                                                   countryCode === '44' ? 'gb' :
-                                                   countryCode === '34' ? 'es' :
-                                                   countryCode === '33' ? 'fr' :
-                                                   countryCode === '49' ? 'de' :
-                                                   countryCode === '39' ? 'it' :
-                                                   countryCode === '81' ? 'jp' : 'br'}.svg`} 
-                                              className="w-4 h-4 mr-2" 
-                                              alt="Country flag"
-                                            />
-                                            +{countryCode}
-                                          </span>
-                                        </SelectValue>
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="55">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/br.svg" className="w-4 h-4 mr-2" alt="Brazil" />
-                                            +55 (BR)
-                                          </span>
-                                        </SelectItem>
-                                        <SelectItem value="1">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/us.svg" className="w-4 h-4 mr-2" alt="USA" />
-                                            +1 (US/CA)
-                                          </span>
-                                        </SelectItem>
-                                        <SelectItem value="351">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/pt.svg" className="w-4 h-4 mr-2" alt="Portugal" />
-                                            +351 (PT)
-                                          </span>
-                                        </SelectItem>
-                                        <SelectItem value="44">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/gb.svg" className="w-4 h-4 mr-2" alt="UK" />
-                                            +44 (UK)
-                                          </span>
-                                        </SelectItem>
-                                        <SelectItem value="34">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/es.svg" className="w-4 h-4 mr-2" alt="Spain" />
-                                            +34 (ES)
-                                          </span>
-                                        </SelectItem>
-                                        <SelectItem value="33">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/fr.svg" className="w-4 h-4 mr-2" alt="France" />
-                                            +33 (FR)
-                                          </span>
-                                        </SelectItem>
-                                        <SelectItem value="49">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/de.svg" className="w-4 h-4 mr-2" alt="Germany" />
-                                            +49 (DE)
-                                          </span>
-                                        </SelectItem>
-                                        <SelectItem value="39">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/it.svg" className="w-4 h-4 mr-2" alt="Italy" />
-                                            +39 (IT)
-                                          </span>
-                                        </SelectItem>
-                                        <SelectItem value="81">
-                                          <span className="flex items-center">
-                                            <img src="https://flagcdn.com/jp.svg" className="w-4 h-4 mr-2" alt="Japan" />
-                                            +81 (JP)
-                                          </span>
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <Input 
-                                    placeholder="Número de telefone"
-                                    className="flex-1"
-                                    inputMode="numeric"
-                                    type="tel"
-                                    maxLength={getMaxPhoneLength(countryCode)}
-                                    value={phoneNumber}
-                                    onChange={(e) => {
-                                      // Remove todos os caracteres não numéricos
-                                      const rawValue = e.target.value.replace(/\D/g, '');
-                                      
-                                      // Limita ao máximo de caracteres para o país selecionado
-                                      const maxLength = getMaxPhoneLength(countryCode);
-                                      const limitedValue = rawValue.substring(0, maxLength);
-                                      
-                                      let formattedValue = limitedValue;
-                                      
-                                      // Formata de acordo com o país
-                                      if (countryCode === "55" && limitedValue.length > 0) {
-                                        // Brasil: (XX) XXXXX-XXXX
-                                        if (limitedValue.length <= 2) {
-                                          formattedValue = limitedValue;
-                                        } else if (limitedValue.length <= 7) {
-                                          formattedValue = `(${limitedValue.substring(0, 2)}) ${limitedValue.substring(2)}`;
-                                        } else {
-                                          formattedValue = `(${limitedValue.substring(0, 2)}) ${limitedValue.substring(2, 7)}-${limitedValue.substring(7, 11)}`;
-                                        }
-                                      } else if (countryCode === "1" && limitedValue.length > 0) {
-                                        // EUA/CA: (XXX) XXX-XXXX
-                                        if (limitedValue.length <= 3) {
-                                          formattedValue = limitedValue;
-                                        } else if (limitedValue.length <= 6) {
-                                          formattedValue = `(${limitedValue.substring(0, 3)}) ${limitedValue.substring(3)}`;
-                                        } else {
-                                          formattedValue = `(${limitedValue.substring(0, 3)}) ${limitedValue.substring(3, 6)}-${limitedValue.substring(6, 10)}`;
-                                        }
-                                      }
-                                      
-                                      // Atualiza apenas o visual para exibição formatada
-                                      e.target.value = formattedValue;
-                                      
-                                      // Salva apenas os dígitos no estado
-                                      setPhoneNumber(limitedValue);
-                                    }}
-                                  />
-                                </div>
+                                <Input
+                                  placeholder="+55 (11) 98765-4321"
+                                  type="tel"
+                                  value={formatPhoneNumber(field.value || '')}
+                                  onChange={(e) => {
+                                    const formattedValue = formatPhoneNumber(e.target.value);
+                                    field.onChange(formattedValue.replace(/\s/g, ''));
+                                  }}
+                                />
                               </FormControl>
                               <FormDescription>
-                                Selecione o código do país e digite seu número de telefone
+                                Digite o código do país (ex: +55 para Brasil) seguido do número
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
