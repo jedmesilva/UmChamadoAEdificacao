@@ -122,7 +122,7 @@ export default async function handler(req, res) {
       user_id: body.user_id,
       email: body.email,
       name: body.name,
-      whatsapp: body.whatsapp,
+      whatsapp: body.whatsapp, // Mantendo whatsapp tudo minúsculo
       status: body.status || 'is_complit',
       created_at: body.created_at || new Date().toISOString()
     };

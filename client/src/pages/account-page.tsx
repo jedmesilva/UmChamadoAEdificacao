@@ -181,7 +181,7 @@ const AccountPage = () => {
         const updateData = {
           name: data.name,
           email: data.email,
-          whatsapp: data.phone,
+          whatsapp: data.phone, // Usando whatsapp tudo minúsculo
           status: 'is_complit'
         };
         console.log('Dados para atualização:', updateData);
@@ -210,7 +210,7 @@ const AccountPage = () => {
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsapp: data.phone || null,
+              whatsapp: data.phone || null, // Usando whatsapp tudo minúsculo
               status: 'is_complit'
             })
           });
@@ -226,7 +226,7 @@ const AccountPage = () => {
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsapp: data.phone,
+              whatsApp: data.phone, // Corrigido: whatsApp com 'A' maiúsculo
               status: 'is_complit'
             };
             
