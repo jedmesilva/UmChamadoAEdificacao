@@ -455,12 +455,11 @@ const AccountPage = () => {
                               <FormControl>
                                 <div className="flex">
                                   <div className="relative w-32 mr-2">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+</span>
                                     <Select 
                                       value={countryCode} 
                                       onValueChange={(value) => setCountryCode(value)}
                                     >
-                                      <SelectTrigger className="pl-6">
+                                      <SelectTrigger className="pl-3">
                                         <SelectValue>
                                           <span className="flex items-center">
                                             <img 
