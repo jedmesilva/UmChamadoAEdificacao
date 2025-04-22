@@ -86,8 +86,8 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
-    }) : 'Carregando...',
-    letters: isLoadingCartas ? [] : cartas?.map(carta => ({
+    }) : 'Não disponível',
+    letters: cartas?.map(carta => ({
       id: carta.id_sumary_carta,
       status: "received",
       receivedDate: carta.date_send
