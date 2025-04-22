@@ -145,12 +145,90 @@ const AccountPage = () => {
       console.log('Dados do perfil a serem salvos:', JSON.stringify(data, null, 2));
       console.log('ID do usuário atual:', user?.id);
       
+      if (!user?.id) {
+        throw new Error('Usuário não encontrado');
+      }
+
       // Verifica se o número de telefone está no formato correto
       let phoneNumber = data.phone;
       if (phoneNumber && !phoneNumber.startsWith('+')) {
         phoneNumber = `+${phoneNumber}`;
         console.log('Corrigindo formato do telefone para:', phoneNumber);
       }
+
+      // 1. Primeiro atualizar os metadados do usuário no Auth
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          name: data.name,
+          phone: phoneNumber,
+          address: data.address,
+          city: data.city,
+          state: data.state,
+          zipCode: data.zipCode,
+        }
+      });
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // 2. Verificar perfil existente
+      const { data: existingProfile } = await supabase
+        .from('account_user')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingProfile) {
+        // Atualizar perfil existente
+        const { error: updateProfileError } = await supabase
+          .from('account_user')
+          .update({
+            name: data.name,
+            email: data.email,
+            whatsapp: phoneNumber,
+            status: 'is_complit'
+          })
+          .eq('user_id', user.id);
+
+        if (updateProfileError) {
+          throw updateProfileError;
+        }
+      } else {
+        // Criar novo perfil
+        const { error: createError } = await supabase
+          .from('account_user')
+          .insert({
+            id: user.id,
+            user_id: user.id,
+            email: data.email,
+            name: data.name,
+            whatsapp: phoneNumber,
+            status: 'is_complit'
+          });
+
+        if (createError) {
+          throw createError;
+        }
+      }
+
+      toast({
+        title: existingProfile ? "Perfil atualizado" : "Perfil criado",
+        description: "Seus dados foram salvos com sucesso.",
+      });
+
+      setLocation('/');
+    } catch (error) {
+      console.error('Erro ao salvar perfil:', error);
+      toast({
+        title: "Erro ao salvar perfil",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar seus dados. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
       // 1. Primeiro atualizar os metadados do usuário no Auth
       console.log('Atualizando metadados do usuário no Auth...');
