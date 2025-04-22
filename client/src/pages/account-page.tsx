@@ -64,25 +64,22 @@ const profileFormSchema = z.object({
     message: "Email inválido.",
   }),
   phone: z.string()
-    .regex(/^\+(?:55|1|351|44|34|33|49|39|81)\s+[\d\s()-]+$/, {
-      message: "Formato de telefone inválido. Use o formato correto para o país selecionado"
+    .optional()
+    .transform(val => (!val ? undefined : val))
+    .refine((val) => {
+      if (!val) return true;
+      const cleaned = val.replace(/[^\d+]/g, '');
+      return cleaned.startsWith('+');
+    }, {
+      message: "O número deve começar com +"
     })
     .refine((val) => {
       if (!val) return true;
       const digits = val.replace(/\D/g, '');
-      const countryCode = digits.match(/^(55|1|351|44|34|33|49|39|81)/)?.[0];
-      if (!countryCode) return false;
-      
-      const lengths: Record<string, number> = {
-        '55': 13, '1': 11, '351': 12, '44': 12,
-        '34': 11, '33': 11, '49': 13, '39': 12, '81': 12
-      };
-      
-      return digits.length === lengths[countryCode];
+      return digits.length >= 10 && digits.length <= 15;
     }, {
-      message: "Número de telefone com quantidade incorreta de dígitos para o país selecionado"
-    })
-    .optional(),
+      message: "O número deve ter entre 10 e 15 dígitos"
+    }),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -435,47 +432,25 @@ const AccountPage = () => {
                         name="phone"
                         render={({ field }) => {
                           const formatPhoneNumber = (value: string) => {
-                            const rawValue = value.replace(/[^\d+]/g, '');
+                            if (!value) return '';
                             
-                            if (!rawValue) return '';
+                            // Mantém apenas dígitos e o sinal de +
+                            let formatted = value.replace(/[^\d+]/g, '');
                             
-                            const phonePatterns: Record<string, { code: string, format: (num: string) => string, maxLength: number }> = {
-                              '55': {
-                                code: '55',
-                                maxLength: 11,
-                                format: (num) => num.length > 2 ? 
-                                  `(${num.slice(0,2)}) ${num.slice(2,7)}${num.length > 7 ? '-' + num.slice(7) : num.slice(7)}`
-                                  : num
-                              },
-                              '1': {
-                                code: '1',
-                                maxLength: 10,
-                                format: (num) => num.length > 3 ?
-                                  `(${num.slice(0,3)}) ${num.slice(3,6)}${num.length > 6 ? '-' + num.slice(6) : num.slice(6)}`
-                                  : num
-                              },
-                              '351': { code: '351', maxLength: 9, format: (num) => num },
-                              '44': { code: '44', maxLength: 10, format: (num) => num },
-                              '34': { code: '34', maxLength: 9, format: (num) => num },
-                              '33': { code: '33', maxLength: 9, format: (num) => num },
-                              '49': { code: '49', maxLength: 11, format: (num) => num },
-                              '39': { code: '39', maxLength: 10, format: (num) => num },
-                              '81': { code: '81', maxLength: 10, format: (num) => num }
-                            };
-
-                            // Encontra o código do país
-                            const countryCode = Object.keys(phonePatterns).find(code => 
-                              rawValue.startsWith(code));
-
-                            if (!countryCode) return rawValue;
-
-                            const pattern = phonePatterns[countryCode];
-                            const phoneNumber = rawValue.substring(countryCode.length);
+                            // Garante que começa com +
+                            if (!formatted.startsWith('+')) {
+                              formatted = '+' + formatted;
+                            }
                             
-                            // Limita o número ao tamanho máximo para o país
-                            const limitedNumber = phoneNumber.slice(0, pattern.maxLength);
+                            // Adiciona espaços para melhor legibilidade
+                            if (formatted.length > 3) {
+                              formatted = formatted.slice(0, 3) + ' ' + formatted.slice(3);
+                            }
+                            if (formatted.length > 8) {
+                              formatted = formatted.slice(0, 8) + ' ' + formatted.slice(8);
+                            }
                             
-                            return `+${pattern.code} ${pattern.format(limitedNumber)}`;
+                            return formatted;
                           };
 
                           return (
