@@ -146,9 +146,9 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
     // Verificar qual status exibir com base no tipo de assinatura
     if (isEmailSubscription) {
       // Para assinatura de email, verificar status_email
-      if (letterSubscription.statusEmail) {
+      if (letterSubscription.status_email) {
         // Formatar a data e hora se tivermos um status email
-        const date = new Date(letterSubscription.statusEmail);
+        const date = new Date(letterSubscription.status_email);
         const formattedDate = date.toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: '2-digit',
@@ -176,9 +176,9 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
       }
     } else {
       // Para assinatura física (pergaminho), verificar status_parchment
-      if (letterSubscription.statusParchment) {
+      if (letterSubscription.status_parchment) {
         // Formatar a data e hora se tivermos um status parchment
-        const date = new Date(letterSubscription.statusParchment);
+        const date = new Date(letterSubscription.status_parchment);
         const formattedDate = date.toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: '2-digit',
