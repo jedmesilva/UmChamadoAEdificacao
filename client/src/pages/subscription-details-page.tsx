@@ -47,7 +47,6 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
   
   // Definindo um tipo padrão caso não seja fornecido
   const type = params?.type || "email";
-  const { user } = useSupabaseAuth();
   
   // Determinar se é assinatura de email ou física
   const isEmailSubscription = type === "email";
