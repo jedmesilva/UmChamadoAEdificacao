@@ -47,6 +47,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
   
   // Definindo um tipo padrão caso não seja fornecido
   const type = params?.type || "email";
+  const { user } = useSupabaseAuth();
   
   // Determinar se é assinatura de email ou física
   const isEmailSubscription = type === "email";
@@ -54,26 +55,40 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
   const icon = isEmailSubscription ? <Mail className="h-5 w-5 mr-2" /> : <Scroll className="h-5 w-5 mr-2" />;
   const color = isEmailSubscription ? "text-blue-600" : "text-amber-600";
   
+  // Buscar dados da assinatura
+  const { 
+    data: signature,
+    isLoading: isLoadingSignature 
+  } = useQuery({
+    queryKey: ["signature", type, user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      return isEmailSubscription 
+        ? await signatureService.getEmailSignature(user.id)
+        : await signatureService.getParchmentSignature(user.id);
+    },
+    enabled: !!user?.id
+  });
+
   // Obter todas as cartas disponíveis
   const { 
     data: cartas, 
-    isLoading, 
+    isLoading: isLoadingCartas, 
     error 
   } = useQuery<SupabaseCarta[]>({
     queryKey: ["cartas"],
     queryFn: async () => await cartaService.getAllCartas(),
   });
 
-  // Simular assinatura para demonstração - Numa aplicação real, isso viria do banco de dados
   const userSubscription = {
     type: type,
-    active: type === "email",
-    startDate: "2023-11-15",
-    letters: [
-      { id: 1, status: "received", receivedDate: "2023-11-20" },
-      { id: 2, status: "received", receivedDate: "2023-12-05" },
-      { id: 3, status: "processing", receivedDate: null },
-    ]
+    active: signature?.status_signature === 'active',
+    startDate: signature?.created_at ? new Date(signature.created_at).toLocaleDateString() : '-',
+    letters: cartas?.map(carta => ({
+      id: carta.id_sumary_carta,
+      status: "received",
+      receivedDate: carta.date_send
+    })) || []
   };
   
   // Filtra as cartas baseado na pesquisa
