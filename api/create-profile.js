@@ -125,7 +125,8 @@ export default async function handler(req, res) {
     }
     
     const profileData = {
-      user_id: body.user_id,
+      id: user.id, // Importante: o id deve ser o mesmo do usuário autenticado
+      user_id: user.id, // Garantindo que user_id seja o auth.uid()
       email: body.email,
       name: body.name,
       whatsapp: formattedPhone, // Mantendo whatsapp tudo minúsculo com formato correto

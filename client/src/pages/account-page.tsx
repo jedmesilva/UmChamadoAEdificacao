@@ -220,6 +220,13 @@ const AccountPage = () => {
         // 3B. Se não existe, criar novo perfil
         // Primeiro, tenta criar via API com SERVICE_ROLE
         try {
+          // Certifica-se que o telefone está no formato correto com o código do país
+          let apiPhone = data.phone;
+          if (apiPhone && !apiPhone.startsWith('+')) {
+            apiPhone = `+${apiPhone}`;
+            console.log('Corrigindo formato do telefone para API para:', apiPhone);
+          }
+          
           const response = await fetch('/api/create-profile', {
             method: 'POST',
             headers: {
@@ -227,10 +234,11 @@ const AccountPage = () => {
               'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
             },
             body: JSON.stringify({
+              id: user?.id, // ID deve ser o mesmo do usuário autenticado
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsapp: data.phone || null, // Usando whatsapp tudo minúsculo
+              whatsapp: apiPhone || null, // Usando whatsapp tudo minúsculo com formato correto
               status: 'is_complit'
             })
           });
@@ -249,8 +257,9 @@ const AccountPage = () => {
               console.log('Corrigindo formato do whatsapp para:', formattedPhone);
             }
             
-            // Não incluir id na inserção - deixar o Supabase gerar o id automaticamente
+            // Importante: o id deve ser o mesmo do user_id (auth.uid)
             const userProfileData = {
+              id: user?.id, // ID deve ser o mesmo do usuário autenticado
               user_id: user?.id,
               email: data.email,
               name: data.name,
