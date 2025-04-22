@@ -147,56 +147,64 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
     if (isEmailSubscription) {
       // Para assinatura de email, verificar status_email
       if (letterSubscription.statusEmail) {
-        // Formatar a data se tivermos um status email
-        const formattedDate = new Date(letterSubscription.statusEmail).toLocaleDateString('pt-BR', {
+        // Formatar a data e hora se tivermos um status email
+        const date = new Date(letterSubscription.statusEmail);
+        const formattedDate = date.toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric'
+        });
+        const formattedTime = date.toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
         });
         
         return (
           <Badge variant="outline" className="flex items-center gap-1 text-green-600">
             <CheckCircle className="h-3 w-3" />
-            <span>Recebida em {formattedDate}</span>
+            <span>Recebida em {formattedDate} às {formattedTime}</span>
+          </Badge>
+        );
+      } else {
+        // Se não tiver status_email, significa que o usuário não recebeu a carta
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 text-gray-500">
+            <XCircle className="h-3 w-3" />
+            <span>Não recebida</span>
           </Badge>
         );
       }
     } else {
       // Para assinatura física (pergaminho), verificar status_parchment
       if (letterSubscription.statusParchment) {
-        // Formatar a data se tivermos um status parchment
-        const formattedDate = new Date(letterSubscription.statusParchment).toLocaleDateString('pt-BR', {
+        // Formatar a data e hora se tivermos um status parchment
+        const date = new Date(letterSubscription.statusParchment);
+        const formattedDate = date.toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric'
+        });
+        const formattedTime = date.toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
         });
         
         return (
           <Badge variant="outline" className="flex items-center gap-1 text-green-600">
             <CheckCircle className="h-3 w-3" />
-            <span>Enviada em {formattedDate}</span>
+            <span>Enviada em {formattedDate} às {formattedTime}</span>
+          </Badge>
+        );
+      } else {
+        // Se não tiver status_parchment, significa que o usuário não recebeu a carta física
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 text-gray-500">
+            <XCircle className="h-3 w-3" />
+            <span>Não enviada</span>
           </Badge>
         );
       }
     }
-    
-    // Caso não tenha status específico para o tipo de assinatura
-    if (letterSubscription.status === "received") {
-      return (
-        <Badge variant="outline" className="flex items-center gap-1 text-green-600">
-          <CheckCircle className="h-3 w-3" />
-          <span>Recebida</span>
-        </Badge>
-      );
-    }
-    
-    // Status padrão caso não tenha informação de data
-    return (
-      <Badge variant="outline" className="flex items-center gap-1 text-amber-600">
-        <Clock className="h-3 w-3" />
-        <span>Em processamento</span>
-      </Badge>
-    );
   };
 
   return (
