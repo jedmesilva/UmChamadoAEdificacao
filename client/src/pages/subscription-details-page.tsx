@@ -86,8 +86,8 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
-    }) : '-',
-    letters: cartas?.map(carta => ({
+    }) : 'Carregando...',
+    letters: isLoadingCartas ? [] : cartas?.map(carta => ({
       id: carta.id_sumary_carta,
       status: "received",
       receivedDate: carta.date_send
@@ -174,6 +174,11 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {isLoadingSignature ? (
+              <div className="flex justify-center items-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+              </div>
+            ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -209,6 +214,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
                 </div>
               )}
             </div>
+            )}
           </CardContent>
         </Card>
         
