@@ -401,6 +401,22 @@ const AccountPage = () => {
                             }
                           }, [countryCode, phoneNumber, field]);
                           
+                          // Define limite de caracteres baseado no país
+                          const getMaxPhoneLength = (country: string): number => {
+                            switch(country) {
+                              case "55": return 11; // Brasil (11 com DDD)
+                              case "1": return 10;  // EUA/Canadá
+                              case "351": return 9; // Portugal
+                              case "44": return 10; // Reino Unido
+                              case "34": return 9;  // Espanha
+                              case "33": return 9;  // França
+                              case "49": return 11; // Alemanha
+                              case "39": return 10; // Itália
+                              case "81": return 10; // Japão
+                              default: return 15;   // Limite padrão
+                            }
+                          };
+                          
                           return (
                             <FormItem>
                               <FormLabel>Telefone</FormLabel>
