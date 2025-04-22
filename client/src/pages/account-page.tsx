@@ -37,6 +37,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   ArrowLeft, 
   Mail, 
@@ -57,13 +64,10 @@ const profileFormSchema = z.object({
     message: "Email inválido.",
   }),
   phone: z.string()
-    .regex(/^[0-9]+$/, {
-      message: "Digite apenas números",
+    .regex(/^\+[0-9]+$/, {
+      message: "Formato de telefone inválido, deve começar com +"
     })
-    .min(10, { message: "Telefone deve ter no mínimo 10 números" })
-    .max(11, { message: "Telefone deve ter no máximo 11 números" })
-    .optional()
-    .transform(val => val ? `+55${val}` : val),
+    .optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -382,33 +386,96 @@ const AccountPage = () => {
                       <FormField
                         control={form.control}
                         name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Telefone</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+55</span>
-                                <Input 
-                                  placeholder="11999999999"
-                                  className="pl-12"
-                                  maxLength={11}
-                                  inputMode="numeric"
-                                  type="text"
-                                  pattern="[0-9]*"
-                                  value={field.value?.replace(/^\+55/, '') || ''}
-                                  onChange={(e) => {
-                                    const value = e.target.value.replace(/\D/g, '');
-                                    field.onChange(value);
-                                  }}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              Digite no formato: +55 DDD NÚMERO (Ex: +55 11 999999999)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          const [countryCode, setCountryCode] = useState<string>("55"); // Brasil como padrão
+                          const [phoneNumber, setPhoneNumber] = useState<string>(
+                            field.value ? field.value.replace(/^\+\d+/, '') : ''
+                          );
+                          
+                          // Cada vez que o número ou o código do país mudar, atualiza o campo
+                          useEffect(() => {
+                            if (phoneNumber) {
+                              field.onChange(`+${countryCode}${phoneNumber}`);
+                            } else {
+                              field.onChange(''); // Se não tiver número, enviar string vazia
+                            }
+                          }, [countryCode, phoneNumber, field]);
+                          
+                          return (
+                            <FormItem>
+                              <FormLabel>Telefone</FormLabel>
+                              <FormControl>
+                                <div className="flex">
+                                  <div className="relative w-24 mr-2">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+</span>
+                                    <Select 
+                                      value={countryCode} 
+                                      onValueChange={(value) => setCountryCode(value)}
+                                    >
+                                      <SelectTrigger className="pl-6">
+                                        <SelectValue placeholder="Código" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="55">+55 (BR)</SelectItem>
+                                        <SelectItem value="1">+1 (US/CA)</SelectItem>
+                                        <SelectItem value="351">+351 (PT)</SelectItem>
+                                        <SelectItem value="44">+44 (UK)</SelectItem>
+                                        <SelectItem value="34">+34 (ES)</SelectItem>
+                                        <SelectItem value="33">+33 (FR)</SelectItem>
+                                        <SelectItem value="49">+49 (DE)</SelectItem>
+                                        <SelectItem value="39">+39 (IT)</SelectItem>
+                                        <SelectItem value="81">+81 (JP)</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <Input 
+                                    placeholder="Número de telefone"
+                                    className="flex-1"
+                                    inputMode="numeric"
+                                    type="tel"
+                                    value={phoneNumber}
+                                    onChange={(e) => {
+                                      // Remove todos os caracteres não numéricos
+                                      const rawValue = e.target.value.replace(/\D/g, '');
+                                      let formattedValue = rawValue;
+                                      
+                                      // Formata de acordo com o país
+                                      if (countryCode === "55" && rawValue.length > 0) {
+                                        // Brasil: (XX) XXXXX-XXXX
+                                        if (rawValue.length <= 2) {
+                                          formattedValue = rawValue;
+                                        } else if (rawValue.length <= 7) {
+                                          formattedValue = `(${rawValue.substring(0, 2)}) ${rawValue.substring(2)}`;
+                                        } else {
+                                          formattedValue = `(${rawValue.substring(0, 2)}) ${rawValue.substring(2, 7)}-${rawValue.substring(7, 11)}`;
+                                        }
+                                      } else if (countryCode === "1" && rawValue.length > 0) {
+                                        // EUA/CA: (XXX) XXX-XXXX
+                                        if (rawValue.length <= 3) {
+                                          formattedValue = rawValue;
+                                        } else if (rawValue.length <= 6) {
+                                          formattedValue = `(${rawValue.substring(0, 3)}) ${rawValue.substring(3)}`;
+                                        } else {
+                                          formattedValue = `(${rawValue.substring(0, 3)}) ${rawValue.substring(3, 6)}-${rawValue.substring(6, 10)}`;
+                                        }
+                                      }
+                                      
+                                      // Atualiza apenas o visual
+                                      e.target.value = formattedValue;
+                                      
+                                      // Salva o valor bruto para o estado
+                                      setPhoneNumber(rawValue);
+                                    }}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Selecione o código do país e digite seu número de telefone
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
                     </div>
 
