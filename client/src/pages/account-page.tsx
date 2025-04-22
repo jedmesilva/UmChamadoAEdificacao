@@ -256,9 +256,10 @@ const AccountPage = () => {
           }
           
           return responseData.profile;
-            
-            // Certifica-se que o telefone está no formato correto com o código do país
-            let formattedPhone = data.phone;
+        } catch (error) {
+          console.error('Erro ao criar perfil:', error);
+          throw error;
+        }
             if (formattedPhone && !formattedPhone.startsWith('+')) {
               formattedPhone = `+${formattedPhone}`;
               console.log('Corrigindo formato do whatsapp para:', formattedPhone);
