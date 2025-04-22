@@ -140,6 +140,15 @@ const AccountPage = () => {
 
   // Função para salvar o perfil
   const onSubmit = async (data: ProfileFormValues) => {
+    if (!user?.id) {
+      toast({
+        title: "Erro",
+        description: "Usuário não encontrado",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       console.log('Dados do perfil a serem salvos:', JSON.stringify(data, null, 2));
@@ -231,16 +240,6 @@ const AccountPage = () => {
   };
 
       // 1. Primeiro atualizar os metadados do usuário no Auth
-      console.log('Atualizando metadados do usuário no Auth...');
-      console.log('Dados para metadados:', {
-        name: data.name,
-        phone: phoneNumber,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        zipCode: data.zipCode,
-      });
-      
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           name: data.name,
