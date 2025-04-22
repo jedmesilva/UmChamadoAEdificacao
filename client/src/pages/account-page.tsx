@@ -138,7 +138,7 @@ const AccountPage = () => {
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       setIsSubmitting(true);
-      console.log('Dados do perfil a serem salvos:', data);
+      console.log('Dados do perfil a serem salvos:', JSON.stringify(data, null, 2));
       console.log('ID do usuário atual:', user?.id);
 
       // 1. Primeiro atualizar os metadados do usuário no Auth
@@ -226,7 +226,7 @@ const AccountPage = () => {
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsApp: data.phone, // Corrigido: whatsApp com 'A' maiúsculo
+              whatsapp: data.phone, // Usando whatsapp tudo minúsculo
               status: 'is_complit'
             };
             
