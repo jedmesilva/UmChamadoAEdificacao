@@ -144,13 +144,29 @@ const AccountPage = () => {
       setIsSubmitting(true);
       console.log('Dados do perfil a serem salvos:', JSON.stringify(data, null, 2));
       console.log('ID do usuário atual:', user?.id);
+      
+      // Verifica se o número de telefone está no formato correto
+      let phoneNumber = data.phone;
+      if (phoneNumber && !phoneNumber.startsWith('+')) {
+        phoneNumber = `+${phoneNumber}`;
+        console.log('Corrigindo formato do telefone para:', phoneNumber);
+      }
 
       // 1. Primeiro atualizar os metadados do usuário no Auth
       console.log('Atualizando metadados do usuário no Auth...');
+      console.log('Dados para metadados:', {
+        name: data.name,
+        phone: phoneNumber,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+      });
+      
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           name: data.name,
-          phone: data.phone,
+          phone: phoneNumber,
           address: data.address,
           city: data.city,
           state: data.state,
@@ -225,12 +241,20 @@ const AccountPage = () => {
 
             // Tentativa alternativa: inserir diretamente
             console.log('Tentando criar perfil diretamente no Supabase...');
+            
+            // Certifica-se que o telefone está no formato correto com o código do país
+            let formattedPhone = data.phone;
+            if (formattedPhone && !formattedPhone.startsWith('+')) {
+              formattedPhone = `+${formattedPhone}`;
+              console.log('Corrigindo formato do whatsapp para:', formattedPhone);
+            }
+            
+            // Não incluir id na inserção - deixar o Supabase gerar o id automaticamente
             const userProfileData = {
-              id: user?.id,
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsapp: data.phone, // Usando whatsapp tudo minúsculo
+              whatsapp: formattedPhone, // Usando whatsapp tudo minúsculo com formato correto
               status: 'is_complit'
             };
             
@@ -387,10 +411,22 @@ const AccountPage = () => {
                         control={form.control}
                         name="phone"
                         render={({ field }) => {
-                          const [countryCode, setCountryCode] = useState<string>("55"); // Brasil como padrão
-                          const [phoneNumber, setPhoneNumber] = useState<string>(
-                            field.value ? field.value.replace(/^\+\d+/, '') : ''
-                          );
+                          const extractPhoneInfo = (phoneString: string | undefined) => {
+                            // Se não houver valor, retorna padrão Brasil
+                            if (!phoneString) return { code: "55", number: "" };
+                            
+                            // Tenta extrair o código do país e o número
+                            const match = phoneString.match(/^\+(\d+)(\d+)$/);
+                            if (!match) return { code: "55", number: "" };
+                            
+                            // Extrai o código do país e o número
+                            const [_, code, number] = match;
+                            return { code, number };
+                          };
+                          
+                          const initialPhone = extractPhoneInfo(field.value);
+                          const [countryCode, setCountryCode] = useState<string>(initialPhone.code); 
+                          const [phoneNumber, setPhoneNumber] = useState<string>(initialPhone.number);
                           
                           // Cada vez que o número ou o código do país mudar, atualiza o campo
                           useEffect(() => {

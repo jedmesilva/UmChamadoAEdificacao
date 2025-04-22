@@ -117,12 +117,18 @@ export default async function handler(req, res) {
     console.log('API /create-profile: Criando novo perfil para usuário:', user.id);
     
     // Preparando dados para inserção
+    // Certifica-se que o telefone está no formato correto com o código do país
+    let formattedPhone = body.whatsapp;
+    if (formattedPhone && !formattedPhone.startsWith('+')) {
+      formattedPhone = `+${formattedPhone}`;
+      console.log('API /create-profile: Corrigindo formato do whatsapp para:', formattedPhone);
+    }
+    
     const profileData = {
-      id: body.id,
       user_id: body.user_id,
       email: body.email,
       name: body.name,
-      whatsapp: body.whatsapp, // Mantendo whatsapp tudo minúsculo
+      whatsapp: formattedPhone, // Mantendo whatsapp tudo minúsculo com formato correto
       status: body.status || 'is_complit',
       created_at: body.created_at || new Date().toISOString()
     };

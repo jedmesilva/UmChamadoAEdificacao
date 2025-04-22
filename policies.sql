@@ -15,6 +15,11 @@ CREATE POLICY "Usuários podem atualizar seus próprios dados"
 ON account_user FOR UPDATE
 USING (auth.uid() = user_id);
 
+-- Permitir que usuários autenticados criem seus próprios perfis
+CREATE POLICY "Usuários podem criar seus próprios perfis"
+ON account_user FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
 -- Permitir que a API do servidor acesse todos os dados (usando service_role)
 CREATE POLICY "Service role pode acessar todos os dados"
 ON account_user FOR ALL
