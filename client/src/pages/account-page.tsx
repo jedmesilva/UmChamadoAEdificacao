@@ -134,8 +134,22 @@ const AccountPage = () => {
   const [physicalSignature, setPhysicalSignature] = useState<ParchmentSignature | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-
-  const [profileData, setProfileData] = useState(null);
+  // Definir o tipo apropriado para os dados do perfil
+  type AccountUserProfile = {
+    id: string;
+    user_id: string;
+    name: string;
+    email: string;
+    whatsapp?: string;
+    status: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    country?: string;
+  };
+  
+  const [profileData, setProfileData] = useState<AccountUserProfile | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -146,10 +160,20 @@ const AccountPage = () => {
           .from('account_user')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
           
-        if (error) throw error;
-        setProfileData(profile);
+        // Se for erro PGRST116 (not found), não é um erro real, é apenas que não encontrou registro
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading profile:', error);
+          toast({
+            title: "Erro ao carregar perfil",
+            description: "Não foi possível carregar seus dados.",
+            variant: "destructive"
+          });
+        } else {
+          // Perfil encontrado ou não, sem erro
+          setProfileData(profile as AccountUserProfile);
+        }
       } catch (error) {
         console.error('Error loading profile:', error);
         toast({
@@ -217,13 +241,17 @@ const AccountPage = () => {
         .eq('user_id', user?.id)
         .maybeSingle();
       
-      if (existingProfileError) {
+      // PGRST116 significa que não encontrou registro, o que não é um erro real
+      if (existingProfileError && existingProfileError.code !== 'PGRST116') {
         console.error('Erro ao verificar perfil existente:', existingProfileError);
       }
       
-      console.log('Perfil existente?', existingProfile ? 'Sim' : 'Não');
+      // Garantir tipo correto para o perfil
+      const typedExistingProfile = existingProfile as AccountUserProfile;
       
-      if (existingProfile) {
+      console.log('Perfil existente?', typedExistingProfile ? 'Sim' : 'Não');
+      
+      if (typedExistingProfile) {
         console.log('Atualizando perfil existente para userId:', user?.id);
         // 3A. Se já existe, atualizar
         const updateData = {
@@ -307,9 +335,10 @@ const AccountPage = () => {
             .from('account_user')
             .select('*')
             .eq('user_id', user?.id)
-            .single();
+            .maybeSingle();
           
-          if (finalCheckProfileError) {
+          // PGRST116 significa que não encontrou registro, o que não é um erro real
+          if (finalCheckProfileError && finalCheckProfileError.code !== 'PGRST116') {
             console.error('Erro ao verificar criação final do perfil:', finalCheckProfileError);
             throw new Error('Erro ao verificar criação do perfil. Por favor, tente novamente.');
           }
@@ -317,11 +346,11 @@ const AccountPage = () => {
           console.log('Estado final do perfil:', finalCheckProfile);
           
           // Para compatibilidade com o código existente
-          const existingProfile = null; // Consideramos que não existia antes
-          const checkProfile = finalCheckProfile;
+          const existingProfileWasNull = true; // Consideramos que não existia antes
+          const checkProfile = finalCheckProfile as AccountUserProfile;
 
           // Se não existia perfil antes e agora existe, redirecionar para homepage
-          if (!existingProfile && checkProfile) {
+          if (existingProfileWasNull && checkProfile) {
             toast({
               title: "Perfil criado",
               description: "Seu perfil foi criado com sucesso.",
