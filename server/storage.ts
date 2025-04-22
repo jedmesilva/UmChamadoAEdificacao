@@ -335,8 +335,15 @@ export class DatabaseStorage implements IStorage {
     const [subscription] = await db.insert(subscriptions).values({
       email,
       status: "active",
+      type: "email", // Definindo o tipo padrão como email
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      address: null,
+      city: null,
+      state: null,
+      zipCode: null,
+      country: "Brasil",
+      userId: null
     }).returning();
     return subscription;
   }
@@ -402,7 +409,9 @@ export function createStorage(type: StorageType): IStorage {
 }
 
 // Usar MemStorage porque as tabelas do Supabase não estão configuradas
-const storageType = StorageType.MEMORY;
+// Alterar o tipo de armazenamento para usar o banco de dados
+// O banco de dados já está configurado em server/db.ts
+const storageType = StorageType.DATABASE;
 
 console.log(`Usando armazenamento do tipo: ${storageType}`);
 
