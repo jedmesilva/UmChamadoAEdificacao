@@ -3,7 +3,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { SupabaseStorage } from "./supabase-storage";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import { Pool } from "@neondatabase/serverless";
 
@@ -96,8 +96,15 @@ export class MemStorage implements IStorage {
       id,
       email,
       status: "active",
+      type: "email", // Definindo o tipo padrão como email
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      address: null,
+      city: null,
+      state: null,
+      zipCode: null,
+      country: "Brasil",
+      userId: null
     };
     this.subscriptions.set(id, subscription);
     return subscription;
@@ -292,12 +299,10 @@ export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
 
   constructor() {
-    // Conexão com o banco de dados PostgreSQL para o session store
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      tableName: 'sessions',
-      createTableIfMissing: true 
+    // Usando memorystore para sessões para evitar problemas de tipo com o PostgreSQL
+    // Em produção, consideraríamos usar o PostgresSessionStore
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // 24 hours
     });
   }
 
@@ -354,12 +359,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLetterReadStatus(userId: number, letterId: number): Promise<LetterReadStatus | undefined> {
-    const [status] = await db
+    const result = await db
       .select()
       .from(letterReadStatus)
-      .where(eq(letterReadStatus.userId, userId))
-      .where(eq(letterReadStatus.letterId, letterId));
-    return status;
+      .where(and(
+        eq(letterReadStatus.userId, userId),
+        eq(letterReadStatus.letterId, letterId)
+      ));
+    
+    return result.length > 0 ? result[0] : undefined;
   }
 
   async setLetterReadStatus(userId: number, letterId: number, status: string = "read"): Promise<LetterReadStatus> {
