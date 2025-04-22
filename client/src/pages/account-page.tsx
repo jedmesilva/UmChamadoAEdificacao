@@ -432,15 +432,15 @@ const AccountPage = () => {
                                         <SelectValue placeholder="Código" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="55">+55 (BR)</SelectItem>
-                                        <SelectItem value="1">+1 (US/CA)</SelectItem>
-                                        <SelectItem value="351">+351 (PT)</SelectItem>
-                                        <SelectItem value="44">+44 (UK)</SelectItem>
-                                        <SelectItem value="34">+34 (ES)</SelectItem>
-                                        <SelectItem value="33">+33 (FR)</SelectItem>
-                                        <SelectItem value="49">+49 (DE)</SelectItem>
-                                        <SelectItem value="39">+39 (IT)</SelectItem>
-                                        <SelectItem value="81">+81 (JP)</SelectItem>
+                                        <SelectItem value="55">55 (BR)</SelectItem>
+                                        <SelectItem value="1">1 (US/CA)</SelectItem>
+                                        <SelectItem value="351">351 (PT)</SelectItem>
+                                        <SelectItem value="44">44 (UK)</SelectItem>
+                                        <SelectItem value="34">34 (ES)</SelectItem>
+                                        <SelectItem value="33">33 (FR)</SelectItem>
+                                        <SelectItem value="49">49 (DE)</SelectItem>
+                                        <SelectItem value="39">39 (IT)</SelectItem>
+                                        <SelectItem value="81">81 (JP)</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -449,38 +449,44 @@ const AccountPage = () => {
                                     className="flex-1"
                                     inputMode="numeric"
                                     type="tel"
+                                    maxLength={getMaxPhoneLength(countryCode)}
                                     value={phoneNumber}
                                     onChange={(e) => {
                                       // Remove todos os caracteres não numéricos
                                       const rawValue = e.target.value.replace(/\D/g, '');
-                                      let formattedValue = rawValue;
+                                      
+                                      // Limita ao máximo de caracteres para o país selecionado
+                                      const maxLength = getMaxPhoneLength(countryCode);
+                                      const limitedValue = rawValue.substring(0, maxLength);
+                                      
+                                      let formattedValue = limitedValue;
                                       
                                       // Formata de acordo com o país
-                                      if (countryCode === "55" && rawValue.length > 0) {
+                                      if (countryCode === "55" && limitedValue.length > 0) {
                                         // Brasil: (XX) XXXXX-XXXX
-                                        if (rawValue.length <= 2) {
-                                          formattedValue = rawValue;
-                                        } else if (rawValue.length <= 7) {
-                                          formattedValue = `(${rawValue.substring(0, 2)}) ${rawValue.substring(2)}`;
+                                        if (limitedValue.length <= 2) {
+                                          formattedValue = limitedValue;
+                                        } else if (limitedValue.length <= 7) {
+                                          formattedValue = `(${limitedValue.substring(0, 2)}) ${limitedValue.substring(2)}`;
                                         } else {
-                                          formattedValue = `(${rawValue.substring(0, 2)}) ${rawValue.substring(2, 7)}-${rawValue.substring(7, 11)}`;
+                                          formattedValue = `(${limitedValue.substring(0, 2)}) ${limitedValue.substring(2, 7)}-${limitedValue.substring(7, 11)}`;
                                         }
-                                      } else if (countryCode === "1" && rawValue.length > 0) {
+                                      } else if (countryCode === "1" && limitedValue.length > 0) {
                                         // EUA/CA: (XXX) XXX-XXXX
-                                        if (rawValue.length <= 3) {
-                                          formattedValue = rawValue;
-                                        } else if (rawValue.length <= 6) {
-                                          formattedValue = `(${rawValue.substring(0, 3)}) ${rawValue.substring(3)}`;
+                                        if (limitedValue.length <= 3) {
+                                          formattedValue = limitedValue;
+                                        } else if (limitedValue.length <= 6) {
+                                          formattedValue = `(${limitedValue.substring(0, 3)}) ${limitedValue.substring(3)}`;
                                         } else {
-                                          formattedValue = `(${rawValue.substring(0, 3)}) ${rawValue.substring(3, 6)}-${rawValue.substring(6, 10)}`;
+                                          formattedValue = `(${limitedValue.substring(0, 3)}) ${limitedValue.substring(3, 6)}-${limitedValue.substring(6, 10)}`;
                                         }
                                       }
                                       
-                                      // Atualiza apenas o visual
+                                      // Atualiza apenas o visual para exibição formatada
                                       e.target.value = formattedValue;
                                       
-                                      // Salva o valor bruto para o estado
-                                      setPhoneNumber(rawValue);
+                                      // Salva apenas os dígitos no estado
+                                      setPhoneNumber(limitedValue);
                                     }}
                                   />
                                 </div>
