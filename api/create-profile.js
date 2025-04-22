@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js';
  */
 export default async function handler(req, res) {
   console.log('API /create-profile: chamada iniciada');
-
+  
   // Configuração CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
   // Garantindo que req.body esteja parseado se for string
   let body = req.body;
   console.log('API /create-profile: body recebido:', JSON.stringify(body));
-
+  
   if (body && typeof body === 'string' && req.headers['content-type']?.includes('application/json')) {
     try {
       body = JSON.parse(body);
@@ -56,11 +56,11 @@ export default async function handler(req, res) {
   }
 
   const token = authHeader.split(' ')[1];
-
+  
   // Obter variáveis de ambiente do Supabase com fallbacks
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
+  
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Configuração do Supabase não encontrada no ambiente');
     return res.status(500).json({ 
@@ -71,11 +71,11 @@ export default async function handler(req, res) {
 
   try {
     console.log('API /create-profile: Inicializando cliente Supabase...');
-
+    
     // 1. Primeiro verificar a validade do token e extrair user_id
     const authClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: { user }, error: authError } = await authClient.auth.getUser(token);
-
+    
     if (authError || !user) {
       console.error('Erro na autenticação do token:', authError);
       return res.status(401).json({ 
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
         message: "Token inválido ou expirado" 
       });
     }
-
+    
     // 2. Validar que o ID no token corresponde ao ID no body
     if (user.id !== body.user_id) {
       return res.status(403).json({ 
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
         message: "Não autorizado a criar perfil para outro usuário" 
       });
     }
-
+    
     // 3. Verificar se o perfil já existe
     console.log('API /create-profile: Verificando se já existe perfil para o usuário:', user.id);
     const { data: existingProfile, error: profileError } = await authClient
@@ -99,59 +99,43 @@ export default async function handler(req, res) {
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
-
+    
     if (profileError) {
       console.error('API /create-profile: Erro ao verificar perfil existente:', profileError);
     }
-
+      
     if (existingProfile) {
       console.log('API /create-profile: Perfil já existe:', existingProfile);
-      return res.status(409).json({
-        success: false,
-        message: "Perfil já existe para este usuário",
+      return res.status(200).json({
+        success: true,
+        message: "Perfil já existe",
         profile: existingProfile
       });
     }
-
+    
     // 4. Criar o perfil com a service_role que tem permissão para bypass do RLS
     console.log('API /create-profile: Criando novo perfil para usuário:', user.id);
-
+    
     // Preparando dados para inserção
-    // Certifica-se que o telefone está no formato correto com o código do país
-    let formattedPhone = body.whatsapp;
-    if (formattedPhone && !formattedPhone.startsWith('+')) {
-      formattedPhone = `+${formattedPhone}`;
-      console.log('API /create-profile: Corrigindo formato do whatsapp para:', formattedPhone);
-    }
-
     const profileData = {
-      id: user.id, // ID deve ser o mesmo do auth.uid
-      user_id: user.id, // user_id também deve ser o auth.uid
+      id: body.id,
+      user_id: body.user_id,
       email: body.email,
-      name: body.name || '', // Nome é obrigatório
-      whatsapp: formattedPhone || null, // Whatsapp é opcional, formato varchar
-      status: 'is_complit', // Status fixo como is_complit
-      // created_at é gerado automaticamente pelo Supabase
-      // updated_at será atualizado automaticamente pelo Supabase
+      name: body.name,
+      whatsapp: body.whatsapp, // Mantendo whatsapp tudo minúsculo
+      status: body.status || 'is_complit',
+      created_at: body.created_at || new Date().toISOString()
     };
-
-    // Validação do nome obrigatório
-    if (!profileData.name) {
-      return res.status(400).json({
-        success: false,
-        message: "O campo 'name' é obrigatório"
-      });
-    }
-
+    
     console.log('API /create-profile: Dados para inserção:', JSON.stringify(profileData, null, 2));
     console.log('API /create-profile: URL Supabase:', supabaseUrl);
     console.log('API /create-profile: Chave Service Role disponível:', !!supabaseServiceKey);
-
+    
     // Primeiro fazemos a inserção sem tentar retornar os dados
     const { error: insertError } = await authClient
       .from('account_user')
       .insert(profileData);
-
+      
     if (insertError) {
       console.error('Erro na inserção inicial:', JSON.stringify(insertError, null, 2));
       console.error('Detalhes do erro:', insertError.message);
@@ -161,14 +145,14 @@ export default async function handler(req, res) {
         error: insertError
       });
     }
-
+    
     // Depois buscamos o perfil recém-criado
     const { data: profile, error: fetchError } = await authClient
       .from('account_user')
       .select('*')
       .eq('user_id', user.id)
       .single();
-
+      
     if (fetchError) {
       console.error('Erro ao buscar perfil após criação:', JSON.stringify(fetchError, null, 2));
       return res.status(500).json({
@@ -177,17 +161,17 @@ export default async function handler(req, res) {
         error: fetchError
       });
     }
-
+    
     // Chegando aqui, significa que tudo deu certo na inserção e busca do perfil
-
+    
     console.log('API /create-profile: Perfil criado com sucesso:', profile);
-
+    
     return res.status(201).json({
       success: true,
       message: "Perfil criado com sucesso",
       profile
     });
-
+    
   } catch (error) {
     console.error('Erro inesperado:', error);
     return res.status(500).json({ 

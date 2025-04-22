@@ -140,110 +140,17 @@ const AccountPage = () => {
 
   // Função para salvar o perfil
   const onSubmit = async (data: ProfileFormValues) => {
-    if (!user?.id) {
-      toast({
-        title: "Erro",
-        description: "Usuário não encontrado",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       setIsSubmitting(true);
       console.log('Dados do perfil a serem salvos:', JSON.stringify(data, null, 2));
       console.log('ID do usuário atual:', user?.id);
-      
-      if (!user?.id) {
-        throw new Error('Usuário não encontrado');
-      }
-
-      // Verifica se o número de telefone está no formato correto
-      let phoneNumber = data.phone;
-      if (phoneNumber && !phoneNumber.startsWith('+')) {
-        phoneNumber = `+${phoneNumber}`;
-        console.log('Corrigindo formato do telefone para:', phoneNumber);
-      }
 
       // 1. Primeiro atualizar os metadados do usuário no Auth
+      console.log('Atualizando metadados do usuário no Auth...');
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           name: data.name,
-          phone: phoneNumber,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          zipCode: data.zipCode,
-        }
-      });
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      // 2. Verificar perfil existente
-      const { data: existingProfile } = await supabase
-        .from('account_user')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (existingProfile) {
-        // Atualizar perfil existente
-        const { error: updateProfileError } = await supabase
-          .from('account_user')
-          .update({
-            name: data.name,
-            email: data.email,
-            whatsapp: phoneNumber,
-            status: 'is_complit'
-          })
-          .eq('user_id', user.id);
-
-        if (updateProfileError) {
-          throw updateProfileError;
-        }
-      } else {
-        // Criar novo perfil
-        const { error: createError } = await supabase
-          .from('account_user')
-          .insert({
-            id: user.id,
-            user_id: user.id,
-            email: data.email,
-            name: data.name,
-            whatsapp: phoneNumber,
-            status: 'is_complit'
-          });
-
-        if (createError) {
-          throw createError;
-        }
-      }
-
-      toast({
-        title: existingProfile ? "Perfil atualizado" : "Perfil criado",
-        description: "Seus dados foram salvos com sucesso.",
-      });
-
-      setLocation('/');
-    } catch (error) {
-      console.error('Erro ao salvar perfil:', error);
-      toast({
-        title: "Erro ao salvar perfil",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar seus dados. Tente novamente.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-      // 1. Primeiro atualizar os metadados do usuário no Auth
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          name: data.name,
-          phone: phoneNumber,
+          phone: data.phone,
           address: data.address,
           city: data.city,
           state: data.state,
@@ -278,7 +185,7 @@ const AccountPage = () => {
         const updateData = {
           name: data.name,
           email: data.email,
-          whatsapp: data.phone?.startsWith('+') ? data.phone : `+${data.phone}`, // Garantindo formato correto
+          whatsapp: data.phone, // Usando whatsapp tudo minúsculo
           status: 'is_complit'
         };
         console.log('Dados para atualização:', updateData);
@@ -297,13 +204,6 @@ const AccountPage = () => {
         // 3B. Se não existe, criar novo perfil
         // Primeiro, tenta criar via API com SERVICE_ROLE
         try {
-          // Certifica-se que o telefone está no formato correto com o código do país
-          let apiPhone = data.phone;
-          if (apiPhone && !apiPhone.startsWith('+')) {
-            apiPhone = `+${apiPhone}`;
-            console.log('Corrigindo formato do telefone para API para:', apiPhone);
-          }
-          
           const response = await fetch('/api/create-profile', {
             method: 'POST',
             headers: {
@@ -311,63 +211,26 @@ const AccountPage = () => {
               'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
             },
             body: JSON.stringify({
-              id: user?.id, // ID do usuário atual
-              user_id: user?.id, // Mesmo ID para relacionamento
-              email: data.email,
-              name: data.name, // Nome é obrigatório
-              whatsapp: apiPhone || null, // Whatsapp opcional em formato varchar
-              status: 'is_complit' // Status fixo
-            })
-          });
-
-          const responseData = await response.json();
-          
-          if (!response.ok) {
-            console.error('Erro ao criar perfil via API:', responseData);
-            if (response.status === 409) {
-              // Perfil já existe, podemos prosseguir
-              console.log('Perfil já existe, usando existente:', responseData.profile);
-              return responseData.profile;
-            }
-            throw new Error(responseData.message || 'Erro ao criar perfil');
-          }
-          
-          return responseData.profile;
-        } catch (error) {
-          console.error('Erro ao criar perfil:', error);
-          throw error;
-        }
-      }
-
-      // Verificar estado final do perfil após todas as tentativas
-      const { data: finalCheckProfile, error: finalCheckError } = await supabase
-        .from('account_user')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (finalCheckError) {
-        console.error('Erro ao verificar estado final do perfil:', finalCheckError);
-        throw new Error('Erro ao verificar criação do perfil');
-      }
-
-      // Se o perfil foi criado com sucesso, redirecionar
-      if (finalCheckProfile) {
-        toast({
-          title: "Perfil criado",
-          description: "Seu perfil foi criado com sucesso.",
-        });
-        setLocation('/');
-      }
-            }
-            
-            // Importante: o id deve ser o mesmo do user_id (auth.uid)
-            const userProfileData = {
-              id: user?.id, // ID deve ser o mesmo do usuário autenticado
               user_id: user?.id,
               email: data.email,
               name: data.name,
-              whatsapp: formattedPhone, // Usando whatsapp tudo minúsculo com formato correto
+              whatsapp: data.phone || null, // Usando whatsapp tudo minúsculo
+              status: 'is_complit'
+            })
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erro ao criar perfil via API:', errorText);
+
+            // Tentativa alternativa: inserir diretamente
+            console.log('Tentando criar perfil diretamente no Supabase...');
+            const userProfileData = {
+              id: user?.id,
+              user_id: user?.id,
+              email: data.email,
+              name: data.name,
+              whatsapp: data.phone, // Usando whatsapp tudo minúsculo
               status: 'is_complit'
             };
             
@@ -524,22 +387,10 @@ const AccountPage = () => {
                         control={form.control}
                         name="phone"
                         render={({ field }) => {
-                          const extractPhoneInfo = (phoneString: string | undefined) => {
-                            // Se não houver valor, retorna padrão Brasil
-                            if (!phoneString) return { code: "55", number: "" };
-                            
-                            // Tenta extrair o código do país e o número
-                            const match = phoneString.match(/^\+(\d+)(\d+)$/);
-                            if (!match) return { code: "55", number: "" };
-                            
-                            // Extrai o código do país e o número
-                            const [_, code, number] = match;
-                            return { code, number };
-                          };
-                          
-                          const initialPhone = extractPhoneInfo(field.value);
-                          const [countryCode, setCountryCode] = useState<string>(initialPhone.code); 
-                          const [phoneNumber, setPhoneNumber] = useState<string>(initialPhone.number);
+                          const [countryCode, setCountryCode] = useState<string>("55"); // Brasil como padrão
+                          const [phoneNumber, setPhoneNumber] = useState<string>(
+                            field.value ? field.value.replace(/^\+\d+/, '') : ''
+                          );
                           
                           // Cada vez que o número ou o código do país mudar, atualiza o campo
                           useEffect(() => {
