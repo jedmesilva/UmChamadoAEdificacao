@@ -144,11 +144,13 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
     }
     
     // Verificar qual status exibir com base no tipo de assinatura
+    const status = cartasStatus?.find(status => status.carta_id === carta.id_sumary_carta);
+    
     if (isEmailSubscription) {
       // Para assinatura de email, verificar status_email
-      if (letterSubscription.status_email) {
+      if (status?.status_email) {
         // Formatar a data e hora se tivermos um status email
-        const date = new Date(letterSubscription.status_email);
+        const date = new Date(status.status_email);
         const formattedDate = date.toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: '2-digit',
@@ -176,9 +178,9 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
       }
     } else {
       // Para assinatura física (pergaminho), verificar status_parchment
-      if (letterSubscription.status_parchment) {
+      if (status?.status_parchment) {
         // Formatar a data e hora se tivermos um status parchment
-        const date = new Date(letterSubscription.status_parchment);
+        const date = new Date(status.status_parchment);
         const formattedDate = date.toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: '2-digit',
