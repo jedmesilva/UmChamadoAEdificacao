@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { SupabaseCarta } from "@shared/schema";
 import { cartaService } from "@/lib/carta-service";
+import { signatureService } from "@/lib/signature-service";
 
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
