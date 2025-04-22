@@ -79,7 +79,21 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
     queryKey: ["cartas"],
     queryFn: async () => await cartaService.getAllCartas(),
   });
-
+  
+  // Buscar status de todas as cartas para o usuário atual
+  const {
+    data: cartasStatus,
+    isLoading: isLoadingCartasStatus
+  } = useQuery({
+    queryKey: ["cartas-status", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return cartaService.getAllCartaStatus(user.id);
+    },
+    enabled: !!user?.id
+  });
+  
+  // Combinar cartas com seus status
   const userSubscription = {
     type: type,
     active: signature?.status_signature === 'active',
@@ -88,11 +102,18 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
       month: '2-digit',
       year: 'numeric'
     }) : 'Não disponível',
-    letters: cartas?.map(carta => ({
-      id: carta.id_sumary_carta,
-      status: "received",
-      receivedDate: carta.date_send
-    })) || []
+    letters: cartas?.map(carta => {
+      // Encontrar o status correspondente a esta carta
+      const statusItem = cartasStatus?.find(status => status.carta_id === carta.id);
+      
+      return {
+        id: carta.id_sumary_carta,
+        status: statusItem ? "received" : "pending", // "received" se existe um status, senão "pending"
+        receivedDate: carta.date_send,
+        statusEmail: statusItem?.status_email,
+        statusParchment: statusItem?.status_parchment
+      };
+    }) || []
   };
   
   // Filtra as cartas baseado na pesquisa

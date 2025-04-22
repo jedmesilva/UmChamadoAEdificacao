@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase';
 import { SupabaseCarta } from '@shared/schema';
+import { StatusCarta } from '../../../lib/supabase-types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Serviço para acessar diretamente as cartas do Supabase no cliente
@@ -84,6 +85,53 @@ export const cartaService = {
     } catch (error) {
       console.error('Erro ao registrar leitura:', error);
       throw error;
+    }
+  },
+  
+  // Busca o status de uma carta para um usuário específico
+  async getCartaStatus(cartaId: number, userId: string): Promise<StatusCarta | null> {
+    try {
+      console.log(`Buscando status da carta ${cartaId} para usuário ${userId}`);
+      
+      // Consulta direta da tabela status_carta
+      const { data, error } = await supabaseClient
+        .from('status_carta')
+        .select('*')
+        .eq('carta_id', cartaId)
+        .eq('account_user_id', userId)
+        .maybeSingle(); // Usa maybeSingle em vez de single para evitar erro quando não encontrar
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = nenhum resultado encontrado
+        console.error(`Erro ao buscar status da carta ${cartaId}:`, error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error(`Erro ao buscar status da carta ${cartaId}:`, error);
+      return null;
+    }
+  },
+  
+  // Busca o status de todas as cartas para um usuário
+  async getAllCartaStatus(userId: string): Promise<StatusCarta[]> {
+    try {
+      console.log(`Buscando status de todas as cartas para usuário ${userId}`);
+      
+      const { data, error } = await supabaseClient
+        .from('status_carta')
+        .select('*')
+        .eq('account_user_id', userId);
+      
+      if (error) {
+        console.error('Erro ao buscar status das cartas:', error);
+        throw error;
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar status das cartas:', error);
+      return [];
     }
   }
 };

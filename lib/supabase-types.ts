@@ -43,6 +43,8 @@ export interface StatusCarta {
   account_user_id: string;
   created_at: string;
   status: string;
+  status_email?: string; // Timestamp quando a carta foi enviada por email
+  status_parchment?: string; // Timestamp quando a carta física foi enviada
 }
 
 export interface SupabaseSchema {
