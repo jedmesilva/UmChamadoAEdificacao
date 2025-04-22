@@ -64,8 +64,23 @@ const profileFormSchema = z.object({
     message: "Email inválido.",
   }),
   phone: z.string()
-    .regex(/^\+[0-9]+$/, {
-      message: "Formato de telefone inválido, deve começar com +"
+    .regex(/^\+(?:55|1|351|44|34|33|49|39|81)\s+[\d\s()-]+$/, {
+      message: "Formato de telefone inválido. Use o formato correto para o país selecionado"
+    })
+    .refine((val) => {
+      if (!val) return true;
+      const digits = val.replace(/\D/g, '');
+      const countryCode = digits.match(/^(55|1|351|44|34|33|49|39|81)/)?.[0];
+      if (!countryCode) return false;
+      
+      const lengths: Record<string, number> = {
+        '55': 13, '1': 11, '351': 12, '44': 12,
+        '34': 11, '33': 11, '49': 13, '39': 12, '81': 12
+      };
+      
+      return digits.length === lengths[countryCode];
+    }, {
+      message: "Número de telefone com quantidade incorreta de dígitos para o país selecionado"
     })
     .optional(),
   address: z.string().optional(),
@@ -420,53 +435,47 @@ const AccountPage = () => {
                         name="phone"
                         render={({ field }) => {
                           const formatPhoneNumber = (value: string) => {
-                            // Remove todos os caracteres não numéricos
-                            const rawValue = value.replace(/\D/g, '');
+                            const rawValue = value.replace(/[^\d+]/g, '');
                             
                             if (!rawValue) return '';
                             
-                            // Identifica o código do país nos primeiros dígitos
-                            let countryCode = '';
-                            let phoneNumber = '';
+                            const phonePatterns: Record<string, { code: string, format: (num: string) => string, maxLength: number }> = {
+                              '55': {
+                                code: '55',
+                                maxLength: 11,
+                                format: (num) => num.length > 2 ? 
+                                  `(${num.slice(0,2)}) ${num.slice(2,7)}${num.length > 7 ? '-' + num.slice(7) : num.slice(7)}`
+                                  : num
+                              },
+                              '1': {
+                                code: '1',
+                                maxLength: 10,
+                                format: (num) => num.length > 3 ?
+                                  `(${num.slice(0,3)}) ${num.slice(3,6)}${num.length > 6 ? '-' + num.slice(6) : num.slice(6)}`
+                                  : num
+                              },
+                              '351': { code: '351', maxLength: 9, format: (num) => num },
+                              '44': { code: '44', maxLength: 10, format: (num) => num },
+                              '34': { code: '34', maxLength: 9, format: (num) => num },
+                              '33': { code: '33', maxLength: 9, format: (num) => num },
+                              '49': { code: '49', maxLength: 11, format: (num) => num },
+                              '39': { code: '39', maxLength: 10, format: (num) => num },
+                              '81': { code: '81', maxLength: 10, format: (num) => num }
+                            };
+
+                            // Encontra o código do país
+                            const countryCode = Object.keys(phonePatterns).find(code => 
+                              rawValue.startsWith(code));
+
+                            if (!countryCode) return rawValue;
+
+                            const pattern = phonePatterns[countryCode];
+                            const phoneNumber = rawValue.substring(countryCode.length);
                             
-                            if (rawValue.startsWith('55')) {
-                              countryCode = '55';
-                              phoneNumber = rawValue.substring(2);
-                              // Brasil: +55 (XX) XXXXX-XXXX
-                              if (phoneNumber.length > 2) {
-                                phoneNumber = `(${phoneNumber.substring(0, 2)}) ${phoneNumber.substring(2, 7)}${phoneNumber.length > 7 ? '-' + phoneNumber.substring(7) : phoneNumber.substring(7)}`;
-                              }
-                            } else if (rawValue.startsWith('1')) {
-                              countryCode = '1';
-                              phoneNumber = rawValue.substring(1);
-                              // EUA/CA: +1 (XXX) XXX-XXXX
-                              if (phoneNumber.length > 3) {
-                                phoneNumber = `(${phoneNumber.substring(0, 3)}) ${phoneNumber.substring(3, 6)}${phoneNumber.length > 6 ? '-' + phoneNumber.substring(6) : phoneNumber.substring(6)}`;
-                              }
-                            } else if (rawValue.startsWith('351')) {
-                              countryCode = '351';
-                              phoneNumber = rawValue.substring(3);
-                            } else if (rawValue.startsWith('44')) {
-                              countryCode = '44';
-                              phoneNumber = rawValue.substring(2);
-                            } else if (rawValue.startsWith('34')) {
-                              countryCode = '34';
-                              phoneNumber = rawValue.substring(2);
-                            } else if (rawValue.startsWith('33')) {
-                              countryCode = '33';
-                              phoneNumber = rawValue.substring(2);
-                            } else if (rawValue.startsWith('49')) {
-                              countryCode = '49';
-                              phoneNumber = rawValue.substring(2);
-                            } else if (rawValue.startsWith('39')) {
-                              countryCode = '39';
-                              phoneNumber = rawValue.substring(2);
-                            } else if (rawValue.startsWith('81')) {
-                              countryCode = '81';
-                              phoneNumber = rawValue.substring(2);
-                            }
+                            // Limita o número ao tamanho máximo para o país
+                            const limitedNumber = phoneNumber.slice(0, pattern.maxLength);
                             
-                            return countryCode ? `+${countryCode} ${phoneNumber}` : rawValue;
+                            return `+${pattern.code} ${pattern.format(limitedNumber)}`;
                           };
 
                           return (
