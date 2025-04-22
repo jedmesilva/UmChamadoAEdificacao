@@ -13,7 +13,7 @@ import { cartaService } from "@/lib/carta-service";
 const HomePage = () => {
   const { user, supabase } = useSupabaseAuth();
   const [_, setLocation] = useLocation();
-  const [hasProfile, setHasProfile] = useState(false);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [showEmailBanner, setShowEmailBanner] = useState(false);
   const [showParchmentBanner, setShowParchmentBanner] = useState(false);
 
@@ -21,13 +21,17 @@ const HomePage = () => {
     const checkUserProfile = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .from('account_user')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-        
-      setHasProfile(!!data && !error);
+      try {
+        const { data, error } = await supabase
+          .from('account_user')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+          
+        setHasProfile(!!data && !error);
+      } catch (error) {
+        console.error('Erro ao verificar perfil:', error);
+      }
     };
     
     const checkSignatures = async () => {
@@ -100,7 +104,7 @@ const HomePage = () => {
             <span className="text-sm text-gray-600 whitespace-nowrap">{user?.email}</span>
             <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />
           </div>
-          {user && !hasProfile && (
+          {user && hasProfile === false && (
             <div 
               className="bg-blue-50/50 text-blue-800 px-4 py-2 rounded-full mb-3 text-sm cursor-pointer hover:bg-blue-50 transition-colors inline-flex items-center"
               onClick={() => setLocation("/account?tab=profile")}
