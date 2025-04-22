@@ -234,12 +234,12 @@ const AccountPage = () => {
               'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
             },
             body: JSON.stringify({
-              id: user?.id, // ID deve ser o mesmo do usuário autenticado
-              user_id: user?.id,
+              id: user?.id, // ID do usuário atual
+              user_id: user?.id, // Mesmo ID para relacionamento
               email: data.email,
-              name: data.name,
-              whatsapp: apiPhone || null, // Usando whatsapp tudo minúsculo com formato correto
-              status: 'is_complit'
+              name: data.name, // Nome é obrigatório
+              whatsapp: apiPhone || null, // Whatsapp opcional em formato varchar
+              status: 'is_complit' // Status fixo
             })
           });
 
