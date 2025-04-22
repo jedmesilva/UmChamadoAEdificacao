@@ -32,7 +32,11 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
           ? await signatureService.getEmailSignature(user.id)
           : await signatureService.getParchmentSignature(user.id);
 
-        setSignature(result);
+        if (result) {
+          setSignature(result);
+        } else {
+          console.error('Nenhuma assinatura encontrada');
+        }
       } catch (error) {
         console.error('Erro ao carregar assinatura:', error);
       } finally {
