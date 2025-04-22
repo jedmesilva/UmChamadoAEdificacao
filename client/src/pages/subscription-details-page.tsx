@@ -144,7 +144,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
     }
     
     // Verificar qual status exibir com base no tipo de assinatura
-    const status = cartasStatus?.find(status => status.carta_id === carta.id_sumary_carta);
+    const status = cartasStatus?.find(status => status.carta_id === letterSubscription.id);
     
     if (isEmailSubscription) {
       // Para assinatura de email, verificar status_email
