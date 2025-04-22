@@ -222,7 +222,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
             </div>
           </div>
           
-          {isLoading ? (
+          {isLoadingCartas ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
             </div>
