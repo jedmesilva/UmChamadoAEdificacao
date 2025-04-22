@@ -82,7 +82,11 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
   const userSubscription = {
     type: type,
     active: signature?.status_signature === 'active',
-    startDate: signature?.created_at ? new Date(signature.created_at).toLocaleDateString() : '-',
+    startDate: signature?.created_at ? new Date(signature.created_at).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }) : '-',
     letters: cartas?.map(carta => ({
       id: carta.id_sumary_carta,
       status: "received",
