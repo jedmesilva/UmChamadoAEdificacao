@@ -243,13 +243,19 @@ const AccountPage = () => {
             })
           });
 
+          const responseData = await response.json();
+          
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
-            console.error('Erro ao criar perfil via API:', errorData);
-            throw new Error(errorData.message || 'Erro ao criar perfil');
-
-            // Tentativa alternativa: inserir diretamente
-            console.log('Tentando criar perfil diretamente no Supabase...');
+            console.error('Erro ao criar perfil via API:', responseData);
+            if (response.status === 409) {
+              // Perfil já existe, podemos prosseguir
+              console.log('Perfil já existe, usando existente:', responseData.profile);
+              return responseData.profile;
+            }
+            throw new Error(responseData.message || 'Erro ao criar perfil');
+          }
+          
+          return responseData.profile;
             
             // Certifica-se que o telefone está no formato correto com o código do país
             let formattedPhone = data.phone;

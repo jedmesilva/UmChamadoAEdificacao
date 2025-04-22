@@ -106,9 +106,9 @@ export default async function handler(req, res) {
 
     if (existingProfile) {
       console.log('API /create-profile: Perfil já existe:', existingProfile);
-      return res.status(200).json({
-        success: true,
-        message: "Perfil já existe",
+      return res.status(409).json({
+        success: false,
+        message: "Perfil já existe para este usuário",
         profile: existingProfile
       });
     }
