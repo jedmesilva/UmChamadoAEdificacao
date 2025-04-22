@@ -201,7 +201,7 @@ const AccountPage = () => {
         const updateData = {
           name: data.name,
           email: data.email,
-          whatsapp: data.phone, // Usando whatsapp tudo minúsculo
+          whatsapp: data.phone?.startsWith('+') ? data.phone : `+${data.phone}`, // Garantindo formato correto
           status: 'is_complit'
         };
         console.log('Dados para atualização:', updateData);
@@ -244,8 +244,9 @@ const AccountPage = () => {
           });
 
           if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Erro ao criar perfil via API:', errorText);
+            const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+            console.error('Erro ao criar perfil via API:', errorData);
+            throw new Error(errorData.message || 'Erro ao criar perfil');
 
             // Tentativa alternativa: inserir diretamente
             console.log('Tentando criar perfil diretamente no Supabase...');
