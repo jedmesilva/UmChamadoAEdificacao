@@ -72,6 +72,9 @@ const profileFormSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
+  country: z.string().min(1, {
+    message: "País é obrigatório",
+  }),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -120,15 +123,44 @@ const AccountPage = () => {
   const [isLoading, setIsLoading] = useState(true);
 
 
+  const [profileData, setProfileData] = useState(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile, error } = await supabase
+          .from('account_user')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error) throw error;
+        setProfileData(profile);
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        toast({
+          title: "Erro ao carregar perfil",
+          description: "Não foi possível carregar seus dados.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    loadProfile();
+  }, [user]);
+
   // Dados iniciais do formulário
   const defaultValues: Partial<ProfileFormValues> = {
-    name: user?.user_metadata?.name || "",
-    email: user?.email || "",
-    phone: user?.user_metadata?.phone || "",
-    address: user?.user_metadata?.address || "",
-    city: user?.user_metadata?.city || "",
-    state: user?.user_metadata?.state || "",
-    zipCode: user?.user_metadata?.zipCode || "",
+    name: profileData?.name || user?.user_metadata?.name || "",
+    email: profileData?.email || user?.email || "",
+    phone: profileData?.whatsapp || user?.user_metadata?.phone || "",
+    address: profileData?.address || user?.user_metadata?.address || "",
+    city: profileData?.city || user?.user_metadata?.city || "",
+    state: profileData?.state || user?.user_metadata?.state || "",
+    zipCode: profileData?.zip_code || user?.user_metadata?.zipCode || "",
+    country: profileData?.country || "Brasil",
   };
 
   // Inicialização do formulário
@@ -422,25 +454,87 @@ const AccountPage = () => {
                               <FormLabel>Telefone</FormLabel>
                               <FormControl>
                                 <div className="flex">
-                                  <div className="relative w-24 mr-2">
+                                  <div className="relative w-32 mr-2">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">+</span>
                                     <Select 
                                       value={countryCode} 
                                       onValueChange={(value) => setCountryCode(value)}
                                     >
                                       <SelectTrigger className="pl-6">
-                                        <SelectValue placeholder="Código" />
+                                        <SelectValue>
+                                          <span className="flex items-center">
+                                            <img 
+                                              src={`https://flagcdn.com/${countryCode === '55' ? 'br' : 
+                                                   countryCode === '1' ? 'us' : 
+                                                   countryCode === '351' ? 'pt' :
+                                                   countryCode === '44' ? 'gb' :
+                                                   countryCode === '34' ? 'es' :
+                                                   countryCode === '33' ? 'fr' :
+                                                   countryCode === '49' ? 'de' :
+                                                   countryCode === '39' ? 'it' :
+                                                   countryCode === '81' ? 'jp' : 'br'}.svg`} 
+                                              className="w-4 h-4 mr-2" 
+                                              alt="Country flag"
+                                            />
+                                            +{countryCode}
+                                          </span>
+                                        </SelectValue>
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="55">55 (BR)</SelectItem>
-                                        <SelectItem value="1">1 (US/CA)</SelectItem>
-                                        <SelectItem value="351">351 (PT)</SelectItem>
-                                        <SelectItem value="44">44 (UK)</SelectItem>
-                                        <SelectItem value="34">34 (ES)</SelectItem>
-                                        <SelectItem value="33">33 (FR)</SelectItem>
-                                        <SelectItem value="49">49 (DE)</SelectItem>
-                                        <SelectItem value="39">39 (IT)</SelectItem>
-                                        <SelectItem value="81">81 (JP)</SelectItem>
+                                        <SelectItem value="55">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/br.svg" className="w-4 h-4 mr-2" alt="Brazil" />
+                                            +55 (BR)
+                                          </span>
+                                        </SelectItem>
+                                        <SelectItem value="1">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/us.svg" className="w-4 h-4 mr-2" alt="USA" />
+                                            +1 (US/CA)
+                                          </span>
+                                        </SelectItem>
+                                        <SelectItem value="351">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/pt.svg" className="w-4 h-4 mr-2" alt="Portugal" />
+                                            +351 (PT)
+                                          </span>
+                                        </SelectItem>
+                                        <SelectItem value="44">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/gb.svg" className="w-4 h-4 mr-2" alt="UK" />
+                                            +44 (UK)
+                                          </span>
+                                        </SelectItem>
+                                        <SelectItem value="34">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/es.svg" className="w-4 h-4 mr-2" alt="Spain" />
+                                            +34 (ES)
+                                          </span>
+                                        </SelectItem>
+                                        <SelectItem value="33">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/fr.svg" className="w-4 h-4 mr-2" alt="France" />
+                                            +33 (FR)
+                                          </span>
+                                        </SelectItem>
+                                        <SelectItem value="49">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/de.svg" className="w-4 h-4 mr-2" alt="Germany" />
+                                            +49 (DE)
+                                          </span>
+                                        </SelectItem>
+                                        <SelectItem value="39">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/it.svg" className="w-4 h-4 mr-2" alt="Italy" />
+                                            +39 (IT)
+                                          </span>
+                                        </SelectItem>
+                                        <SelectItem value="81">
+                                          <span className="flex items-center">
+                                            <img src="https://flagcdn.com/jp.svg" className="w-4 h-4 mr-2" alt="Japan" />
+                                            +81 (JP)
+                                          </span>
+                                        </SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -558,6 +652,36 @@ const AccountPage = () => {
                             <FormControl>
                               <Input placeholder="00000-000" {...field} />
                             </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="country"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>País</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione seu país" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Brasil">Brasil</SelectItem>
+                                <SelectItem value="Portugal">Portugal</SelectItem>
+                                <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
+                                <SelectItem value="Canadá">Canadá</SelectItem>
+                                <SelectItem value="Reino Unido">Reino Unido</SelectItem>
+                                <SelectItem value="Espanha">Espanha</SelectItem>
+                                <SelectItem value="França">França</SelectItem>
+                                <SelectItem value="Alemanha">Alemanha</SelectItem>
+                                <SelectItem value="Itália">Itália</SelectItem>
+                                <SelectItem value="Japão">Japão</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
