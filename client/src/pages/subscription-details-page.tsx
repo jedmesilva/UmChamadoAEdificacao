@@ -143,15 +143,54 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
       );
     }
     
+    // Verificar qual status exibir com base no tipo de assinatura
+    if (isEmailSubscription) {
+      // Para assinatura de email, verificar status_email
+      if (letterSubscription.statusEmail) {
+        // Formatar a data se tivermos um status email
+        const formattedDate = new Date(letterSubscription.statusEmail).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+        
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 text-green-600">
+            <CheckCircle className="h-3 w-3" />
+            <span>Recebida em {formattedDate}</span>
+          </Badge>
+        );
+      }
+    } else {
+      // Para assinatura física (pergaminho), verificar status_parchment
+      if (letterSubscription.statusParchment) {
+        // Formatar a data se tivermos um status parchment
+        const formattedDate = new Date(letterSubscription.statusParchment).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+        
+        return (
+          <Badge variant="outline" className="flex items-center gap-1 text-green-600">
+            <CheckCircle className="h-3 w-3" />
+            <span>Enviada em {formattedDate}</span>
+          </Badge>
+        );
+      }
+    }
+    
+    // Caso não tenha status específico para o tipo de assinatura
     if (letterSubscription.status === "received") {
       return (
         <Badge variant="outline" className="flex items-center gap-1 text-green-600">
           <CheckCircle className="h-3 w-3" />
-          <span>Recebida em {letterSubscription.receivedDate}</span>
+          <span>Recebida</span>
         </Badge>
       );
     }
     
+    // Status padrão caso não tenha informação de data
     return (
       <Badge variant="outline" className="flex items-center gap-1 text-amber-600">
         <Clock className="h-3 w-3" />
