@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { signatureService } from "@/lib/signature-service";
 import type { EmailSignature, ParchmentSignature } from "../../../lib/supabase-types";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
