@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { signatureService } from "@/lib/signature-service";
 import type { EmailSignature, ParchmentSignature } from "../../../lib/supabase-types";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
+import { CountrySelect } from "@/components/ui/country-select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
