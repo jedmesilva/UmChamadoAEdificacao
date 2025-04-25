@@ -158,7 +158,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
       return (
         <Badge variant="outline" className="flex items-center gap-1 text-green-600">
           <CheckCircle className="h-3 w-3" />
-          <span>{isEmailSubscription ? 'Recebida' : 'Enviada'} em {formattedDate}</span>
+          <span>Enviada em {formattedDate}</span>
         </Badge>
       );
     }
