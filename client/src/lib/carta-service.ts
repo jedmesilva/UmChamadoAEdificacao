@@ -121,7 +121,7 @@ export const cartaService = {
       const { data, error } = await supabaseClient
         .from('status_carta')
         .select('*')
-        .eq('account_user_id', userId);
+        .eq('user_id', userId);
       
       if (error) {
         console.error('Erro ao buscar status das cartas:', error);

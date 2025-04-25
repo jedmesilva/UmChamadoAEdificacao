@@ -132,81 +132,43 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
 
   // Renderizar status de uma carta específica
   const renderLetterStatus = (cartaId: number) => {
-    const letterSubscription = userSubscription.letters.find(l => l.id === cartaId);
+    // Buscar o status da carta pelo id_sumary_carta
+    const status = cartasStatus?.find(status => status.carta_id === cartaId);
     
-    if (!letterSubscription) {
+    if (!status) {
       return (
         <Badge variant="outline" className="flex items-center gap-1 text-gray-500">
           <XCircle className="h-3 w-3" />
-          <span>Não recebida</span>
+          <span>Não enviada</span>
         </Badge>
       );
     }
     
     // Verificar qual status exibir com base no tipo de assinatura
-    const status = cartasStatus?.find(status => status.carta_id === cartaId);
+    const timestamp = isEmailSubscription ? status.status_email : status.status_parchment;
     
-    if (isEmailSubscription) {
-      // Para assinatura de email, verificar status_email
-      if (status?.status_email) {
-        // Formatar a data e hora se tivermos um status email
-        const date = new Date(status.status_email);
-        const formattedDate = date.toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
-        const formattedTime = date.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 text-green-600">
-            <CheckCircle className="h-3 w-3" />
-            <span>Recebida em {formattedDate} às {formattedTime}</span>
-          </Badge>
-        );
-      } else {
-        // Se não tiver status_email, significa que o usuário não recebeu a carta
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 text-gray-500">
-            <XCircle className="h-3 w-3" />
-            <span>Não recebida</span>
-          </Badge>
-        );
-      }
-    } else {
-      // Para assinatura física (pergaminho), verificar status_parchment
-      if (status?.status_parchment) {
-        // Formatar a data e hora se tivermos um status parchment
-        const date = new Date(status.status_parchment);
-        const formattedDate = date.toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
-        const formattedTime = date.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 text-green-600">
-            <CheckCircle className="h-3 w-3" />
-            <span>Enviada em {formattedDate} às {formattedTime}</span>
-          </Badge>
-        );
-      } else {
-        // Se não tiver status_parchment, significa que o usuário não recebeu a carta física
-        return (
-          <Badge variant="outline" className="flex items-center gap-1 text-gray-500">
-            <XCircle className="h-3 w-3" />
-            <span>Não enviada</span>
-          </Badge>
-        );
-      }
+    if (timestamp) {
+      const date = new Date(timestamp);
+      const formattedDate = date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      
+      return (
+        <Badge variant="outline" className="flex items-center gap-1 text-green-600">
+          <CheckCircle className="h-3 w-3" />
+          <span>{isEmailSubscription ? 'Recebida' : 'Enviada'} em {formattedDate}</span>
+        </Badge>
+      );
     }
+    
+    return (
+      <Badge variant="outline" className="flex items-center gap-1 text-gray-500">
+        <XCircle className="h-3 w-3" />
+        <span>{isEmailSubscription ? 'Não recebida' : 'Não enviada'}</span>
+      </Badge>
+    );
   };
 
   return (
