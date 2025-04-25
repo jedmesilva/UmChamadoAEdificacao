@@ -460,44 +460,67 @@ const AccountPage = () => {
                         control={form.control}
                         name="phone"
                         render={({ field }) => {
-                          const formatPhoneNumber = (value: string) => {
+                          const [selectedCountry, setSelectedCountry] = React.useState('+55');
+                          
+                          const formatPhoneNumber = (value: string, countryCode: string) => {
                             if (!value) return '';
                             
-                            // Mantém apenas dígitos e o sinal de +
-                            let formatted = value.replace(/[^\d+]/g, '');
+                            // Remove todos os caracteres não numéricos
+                            const numbers = value.replace(/\D/g, '');
                             
-                            // Garante que começa com +
-                            if (!formatted.startsWith('+')) {
-                              formatted = '+' + formatted;
+                            // Formatação específica por país
+                            switch(countryCode) {
+                              case '+55': // Brasil
+                                if (numbers.length <= 2) return numbers;
+                                if (numbers.length <= 7) 
+                                  return `(${numbers.slice(0,2)}) ${numbers.slice(2)}`;
+                                if (numbers.length <= 11)
+                                  return `(${numbers.slice(0,2)}) ${numbers.slice(2,3)} ${numbers.slice(3,7)}-${numbers.slice(7)}`;
+                                return `(${numbers.slice(0,2)}) ${numbers.slice(2,3)} ${numbers.slice(3,7)}-${numbers.slice(7,11)}`;
+                              
+                              case '+1': // EUA/Canadá
+                                if (numbers.length <= 3) return numbers;
+                                if (numbers.length <= 6) 
+                                  return `${numbers.slice(0,3)} ${numbers.slice(3)}`;
+                                return `${numbers.slice(0,3)} ${numbers.slice(3,6)} ${numbers.slice(6,10)}`;
+                              
+                              default: // Formatação genérica para outros países
+                                return numbers.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
                             }
-                            
-                            // Adiciona espaços para melhor legibilidade
-                            if (formatted.length > 3) {
-                              formatted = formatted.slice(0, 3) + ' ' + formatted.slice(3);
-                            }
-                            if (formatted.length > 8) {
-                              formatted = formatted.slice(0, 8) + ' ' + formatted.slice(8);
-                            }
-                            
-                            return formatted;
                           };
+
+                          // Valor para exibição com formatação
+                          const displayValue = field.value ? 
+                            `${selectedCountry} ${formatPhoneNumber(field.value.replace(/^\+\d+/, ''), selectedCountry)}` : '';
 
                           return (
                             <FormItem>
                               <FormLabel>Telefone</FormLabel>
                               <FormControl>
-                                <Input
-                                  placeholder="+55 (11) 98765-4321"
-                                  type="tel"
-                                  value={formatPhoneNumber(field.value || '')}
-                                  onChange={(e) => {
-                                    const formattedValue = formatPhoneNumber(e.target.value);
-                                    field.onChange(formattedValue.replace(/\s/g, ''));
-                                  }}
-                                />
+                                <div className="flex gap-2">
+                                  <CountrySelect 
+                                    value={selectedCountry}
+                                    onChange={(code) => {
+                                      setSelectedCountry(code);
+                                      // Limpa o campo quando muda o país
+                                      field.onChange('');
+                                    }}
+                                  />
+                                  <Input
+                                    placeholder="Digite seu número"
+                                    type="tel"
+                                    value={displayValue.replace(selectedCountry, '').trim()}
+                                    onChange={(e) => {
+                                      const rawValue = e.target.value.replace(/\D/g, '');
+                                      // Salva apenas números, removendo formatação
+                                      field.onChange(rawValue ? selectedCountry + rawValue : '');
+                                    }}
+                                    className="flex-1"
+                                  />
+                                </div>
                               </FormControl>
                               <FormDescription>
-                                Digite o código do país (ex: +55 para Brasil) seguido do número
+                                Selecione o país e digite seu número de telefone
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
