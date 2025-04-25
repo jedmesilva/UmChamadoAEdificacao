@@ -73,13 +73,6 @@ const profileFormSchema = z.object({
       return cleaned.startsWith('+');
     }, {
       message: "O número deve começar com +"
-    })
-    .refine((val) => {
-      if (!val) return true;
-      const digits = val.replace(/\D/g, '');
-      return digits.length >= 10 && digits.length <= 15;
-    }, {
-      message: "O número deve ter entre 10 e 15 dígitos"
     }),
   address: z.string().optional(),
   city: z.string().optional(),
@@ -466,33 +459,25 @@ const AccountPage = () => {
                           const formatPhoneNumber = (value: string, countryCode: string) => {
                             if (!value) return '';
                             
-                            // Remove todos os caracteres não numéricos
                             const numbers = value.replace(/\D/g, '');
                             
-                            // Formatação específica por país
                             switch(countryCode) {
                               case '+55': // Brasil
                                 if (numbers.length <= 2) return numbers;
                                 if (numbers.length <= 7) 
                                   return `(${numbers.slice(0,2)}) ${numbers.slice(2)}`;
-                                if (numbers.length <= 11)
-                                  return `(${numbers.slice(0,2)}) ${numbers.slice(2,3)} ${numbers.slice(3,7)}-${numbers.slice(7)}`;
-                                return `(${numbers.slice(0,2)}) ${numbers.slice(2,3)} ${numbers.slice(3,7)}-${numbers.slice(7,11)}`;
+                                return `(${numbers.slice(0,2)}) ${numbers.slice(2,3)} ${numbers.slice(3,7)}-${numbers.slice(7)}`;
                               
                               case '+1': // EUA/Canadá
                                 if (numbers.length <= 3) return numbers;
                                 if (numbers.length <= 6) 
                                   return `${numbers.slice(0,3)} ${numbers.slice(3)}`;
-                                return `${numbers.slice(0,3)} ${numbers.slice(3,6)} ${numbers.slice(6,10)}`;
+                                return `${numbers.slice(0,3)} ${numbers.slice(3,6)} ${numbers.slice(6)}`;
                               
-                              default: // Formatação genérica para outros países
+                              default:
                                 return numbers.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
                             }
                           };
-
-                          // Valor para exibição com formatação
-                          const displayValue = field.value ? 
-                            `${selectedCountry} ${formatPhoneNumber(field.value.replace(/^\+\d+/, ''), selectedCountry)}` : '';
 
                           return (
                             <FormItem>
@@ -503,17 +488,15 @@ const AccountPage = () => {
                                     value={selectedCountry}
                                     onChange={(code) => {
                                       setSelectedCountry(code);
-                                      // Limpa o campo quando muda o país
                                       field.onChange('');
                                     }}
                                   />
                                   <Input
                                     placeholder="Digite seu número"
                                     type="tel"
-                                    value={displayValue.replace(selectedCountry, '').trim()}
+                                    value={field.value ? formatPhoneNumber(field.value.replace(/^\+\d+/, ''), selectedCountry) : ''}
                                     onChange={(e) => {
                                       const rawValue = e.target.value.replace(/\D/g, '');
-                                      // Salva apenas números, removendo formatação
                                       field.onChange(rawValue ? selectedCountry + rawValue : '');
                                     }}
                                     className="flex-1"
@@ -523,7 +506,6 @@ const AccountPage = () => {
                               <FormDescription>
                                 Selecione o país e digite seu número de telefone
                               </FormDescription>
-                              <FormMessage />
                             </FormItem>
                           );
                         }}
