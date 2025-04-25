@@ -266,6 +266,13 @@ const AccountPage = () => {
           throw updateProfileError;
         }
         console.log('Perfil atualizado com sucesso');
+        
+        // Mostrar toast de sucesso após atualizar o perfil
+        toast({
+          title: "Dados atualizados!",
+          description: "Suas informações foram salvas com sucesso.",
+          variant: "default",
+        });
       } else {
         // 3B. Se não existe, criar novo perfil
         // Primeiro, tenta criar via API com SERVICE_ROLE
@@ -339,12 +346,11 @@ const AccountPage = () => {
           
           console.log('Estado final do perfil:', finalCheckProfile);
           
-          // Para compatibilidade com o código existente
-          const existingProfileWasNull = true; // Consideramos que não existia antes
+          // Agora verificamos se o perfil foi criado com sucesso
           const checkProfile = finalCheckProfile as AccountUserProfile;
 
-          // Se não existia perfil antes e agora existe, redirecionar para homepage
-          if (existingProfileWasNull && checkProfile) {
+          // Se o perfil existe, mostra mensagem de sucesso e redireciona
+          if (checkProfile) {
             toast({
               title: "Perfil criado com sucesso!",
               description: "Seu perfil foi criado e você será redirecionado.",
@@ -352,10 +358,11 @@ const AccountPage = () => {
             });
             setLocation('/');
           } else {
+            // Caso raro: Se chegarmos aqui é porque tentou criar mas não conseguiu
             toast({
-              title: "Dados atualizados!",
-              description: "Suas informações foram salvas com sucesso.",
-              variant: "default",
+              title: "Erro ao criar perfil",
+              description: "Não foi possível criar seu perfil. Por favor, tente novamente.",
+              variant: "destructive",
             });
           }
         } catch (apiError) {
