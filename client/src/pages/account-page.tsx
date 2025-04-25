@@ -456,29 +456,6 @@ const AccountPage = () => {
                         render={({ field }) => {
                           const [selectedCountry, setSelectedCountry] = React.useState('+55');
                           
-                          const formatPhoneNumber = (value: string, countryCode: string) => {
-                            if (!value) return '';
-                            
-                            const numbers = value.replace(/\D/g, '');
-                            
-                            switch(countryCode) {
-                              case '+55': // Brasil
-                                if (numbers.length <= 2) return numbers;
-                                if (numbers.length <= 7) 
-                                  return `(${numbers.slice(0,2)}) ${numbers.slice(2)}`;
-                                return `(${numbers.slice(0,2)}) ${numbers.slice(2,3)} ${numbers.slice(3,7)}-${numbers.slice(7)}`;
-                              
-                              case '+1': // EUA/Canadá
-                                if (numbers.length <= 3) return numbers;
-                                if (numbers.length <= 6) 
-                                  return `${numbers.slice(0,3)} ${numbers.slice(3)}`;
-                                return `${numbers.slice(0,3)} ${numbers.slice(3,6)} ${numbers.slice(6)}`;
-                              
-                              default:
-                                return numbers.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
-                            }
-                          };
-
                           return (
                             <FormItem>
                               <FormLabel>Telefone</FormLabel>
@@ -486,18 +463,15 @@ const AccountPage = () => {
                                 <div className="flex gap-2">
                                   <CountrySelect 
                                     value={selectedCountry}
-                                    onChange={(code) => {
-                                      setSelectedCountry(code);
-                                      field.onChange('');
-                                    }}
+                                    onChange={(code) => setSelectedCountry(code)}
                                   />
                                   <Input
                                     placeholder="Digite seu número"
                                     type="tel"
-                                    value={field.value ? formatPhoneNumber(field.value.replace(/^\+\d+/, ''), selectedCountry) : ''}
+                                    value={field.value?.replace(selectedCountry, '') || ''}
                                     onChange={(e) => {
-                                      const rawValue = e.target.value.replace(/\D/g, '');
-                                      field.onChange(rawValue ? selectedCountry + rawValue : '');
+                                      const value = e.target.value.replace(/[^\d]/g, '');
+                                      field.onChange(value ? selectedCountry + value : '');
                                     }}
                                     className="flex-1"
                                   />
