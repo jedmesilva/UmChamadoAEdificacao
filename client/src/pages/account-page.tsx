@@ -346,14 +346,16 @@ const AccountPage = () => {
           // Se não existia perfil antes e agora existe, redirecionar para homepage
           if (existingProfileWasNull && checkProfile) {
             toast({
-              title: "Perfil criado",
-              description: "Seu perfil foi criado com sucesso.",
+              title: "Perfil criado com sucesso!",
+              description: "Seu perfil foi criado e você será redirecionado.",
+              variant: "default",
             });
             setLocation('/');
           } else {
             toast({
-              title: "Perfil atualizado",
-              description: "Seus dados foram atualizados com sucesso.",
+              title: "Dados atualizados!",
+              description: "Suas informações foram salvas com sucesso.",
+              variant: "default",
             });
           }
         } catch (apiError) {
@@ -364,8 +366,8 @@ const AccountPage = () => {
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
       toast({
-        title: "Erro ao atualizar perfil",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar seus dados. Tente novamente.",
+        title: "Erro ao salvar dados",
+        description: error instanceof Error ? error.message : "Não foi possível salvar suas informações. Por favor, tente novamente.",
         variant: "destructive"
       });
     } finally {
