@@ -523,34 +523,34 @@ const AccountPage = () => {
                     <div className="grid md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
-                        name="address"
+                        name="country"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Endereço</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Rua, número, complemento" {...field} />
-                            </FormControl>
+                            <FormLabel>País</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione seu país" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Brasil">Brasil</SelectItem>
+                                <SelectItem value="Portugal">Portugal</SelectItem>
+                                <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
+                                <SelectItem value="Canadá">Canadá</SelectItem>
+                                <SelectItem value="Reino Unido">Reino Unido</SelectItem>
+                                <SelectItem value="Espanha">Espanha</SelectItem>
+                                <SelectItem value="França">França</SelectItem>
+                                <SelectItem value="Alemanha">Alemanha</SelectItem>
+                                <SelectItem value="Itália">Itália</SelectItem>
+                                <SelectItem value="Japão">Japão</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cidade</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Sua cidade" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
                         name="state"
@@ -564,7 +564,39 @@ const AccountPage = () => {
                           </FormItem>
                         )}
                       />
+                    </div>
 
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cidade</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Sua cidade" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Endereço</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Rua, número, complemento" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
                         name="zipCode"
@@ -578,19 +610,6 @@ const AccountPage = () => {
                           </FormItem>
                         )}
                       />
-
-                      <FormField
-                        control={form.control}
-                        name="country"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>País</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione seu país" />
-                                </SelectTrigger>
-                              </FormControl>
                               <SelectContent>
                                 <SelectItem value="Brasil">Brasil</SelectItem>
                                 <SelectItem value="Portugal">Portugal</SelectItem>
