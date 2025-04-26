@@ -27,6 +27,16 @@ const countries = [
   { name: 'Itália', code: 'IT', dialCode: '+39', format: '+39 000 000 0000' },
   { name: 'Japão', code: 'JP', dialCode: '+81', format: '+81 00 0000 0000' },
   { name: 'Canadá', code: 'CA', dialCode: '+1', format: '+1 000 000 0000' },
+  { name: 'México', code: 'MX', dialCode: '+52', format: '+52 00 0000 0000' },
+  { name: 'Argentina', code: 'AR', dialCode: '+54', format: '+54 00 0000 0000' },
+  { name: 'Chile', code: 'CL', dialCode: '+56', format: '+56 0 0000 0000' },
+  { name: 'Colômbia', code: 'CO', dialCode: '+57', format: '+57 000 000 0000' },
+  { name: 'Peru', code: 'PE', dialCode: '+51', format: '+51 000 000 000' },
+  { name: 'Austrália', code: 'AU', dialCode: '+61', format: '+61 000 000 000' },
+  { name: 'Nova Zelândia', code: 'NZ', dialCode: '+64', format: '+64 00 000 0000' },
+  { name: 'China', code: 'CN', dialCode: '+86', format: '+86 000 0000 0000' },
+  { name: 'Índia', code: 'IN', dialCode: '+91', format: '+91 00000 00000' },
+  { name: 'Rússia', code: 'RU', dialCode: '+7', format: '+7 000 000 0000' }
 ];
 
 export interface CountrySelectProps {
