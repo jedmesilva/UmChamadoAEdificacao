@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   whatsapp: text("whatsapp"),
   status: text("status").default("active"),
+  stripeCustomerId: text("stripe_customer_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -43,13 +44,19 @@ export const letterReadStatus = pgTable("letter_read_status", {
 // Tipos de assinatura
 export const subscriptionTypeEnum = pgEnum("subscription_type", ["email", "physical"]);
 
+// Status da assinatura
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "inactive", "canceled", "paused"]);
+
 // Subscrições ao newsletter e assinaturas físicas
 export const subscriptions = pgTable("subscriptions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   email: text("email").notNull(),
   type: subscriptionTypeEnum("type").default("email"),
-  status: text("status").default("active"),
+  status: subscriptionStatusEnum("status").default("active"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  pauseUntil: timestamp("pause_until"),
+  cancelAt: timestamp("cancel_at"),
   address: text("address"),
   city: text("city"),
   state: text("state"),

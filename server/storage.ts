@@ -14,10 +14,18 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
+  updateStripeCustomerId(userId: number, customerId: string): Promise<User | undefined>;
   getLetters(): Promise<Letter[]>;
   getLetter(id: number): Promise<Letter | undefined>;
   createSubscription(email: string): Promise<Subscription>;
   getSubscriptionByEmail(email: string): Promise<Subscription | undefined>;
+  getSubscriptionById(id: number): Promise<Subscription | undefined>;
+  getSubscriptionsByUserId(userId: number): Promise<Subscription[]>;
+  createSubscriptionWithStripe(data: Partial<Subscription>): Promise<Subscription>;
+  updateSubscription(id: number, data: Partial<Subscription>): Promise<Subscription | undefined>;
+  pauseSubscription(id: number, resumeDate: Date): Promise<Subscription | undefined>;
+  cancelSubscription(id: number): Promise<Subscription | undefined>;
   getLetterReadStatus(userId: number, letterId: number): Promise<LetterReadStatus | undefined>;
   setLetterReadStatus(userId: number, letterId: number, status?: string): Promise<LetterReadStatus>;
   sessionStore: session.Store;
@@ -75,11 +83,29 @@ export class MemStorage implements IStorage {
       id,
       whatsapp: insertUser.whatsapp || null,
       status: "active",
+      stripeCustomerId: null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
+    const user = await this.getUser(id);
+    if (!user) return undefined;
+
+    const updatedUser = {
+      ...user,
+      ...data,
+      updatedAt: new Date()
+    };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async updateStripeCustomerId(userId: number, customerId: string): Promise<User | undefined> {
+    return this.updateUser(userId, { stripeCustomerId: customerId });
   }
 
   async getLetters(): Promise<Letter[]> {
@@ -114,6 +140,80 @@ export class MemStorage implements IStorage {
     return Array.from(this.subscriptions.values()).find(
       (subscription) => subscription.email === email
     );
+  }
+
+  async getSubscriptionById(id: number): Promise<Subscription | undefined> {
+    return this.subscriptions.get(id);
+  }
+
+  async getSubscriptionsByUserId(userId: number): Promise<Subscription[]> {
+    return Array.from(this.subscriptions.values()).filter(
+      (subscription) => subscription.userId === userId
+    );
+  }
+
+  async createSubscriptionWithStripe(data: Partial<Subscription>): Promise<Subscription> {
+    const id = this.currentSubscriptionId++;
+    const subscription: Subscription = {
+      id,
+      email: data.email || "",
+      status: data.status || "active",
+      type: data.type || "email",
+      stripeSubscriptionId: data.stripeSubscriptionId || null,
+      pauseUntil: data.pauseUntil || null,
+      cancelAt: data.cancelAt || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      address: data.address || null,
+      city: data.city || null,
+      state: data.state || null,
+      zipCode: data.zipCode || null,
+      country: data.country || "Brasil",
+      userId: data.userId || null
+    };
+    this.subscriptions.set(id, subscription);
+    return subscription;
+  }
+
+  async updateSubscription(id: number, data: Partial<Subscription>): Promise<Subscription | undefined> {
+    const subscription = await this.getSubscriptionById(id);
+    if (!subscription) return undefined;
+
+    const updatedSubscription = {
+      ...subscription,
+      ...data,
+      updatedAt: new Date()
+    };
+    this.subscriptions.set(id, updatedSubscription);
+    return updatedSubscription;
+  }
+
+  async pauseSubscription(id: number, resumeDate: Date): Promise<Subscription | undefined> {
+    const subscription = await this.getSubscriptionById(id);
+    if (!subscription) return undefined;
+
+    const updatedSubscription = {
+      ...subscription,
+      status: "paused",
+      pauseUntil: resumeDate,
+      updatedAt: new Date()
+    };
+    this.subscriptions.set(id, updatedSubscription);
+    return updatedSubscription;
+  }
+
+  async cancelSubscription(id: number): Promise<Subscription | undefined> {
+    const subscription = await this.getSubscriptionById(id);
+    if (!subscription) return undefined;
+
+    const updatedSubscription = {
+      ...subscription,
+      status: "canceled",
+      cancelAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.subscriptions.set(id, updatedSubscription);
+    return updatedSubscription;
   }
 
   async getLetterReadStatus(userId: number, letterId: number): Promise<LetterReadStatus | undefined> {
