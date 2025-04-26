@@ -158,7 +158,7 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
   const stripeOptions = clientSecret ? {
     clientSecret: clientSecret,
     appearance: {
-      theme: 'stripe',
+      theme: 'stripe' as const,
       variables: {
         colorPrimary: '#6366f1',
         fontFamily: 'system-ui, -apple-system, sans-serif',
