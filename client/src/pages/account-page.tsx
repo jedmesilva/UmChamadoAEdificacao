@@ -44,7 +44,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
+import { countries } from "@/components/ui/country-select";
 import { 
   ArrowLeft, 
   Mail, 
@@ -534,14 +535,11 @@ const AccountPage = () => {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="Brasil">Brasil</SelectItem>
-                                <SelectItem value="Portugal">Portugal</SelectItem>
-                                <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
-                                <SelectItem value="Canadá">Canadá</SelectItem>
-                                <SelectItem value="Reino Unido">Reino Unido</SelectItem>
-                                <SelectItem value="Espanha">Espanha</SelectItem>
-                                <SelectItem value="França">França</SelectItem>
-                                <SelectItem value="Alemanha">Alemanha</SelectItem>
+                                {countries.map((country) => (
+                                  <SelectItem key={country.code} value={country.name}>
+                                    {country.name}
+                                  </SelectItem>
+                                ))}Alemanha</SelectItem>
                                 <SelectItem value="Itália">Itália</SelectItem>
                                 <SelectItem value="Japão">Japão</SelectItem>
                               </SelectContent>

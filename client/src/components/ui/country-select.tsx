@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-const countries = [
+export const countries = [
   // América do Sul
   { name: 'Brasil', code: 'BR', dialCode: '+55', format: '+55 (00) 0 0000-0000' },
   { name: 'Argentina', code: 'AR', dialCode: '+54', format: '+54 00 0000 0000' },
