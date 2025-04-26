@@ -610,23 +610,6 @@ const AccountPage = () => {
                           </FormItem>
                         )}
                       />
-                              <SelectContent>
-                                <SelectItem value="Brasil">Brasil</SelectItem>
-                                <SelectItem value="Portugal">Portugal</SelectItem>
-                                <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
-                                <SelectItem value="Canadá">Canadá</SelectItem>
-                                <SelectItem value="Reino Unido">Reino Unido</SelectItem>
-                                <SelectItem value="Espanha">Espanha</SelectItem>
-                                <SelectItem value="França">França</SelectItem>
-                                <SelectItem value="Alemanha">Alemanha</SelectItem>
-                                <SelectItem value="Itália">Itália</SelectItem>
-                                <SelectItem value="Japão">Japão</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                     </div>
 
                     <Button 
