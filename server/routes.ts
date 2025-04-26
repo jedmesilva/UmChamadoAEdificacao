@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertLetterSchema, insertSubscriptionSchema, insertUserSchema } from "@shared/schema";
+import { stripeService } from "./services/stripe-service";
+import Stripe from "stripe";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
@@ -231,6 +233,229 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching stats:", error);
       res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  // === Endpoints do Stripe ===
+  
+  // Criar customer e assinatura no Stripe
+  app.post(apiRouter("/stripe/create-subscription"), async (req, res) => {
+    try {
+      const { userId, type } = req.body;
+      
+      if (!userId || !type) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "ID do usuário e tipo de assinatura são obrigatórios" 
+        });
+      }
+      
+      // Validar tipo de assinatura
+      if (type !== "email" && type !== "physical") {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Tipo de assinatura inválido. Use 'email' ou 'physical'." 
+        });
+      }
+      
+      // Buscar o usuário
+      const user = await storage.getUser(parseInt(userId));
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Usuário não encontrado" 
+        });
+      }
+      
+      // Criar ou obter cliente no Stripe
+      let stripeCustomerId = user.stripeCustomerId;
+      
+      if (!stripeCustomerId) {
+        // Criar cliente no Stripe
+        stripeCustomerId = await stripeService.createCustomer(user);
+        // Atualizar o usuário com o ID do cliente no Stripe
+        await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+      }
+      
+      // Criar assinatura no Stripe
+      const { subscriptionId, clientSecret } = await stripeService.createSubscription(
+        stripeCustomerId,
+        type as 'email' | 'physical'
+      );
+      
+      // Criar a assinatura no banco de dados
+      const subscription = await storage.createSubscriptionWithStripe({
+        userId: user.id,
+        email: user.email,
+        type,
+        status: "active",
+        stripeSubscriptionId: subscriptionId,
+      });
+      
+      res.json({
+        success: true,
+        clientSecret,
+        subscriptionId,
+        subscription
+      });
+    } catch (error: any) {
+      console.error("Erro ao criar assinatura:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Falha ao processar assinatura", 
+        message: error.message 
+      });
+    }
+  });
+  
+  // Pausar assinatura
+  app.post(apiRouter("/stripe/pause-subscription"), async (req, res) => {
+    try {
+      const { subscriptionId, resumeDate } = req.body;
+      
+      if (!subscriptionId || !resumeDate) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "ID da assinatura e data para retorno são obrigatórios" 
+        });
+      }
+      
+      // Buscar a assinatura no banco de dados
+      const subscription = await storage.getSubscriptionById(parseInt(subscriptionId));
+      if (!subscription) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Assinatura não encontrada" 
+        });
+      }
+      
+      if (!subscription.stripeSubscriptionId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Esta assinatura não possui um ID do Stripe associado" 
+        });
+      }
+      
+      // Pausar a assinatura no Stripe
+      const pauseDate = new Date(resumeDate);
+      await stripeService.pauseSubscription(subscription.stripeSubscriptionId, pauseDate);
+      
+      // Atualizar a assinatura no banco de dados
+      const updatedSubscription = await storage.pauseSubscription(subscription.id, pauseDate);
+      
+      res.json({
+        success: true,
+        message: "Assinatura pausada com sucesso",
+        subscription: updatedSubscription
+      });
+    } catch (error: any) {
+      console.error("Erro ao pausar assinatura:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Falha ao pausar assinatura", 
+        message: error.message 
+      });
+    }
+  });
+  
+  // Cancelar assinatura
+  app.post(apiRouter("/stripe/cancel-subscription"), async (req, res) => {
+    try {
+      const { subscriptionId } = req.body;
+      
+      if (!subscriptionId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "ID da assinatura é obrigatório" 
+        });
+      }
+      
+      // Buscar a assinatura no banco de dados
+      const subscription = await storage.getSubscriptionById(parseInt(subscriptionId));
+      if (!subscription) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Assinatura não encontrada" 
+        });
+      }
+      
+      if (!subscription.stripeSubscriptionId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Esta assinatura não possui um ID do Stripe associado" 
+        });
+      }
+      
+      // Cancelar a assinatura no Stripe
+      await stripeService.cancelSubscription(subscription.stripeSubscriptionId);
+      
+      // Atualizar a assinatura no banco de dados
+      const updatedSubscription = await storage.cancelSubscription(subscription.id);
+      
+      res.json({
+        success: true,
+        message: "Assinatura cancelada com sucesso",
+        subscription: updatedSubscription
+      });
+    } catch (error: any) {
+      console.error("Erro ao cancelar assinatura:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Falha ao cancelar assinatura", 
+        message: error.message 
+      });
+    }
+  });
+  
+  // Criar payment intent para pagamento único
+  app.post(apiRouter("/stripe/create-payment-intent"), async (req, res) => {
+    try {
+      const { userId, amount, currency = 'brl' } = req.body;
+      
+      if (!userId || !amount) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "ID do usuário e valor são obrigatórios" 
+        });
+      }
+      
+      // Buscar o usuário
+      const user = await storage.getUser(parseInt(userId));
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Usuário não encontrado" 
+        });
+      }
+      
+      // Criar ou obter cliente no Stripe
+      let stripeCustomerId = user.stripeCustomerId;
+      
+      if (!stripeCustomerId) {
+        // Criar cliente no Stripe
+        stripeCustomerId = await stripeService.createCustomer(user);
+        // Atualizar o usuário com o ID do cliente no Stripe
+        await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+      }
+      
+      // Criar payment intent
+      const { clientSecret } = await stripeService.createPaymentIntent(
+        stripeCustomerId,
+        amount,
+        currency
+      );
+      
+      res.json({
+        success: true,
+        clientSecret
+      });
+    } catch (error: any) {
+      console.error("Erro ao criar payment intent:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Falha ao processar pagamento", 
+        message: error.message 
+      });
     }
   });
 
