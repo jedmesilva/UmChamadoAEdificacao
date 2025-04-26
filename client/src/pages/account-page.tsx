@@ -539,9 +539,7 @@ const AccountPage = () => {
                                   <SelectItem key={country.code} value={country.name}>
                                     {country.name}
                                   </SelectItem>
-                                ))}Alemanha</SelectItem>
-                                <SelectItem value="Itália">Itália</SelectItem>
-                                <SelectItem value="Japão">Japão</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                             <FormMessage />
