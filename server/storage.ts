@@ -123,6 +123,9 @@ export class MemStorage implements IStorage {
       email,
       status: "active",
       type: "email", // Definindo o tipo padrão como email
+      stripeSubscriptionId: null,
+      pauseUntil: null,
+      cancelAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       address: null,
@@ -194,10 +197,10 @@ export class MemStorage implements IStorage {
 
     const updatedSubscription = {
       ...subscription,
-      status: "paused",
+      status: "paused" as "paused",
       pauseUntil: resumeDate,
       updatedAt: new Date()
-    };
+    } as Subscription;
     this.subscriptions.set(id, updatedSubscription);
     return updatedSubscription;
   }
@@ -208,10 +211,10 @@ export class MemStorage implements IStorage {
 
     const updatedSubscription = {
       ...subscription,
-      status: "canceled",
+      status: "canceled" as "canceled",
       cancelAt: new Date(),
       updatedAt: new Date()
-    };
+    } as Subscription;
     this.subscriptions.set(id, updatedSubscription);
     return updatedSubscription;
   }
@@ -456,6 +459,85 @@ export class DatabaseStorage implements IStorage {
   async getSubscriptionByEmail(email: string): Promise<Subscription | undefined> {
     const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.email, email));
     return subscription;
+  }
+
+  async getSubscriptionById(id: number): Promise<Subscription | undefined> {
+    const [subscription] = await db.select().from(subscriptions).where(eq(subscriptions.id, id));
+    return subscription;
+  }
+
+  async getSubscriptionsByUserId(userId: number): Promise<Subscription[]> {
+    return await db.select().from(subscriptions).where(eq(subscriptions.userId, userId));
+  }
+
+  async createSubscriptionWithStripe(data: Partial<Subscription>): Promise<Subscription> {
+    const [subscription] = await db.insert(subscriptions).values({
+      email: data.email || "",
+      status: data.status || "active",
+      type: data.type || "email",
+      stripeSubscriptionId: data.stripeSubscriptionId || null,
+      pauseUntil: data.pauseUntil || null,
+      cancelAt: data.cancelAt || null,
+      userId: data.userId || null,
+      address: data.address || null,
+      city: data.city || null,
+      state: data.state || null,
+      zipCode: data.zipCode || null,
+      country: data.country || "Brasil",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return subscription;
+  }
+
+  async updateSubscription(id: number, data: Partial<Subscription>): Promise<Subscription | undefined> {
+    const [subscription] = await db.update(subscriptions)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  async pauseSubscription(id: number, resumeDate: Date): Promise<Subscription | undefined> {
+    const [subscription] = await db.update(subscriptions)
+      .set({
+        status: "paused",
+        pauseUntil: resumeDate,
+        updatedAt: new Date()
+      })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  async cancelSubscription(id: number): Promise<Subscription | undefined> {
+    const [subscription] = await db.update(subscriptions)
+      .set({
+        status: "canceled",
+        cancelAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return subscription;
+  }
+
+  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
+    const [user] = await db.update(users)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateStripeCustomerId(userId: number, customerId: string): Promise<User | undefined> {
+    return this.updateUser(userId, { stripeCustomerId: customerId });
   }
 
   async getLetterReadStatus(userId: number, letterId: number): Promise<LetterReadStatus | undefined> {
