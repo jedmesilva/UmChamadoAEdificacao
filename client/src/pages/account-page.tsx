@@ -143,20 +143,20 @@ const AccountPage = () => {
     zip_code?: string;
     country?: string;
   };
-  
+
   const [profileData, setProfileData] = useState<AccountUserProfile | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) return;
-      
+
       try {
         const { data: profile, error } = await supabase
           .from('account_user')
           .select('*')
           .eq('user_id', user.id)
           .maybeSingle();
-          
+
         // Se for erro PGRST116 (not found), não é um erro real, é apenas que não encontrou registro
         if (error && error.code !== 'PGRST116') {
           console.error('Error loading profile:', error);
@@ -178,7 +178,7 @@ const AccountPage = () => {
         });
       }
     };
-    
+
     loadProfile();
   }, [user]);
 
@@ -225,7 +225,7 @@ const AccountPage = () => {
         console.error('Erro ao atualizar metadados do usuário:', updateError);
         throw updateError;
       }
-      
+
       console.log('Metadados do usuário atualizados com sucesso');
 
       // 2. Verificar se já existe um registro em account_user para este usuário
@@ -235,28 +235,37 @@ const AccountPage = () => {
         .select('*')
         .eq('user_id', user?.id)
         .maybeSingle();
-      
+
       // PGRST116 significa que não encontrou registro, o que não é um erro real
       if (existingProfileError && existingProfileError.code !== 'PGRST116') {
         console.error('Erro ao verificar perfil existente:', existingProfileError);
       }
-      
+
       // Garantir tipo correto para o perfil
       const typedExistingProfile = existingProfile as AccountUserProfile;
-      
+
       console.log('Perfil existente?', typedExistingProfile ? 'Sim' : 'Não');
-      
+
       if (typedExistingProfile) {
         console.log('Atualizando perfil existente para userId:', user?.id);
         // 3A. Se já existe, atualizar
+        // Formatar endereço completo com todos os componentes
+        const formattedAddress = [
+          data.address, // endereço (rua, número, e bairro)
+          data.city, // cidade
+          `${data.state}`, // estado
+          data.country // país
+        ].filter(Boolean).join(', ');
+
         const updateData = {
           name: data.name,
           email: data.email,
           whatsapp: data.phone, // Usando whatsapp tudo minúsculo
-          status: 'is_complit'
+          status: 'is_complit',
+          address: formattedAddress
         };
         console.log('Dados para atualização:', updateData);
-        
+
         const { error: updateProfileError } = await supabase
           .from('account_user')
           .update(updateData)
@@ -267,7 +276,7 @@ const AccountPage = () => {
           throw updateProfileError;
         }
         console.log('Perfil atualizado com sucesso');
-        
+
         // Mostrar toast de sucesso após atualizar o perfil
         toast({
           title: "Dados atualizados!",
@@ -307,14 +316,14 @@ const AccountPage = () => {
               whatsapp: data.phone, // Usando whatsapp tudo minúsculo
               status: 'is_complit'
             };
-            
+
             console.log('Dados para inserção direta:', userProfileData);
-            
+
             // Primeiro fazemos a inserção simples
             const { error: insertError } = await supabase
               .from('account_user')
               .insert(userProfileData);
-              
+
             if (!insertError) {
               console.log('Inserção direta bem-sucedida, buscando dados inseridos...');
             }
@@ -327,7 +336,7 @@ const AccountPage = () => {
               console.error('Hint:', insertError.hint);
               throw new Error(`Não foi possível criar seu perfil: ${insertError.message}`);
             }
-            
+
             console.log('Perfil tentativa de inserção direta concluída');
           }
 
@@ -338,15 +347,15 @@ const AccountPage = () => {
             .select('*')
             .eq('user_id', user?.id)
             .maybeSingle();
-          
+
           // PGRST116 significa que não encontrou registro, o que não é um erro real
           if (finalCheckProfileError && finalCheckProfileError.code !== 'PGRST116') {
             console.error('Erro ao verificar criação final do perfil:', finalCheckProfileError);
             throw new Error('Erro ao verificar criação do perfil. Por favor, tente novamente.');
           }
-          
+
           console.log('Estado final do perfil:', finalCheckProfile);
-          
+
           // Agora verificamos se o perfil foi criado com sucesso
           const checkProfile = finalCheckProfile as AccountUserProfile;
 
@@ -465,11 +474,11 @@ const AccountPage = () => {
                         name="phone"
                         render={({ field }) => {
                           const [selectedCountry, setSelectedCountry] = React.useState('+55');
-                          
+
                           const formatPhoneNumber = (value: string, countryCode: string) => {
                             if (!value) return '';
                             const numbers = value.replace(/\D/g, '');
-                            
+
                             switch(countryCode) {
                               case '+55': // Brasil
                                 if (numbers.length <= 2) return numbers;
