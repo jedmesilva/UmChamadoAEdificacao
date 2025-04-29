@@ -344,7 +344,7 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
               ) : (
                 <Elements stripe={stripePromise}>
                   <CheckoutForm 
-                    userId={user?.id || ''}
+                    userId={user?.id}
                     planType={isEmailSubscription ? "email" : "physical"}
                     isProcessing={isProcessing} 
                     setIsProcessing={setIsProcessing}

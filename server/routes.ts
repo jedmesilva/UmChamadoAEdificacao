@@ -297,10 +297,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId, type } = req.body;
       
-      if (!userId || !type) {
+      if (!userId || userId === 'undefined' || userId === '') {
         return res.status(400).json({ 
           success: false, 
-          error: "ID do usuário e tipo de assinatura são obrigatórios" 
+          error: "ID do usuário é obrigatório para criar uma assinatura" 
+        });
+      }
+      if (!type) {
+        return res.status(400).json({
+          success: false,
+          error: "Tipo de assinatura é obrigatório"
         });
       }
       
