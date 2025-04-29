@@ -1,0 +1,46 @@
+import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import NotFound from "@/pages/not-found";
+import HomePage from "@/pages/home-page";
+import AuthPage from "@/pages/auth-page";
+import LandingPage from "@/pages/landing-page";
+import LetterPage from "@/pages/letter-page";
+import DeployInfo from "@/pages/deploy-info";
+import AccountPage from "@/pages/account-page";
+import SubscriptionDetailsPage from "@/pages/subscription-details-page";
+import { ProtectedRoute } from "./lib/protected-route";
+import { SupabaseAuthProvider } from "./hooks/use-supabase-auth";
+import PwaInstallBanner from "./components/PwaInstallBanner";
+import CheckoutPage from "@/pages/checkout-page"; // Import the CheckoutPage component
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={LandingPage} />
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/deploy-info" component={DeployInfo} />
+      <ProtectedRoute path="/dashboard" component={HomePage} />
+      <ProtectedRoute path="/letter/:id" component={LetterPage} />
+      <ProtectedRoute path="/account" component={AccountPage} />
+      <Route path="/subscriptions/:type" component={SubscriptionDetailsPage} />
+      <Route path="/checkout/:type" component={CheckoutPage} /> {/* Added route for checkout page */}
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SupabaseAuthProvider>
+        <Router />
+        <PwaInstallBanner />
+        <Toaster />
+      </SupabaseAuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
