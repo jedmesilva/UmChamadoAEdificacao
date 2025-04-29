@@ -293,6 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Criar customer e assinatura no Stripe
   app.post(apiRouter("/stripe/create-subscription"), async (req, res) => {
+    console.log("Recebida requisição para criar assinatura:", req.body);
     try {
       const { userId, type } = req.body;
       

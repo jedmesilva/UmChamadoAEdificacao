@@ -36,34 +36,53 @@ export const stripeService = {
     customerId: string, 
     tipoAssinatura: 'email' | 'physical'
   ): Promise<{ subscriptionId: string; clientSecret: string | null }> {
-    const priceId = tipoAssinatura === 'email' ? PRECOS.EMAIL : PRECOS.PHYSICAL;
-    
-    const subscription = await stripe.subscriptions.create({
-      customer: customerId,
-      items: [{ price: priceId }],
-      payment_behavior: 'default_incomplete',
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      expand: ['latest_invoice.payment_intent'],
-    });
-
-    // Acessando o payment_intent do invoice
-    let clientSecret = null;
-    
-    // Tratando o objeto de invoice e payment_intent de forma segura
-    const invoice = subscription.latest_invoice;
-    if (invoice && typeof invoice === 'object') {
-      // @ts-ignore - o tipo da API do Stripe pode variar
-      const paymentIntent = invoice.payment_intent;
-      if (paymentIntent && typeof paymentIntent === 'object') {
-        // @ts-ignore - acessando client_secret
-        clientSecret = paymentIntent.client_secret;
+    try {
+      console.log(`Criando assinatura para cliente ${customerId}, tipo: ${tipoAssinatura}`);
+      const priceId = tipoAssinatura === 'email' ? PRECOS.EMAIL : PRECOS.PHYSICAL;
+      
+      // Primeiro criamos a assinatura sem expandir o payment_intent
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{ price: priceId }],
+        payment_behavior: 'default_incomplete',
+        payment_settings: { save_default_payment_method: 'on_subscription' },
+        // Não usamos expand aqui para evitar erros
+      });
+      
+      console.log(`Assinatura criada com ID: ${subscription.id}`);
+      
+      // Acessando o ID do invoice para buscar o payment intent separadamente
+      let clientSecret = null;
+      const invoiceId = subscription.latest_invoice;
+      
+      if (invoiceId && typeof invoiceId === 'string') {
+        console.log(`Buscando invoice: ${invoiceId}`);
+        const invoice = await stripe.invoices.retrieve(invoiceId, {
+          expand: ['payment_intent'],
+        });
+        
+        console.log(`Invoice recuperado: ${invoice.id}, status: ${invoice.status}`);
+        
+        // Precisamos usar any aqui porque o tipo do invoice pode variar
+        const paymentIntent = (invoice as any).payment_intent;
+        if (paymentIntent && typeof paymentIntent === 'object' && paymentIntent.client_secret) {
+          clientSecret = paymentIntent.client_secret;
+          console.log(`Client secret obtido do payment intent`);
+        } else {
+          console.log(`Não foi possível obter payment_intent do invoice`, paymentIntent);
+        }
+      } else {
+        console.log(`Invoice não encontrado ou não é string: ${invoiceId}`);
       }
+      
+      return {
+        subscriptionId: subscription.id,
+        clientSecret,
+      };
+    } catch (error) {
+      console.error('Erro ao criar assinatura no Stripe:', error);
+      throw error;
     }
-
-    return {
-      subscriptionId: subscription.id,
-      clientSecret: clientSecret,
-    };
   },
 
   /**
