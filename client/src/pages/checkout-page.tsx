@@ -21,13 +21,13 @@ interface CheckoutPageProps {
 }
 
 // Verificar se temos STRIPE_PUBLIC_KEY definido
-if (!import.meta.env.STRIPE_PUBLIC_KEY) {
-  console.warn('STRIPE_PUBLIC_KEY não está configurado. O checkout não funcionará corretamente.');
+if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+  console.warn('VITE_STRIPE_PUBLIC_KEY não está configurado. O checkout não funcionará corretamente.');
 }
 
 // Carregar o Stripe fora do componente
-const stripePromise = import.meta.env.STRIPE_PUBLIC_KEY 
-  ? loadStripe(import.meta.env.STRIPE_PUBLIC_KEY as string)
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as string)
   : null;
 
 // Componente para o formulário de pagamento
@@ -171,9 +171,11 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
     setIsLoading(true);
     try {
       // Verificar se a API key do Stripe está configurada
-      if (!import.meta.env.STRIPE_PUBLIC_KEY) {
+      if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+        console.error("Erro: Chave pública do Stripe não encontrada. Verifique as variáveis de ambiente.");
         throw new Error("Chave do Stripe não configurada. Contate o administrador.");
       }
+      console.log("Chave pública do Stripe disponível:", !!import.meta.env.VITE_STRIPE_PUBLIC_KEY);
       
       console.log("Iniciando checkout para usuário:", user.id, "tipo:", isEmailSubscription ? "email" : "physical");
       
