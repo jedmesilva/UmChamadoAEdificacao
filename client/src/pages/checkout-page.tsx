@@ -159,15 +159,39 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
   };
 
   const initializeCheckout = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para assinar um plano.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsLoading(true);
     try {
+      // Verificar se a API key do Stripe está configurada
+      if (!import.meta.env.STRIPE_PUBLIC_KEY) {
+        throw new Error("Chave do Stripe não configurada. Contate o administrador.");
+      }
+      
+      console.log("Iniciando checkout para usuário:", user.id, "tipo:", isEmailSubscription ? "email" : "physical");
+      
       // Criar assinatura no Stripe
       const response = await apiRequest("POST", "/api/stripe/create-subscription", {
         userId: user.id,
         type: isEmailSubscription ? "email" : "physical"
       });
+      
+      if (!response.ok) {
+        // Se a resposta não for ok, tenta obter detalhes do erro
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || 
+          errorData.message || 
+          `Erro no servidor: ${response.status} ${response.statusText}`
+        );
+      }
       
       const data = await response.json();
       
@@ -175,8 +199,14 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
         throw new Error(data.error || "Falha ao iniciar o checkout");
       }
       
+      if (!data.clientSecret) {
+        throw new Error("Cliente secret não retornado pelo servidor");
+      }
+      
+      console.log("Checkout iniciado com sucesso, client secret recebido");
       setClientSecret(data.clientSecret);
     } catch (error: any) {
+      console.error("Erro detalhado:", error);
       toast({
         title: "Erro ao iniciar checkout",
         description: error.message || "Ocorreu um erro ao iniciar o checkout. Tente novamente.",
