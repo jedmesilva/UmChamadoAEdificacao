@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get(apiRouter("/subscriptions/:email"), async (req, res) => {
+  app.get(apiRouter("/subscriptions/email/:email"), async (req, res) => {
     try {
       const email = req.params.email;
       
@@ -177,6 +177,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching subscription:", error);
       res.status(500).json({ error: "Failed to fetch subscription" });
+    }
+  });
+  
+  // Buscar assinaturas de um usuário com filtragem por tipo
+  app.get(apiRouter("/subscriptions/user/:userId"), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const type = req.query.type as string;
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "ID de usuário inválido" });
+      }
+      
+      // Buscar todas as assinaturas do usuário
+      const subscriptions = await storage.getSubscriptionsByUserId(userId);
+      
+      if (!subscriptions || subscriptions.length === 0) {
+        return res.status(404).json({ 
+          success: false,
+          error: "Nenhuma assinatura encontrada para este usuário" 
+        });
+      }
+      
+      // Se um tipo específico foi solicitado, filtrar
+      if (type) {
+        const filteredSubscription = subscriptions.find(
+          sub => sub.type === type && sub.status === "active"
+        );
+        
+        if (!filteredSubscription) {
+          return res.status(404).json({ 
+            success: false,
+            error: `Assinatura do tipo ${type} não encontrada ou não está ativa` 
+          });
+        }
+        
+        return res.json({ 
+          success: true,
+          subscription: filteredSubscription 
+        });
+      }
+      
+      // Caso contrário, retornar todas as assinaturas
+      res.json({ 
+        success: true,
+        subscriptions: subscriptions 
+      });
+    } catch (error) {
+      console.error("Error fetching user subscriptions:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Falha ao buscar assinaturas" 
+      });
     }
   });
   
@@ -308,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Pausar assinatura
+  // Pausar assinatura com data específica
   app.post(apiRouter("/stripe/pause-subscription"), async (req, res) => {
     try {
       const { subscriptionId, resumeDate } = req.body;
@@ -347,6 +400,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         message: "Assinatura pausada com sucesso",
         subscription: updatedSubscription
+      });
+    } catch (error: any) {
+      console.error("Erro ao pausar assinatura:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Falha ao pausar assinatura", 
+        message: error.message 
+      });
+    }
+  });
+  
+  // Pausar assinatura por um período específico
+  app.post(apiRouter("/stripe/pause-subscription-period"), async (req, res) => {
+    try {
+      const { subscriptionId, periodoDias } = req.body;
+      
+      if (!subscriptionId || !periodoDias) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "ID da assinatura e período em dias são obrigatórios" 
+        });
+      }
+      
+      // Validar o período em dias
+      if (![30, 60, 90, 180].includes(periodoDias)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Período de pausa inválido. Use 30, 60, 90 ou 180 dias." 
+        });
+      }
+      
+      // Buscar a assinatura no banco de dados
+      const subscription = await storage.getSubscriptionById(parseInt(subscriptionId));
+      if (!subscription) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Assinatura não encontrada" 
+        });
+      }
+      
+      if (!subscription.stripeSubscriptionId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Esta assinatura não possui um ID do Stripe associado" 
+        });
+      }
+      
+      // Calcular data de retorno baseada no período
+      const dataAtual = new Date();
+      const dataRetorno = new Date(dataAtual);
+      dataRetorno.setDate(dataRetorno.getDate() + periodoDias);
+      
+      // Pausar a assinatura no Stripe por período
+      await stripeService.pausarPorPeriodo(
+        subscription.stripeSubscriptionId, 
+        periodoDias as 30 | 60 | 90 | 180
+      );
+      
+      // Atualizar a assinatura no banco de dados
+      const updatedSubscription = await storage.pauseSubscription(subscription.id, dataRetorno);
+      
+      res.json({
+        success: true,
+        message: `Assinatura pausada por ${periodoDias} dias com sucesso`,
+        subscription: updatedSubscription,
+        retornaNoDia: dataRetorno.toISOString().split('T')[0]
       });
     } catch (error: any) {
       console.error("Erro ao pausar assinatura:", error);

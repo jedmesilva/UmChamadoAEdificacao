@@ -8,10 +8,10 @@ if (!process.env.STRIPE_SECRET_KEY) {
 // Inicialização do cliente Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Preços das assinaturas (você pode criar esses produtos/preços no painel do Stripe)
+// Preços reais das assinaturas no Stripe
 const PRECOS = {
-  EMAIL: 'price_email', // ID do preço para o plano de email (substitua por um ID real)
-  PHYSICAL: 'price_physical', // ID do preço para o plano físico (substitua por um ID real)
+  EMAIL: 'price_1RIxZy2fmZFrPmI8ninIzKB9', // ID do preço para o plano de email
+  PHYSICAL: 'price_1RIxfk2fmZFrPmI8LTf4uC3s', // ID do preço para o plano físico (pergaminho)
 };
 
 export const stripeService = {
@@ -67,7 +67,7 @@ export const stripeService = {
   },
 
   /**
-   * Pausar uma assinatura no Stripe
+   * Pausar uma assinatura no Stripe por um período específico
    */
   async pauseSubscription(
     subscriptionId: string, 
@@ -82,6 +82,24 @@ export const stripeService = {
         resumes_at: resumeTime,
       },
     });
+  },
+  
+  /**
+   * Pausar uma assinatura no Stripe por um período específico em dias
+   * @param subscriptionId ID da assinatura no Stripe
+   * @param periodoDias Quantidade de dias para pausar (30, 60, 90 ou 180)
+   */
+  async pausarPorPeriodo(
+    subscriptionId: string,
+    periodoDias: 30 | 60 | 90 | 180
+  ): Promise<Stripe.Subscription> {
+    // Calcula a data de retorno baseada no período solicitado
+    const dataAtual = new Date();
+    const dataRetorno = new Date(dataAtual);
+    dataRetorno.setDate(dataRetorno.getDate() + periodoDias);
+    
+    // Chama o método de pausar com a data calculada
+    return this.pauseSubscription(subscriptionId, dataRetorno);
   },
 
   /**

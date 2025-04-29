@@ -12,6 +12,7 @@ import { ArrowLeft, Mail, Scroll, CreditCard, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import CancelSubscriptionDialog from "@/components/subscription/cancel-subscription-dialog";
 
 interface CheckoutPageProps {
   params: {
@@ -20,7 +21,7 @@ interface CheckoutPageProps {
 }
 
 // Carregar o Stripe fora do componente
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as string);
+const stripePromise = loadStripe(import.meta.env.STRIPE_PUBLIC_KEY as string);
 
 // Componente para o formulário de pagamento
 const CheckoutForm = ({ 
@@ -97,8 +98,11 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [userSubscription, setUserSubscription] = useState<any>(null);
+  const [isManageMode, setIsManageMode] = useState(false);
   const { user } = useSupabaseAuth();
   const [_, setLocation] = useLocation();
+  const [match, params2] = useRoute("/checkout/:type");
   const { toast } = useToast();
   
   const isEmailSubscription = params.type === "email";
@@ -118,9 +122,35 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
 
   useEffect(() => {
     if (user?.id) {
-      initializeCheckout();
+      checkExistingSubscription();
     }
   }, [user?.id]);
+
+  // Verificar se o usuário já possui uma assinatura
+  const checkExistingSubscription = async () => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
+    try {
+      // Buscar assinaturas do usuário
+      const response = await apiRequest("GET", `/api/subscriptions/user/${user.id}?type=${isEmailSubscription ? "email" : "physical"}`);
+      const data = await response.json();
+      
+      if (data && data.subscription && data.subscription.status === "active") {
+        // Se já possuir uma assinatura ativa deste tipo
+        setUserSubscription(data.subscription);
+        setIsManageMode(true);
+      } else {
+        // Caso contrário, iniciar checkout para nova assinatura
+        initializeCheckout();
+      }
+    } catch (error) {
+      // Se ocorrer erro na busca (provavelmente não tem assinatura), iniciar checkout
+      initializeCheckout();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const initializeCheckout = async () => {
     if (!user?.id) return;
@@ -152,6 +182,11 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
   };
 
   const handleSubscribeSuccess = () => {
+    setLocation("/account?tab=subscriptions");
+  };
+
+  const handleManageSuccess = () => {
+    // Recarregar a página após gerenciar assinatura
     setLocation("/account?tab=subscriptions");
   };
 
@@ -190,7 +225,9 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
               <CardTitle>{title}</CardTitle>
             </div>
             <CardDescription>
-              Complete sua assinatura para começar a receber as cartas
+              {isManageMode 
+                ? "Gerencie sua assinatura atual" 
+                : "Complete sua assinatura para começar a receber as cartas"}
             </CardDescription>
           </CardHeader>
           
@@ -212,6 +249,25 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
               {isLoading ? (
                 <div className="flex justify-center p-4">
                   <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : isManageMode && userSubscription ? (
+                <div className="space-y-4">
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200 text-green-800 mb-4">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                      <div>
+                        <p className="font-medium">Assinatura Ativa</p>
+                        <p className="text-sm">Você já possui uma assinatura ativa deste serviço.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <CancelSubscriptionDialog
+                    subscriptionId={userSubscription.id}
+                    stripeSubscriptionId={userSubscription.stripeSubscriptionId}
+                    type={isEmailSubscription ? "email" : "physical"}
+                    onSuccess={handleManageSuccess}
+                  />
                 </div>
               ) : clientSecret ? (
                 <Elements stripe={stripePromise} options={stripeOptions}>
