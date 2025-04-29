@@ -19,6 +19,7 @@ export const stripeService = {
       name: user.name,
       metadata: {
         userId: user.id.toString(),
+        userEmail: user.email // Adicionar email nos metadados também para referência
       },
     });
     return customer.id;
