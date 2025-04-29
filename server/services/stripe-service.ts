@@ -62,6 +62,7 @@ export const stripeService = {
       const priceId = tipoAssinatura === 'email' ? PRECOS.EMAIL : PRECOS.PHYSICAL;
 
       // Criar a assinatura com coleta de pagamento
+      // 1. Criar a subscription
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
@@ -69,15 +70,23 @@ export const stripeService = {
         payment_settings: {
           payment_method_types: ['card'],
           save_default_payment_method: 'on_subscription'
-        },
-        expand: ['latest_invoice.payment_intent']
+        }
       });
 
-      const paymentIntent = (subscription.latest_invoice as Stripe.Invoice).payment_intent as Stripe.PaymentIntent;
+      // 2. Buscar a invoice
+      const invoice = await stripe.invoices.retrieve(
+        subscription.latest_invoice as string,
+        {
+          expand: ['payment_intent']
+        }
+      );
+
+      // 3. Obter o client_secret do payment_intent
+      const clientSecret = (invoice.payment_intent as Stripe.PaymentIntent).client_secret;
 
       return {
         subscriptionId: subscription.id,
-        clientSecret: paymentIntent.client_secret,
+        clientSecret: clientSecret,
       };
     } catch (error) {
       console.error('Erro ao criar assinatura no Stripe:', error);
