@@ -53,12 +53,18 @@ export const stripeService = {
     try {
       console.log(`Criando assinatura para cliente ${customerId}, tipo: ${tipoAssinatura}`);
 
-      // Verificar se o cliente existe
-      const customer = await stripe.customers.retrieve(customerId);
-      if (!customer || (customer as any).deleted) {
-        throw new Error(`Cliente não encontrado no Stripe: ${customerId}`);
+      // 1. Garantir que o customer existe e está válido
+      let customer;
+      try {
+        customer = await stripe.customers.retrieve(customerId);
+        if ((customer as any).deleted) {
+          throw new Error('Customer deletado');
+        }
+      } catch (error) {
+        throw new Error(`Cliente inválido ou não encontrado no Stripe: ${customerId}`);
       }
 
+      // 2. Definir o preço baseado no tipo de assinatura
       const priceId = tipoAssinatura === 'email' ? PRECOS.EMAIL : PRECOS.PHYSICAL;
 
       // Criar a assinatura com coleta de pagamento
