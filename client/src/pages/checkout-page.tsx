@@ -90,7 +90,12 @@ const CheckoutForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!stripe || !elements || !cardComplete) {
+    if (!stripe || !elements || !cardComplete || !userId) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para assinar um plano.",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -101,7 +106,7 @@ const CheckoutForm = ({
       
       // 1. Primeiro criar o cliente e a assinatura no backend
       const createSubscriptionResponse = await apiRequest("POST", "/api/stripe/create-subscription", {
-        userId,
+        userId: userId,
         type: planType
       });
       
