@@ -30,6 +30,31 @@ export const stripeService = {
   },
 
   /**
+   * Verificar se um usuário já existe como cliente no Stripe
+   */
+  async findCustomerByEmail(email: string): Promise<string | null> {
+    try {
+      console.log(`Procurando cliente no Stripe com email: ${email}`);
+      
+      const customers = await stripe.customers.list({
+        email: email,
+        limit: 1
+      });
+      
+      if (customers.data.length > 0) {
+        console.log(`Cliente encontrado no Stripe: ${customers.data[0].id}`);
+        return customers.data[0].id;
+      }
+      
+      console.log(`Nenhum cliente encontrado para o email: ${email}`);
+      return null;
+    } catch (error) {
+      console.error('Erro ao buscar cliente no Stripe:', error);
+      return null;
+    }
+  },
+
+  /**
    * Criar uma assinatura no Stripe
    */
   async createSubscription(
@@ -38,41 +63,59 @@ export const stripeService = {
   ): Promise<{ subscriptionId: string; clientSecret: string | null }> {
     try {
       console.log(`Criando assinatura para cliente ${customerId}, tipo: ${tipoAssinatura}`);
-      const priceId = tipoAssinatura === 'email' ? PRECOS.EMAIL : PRECOS.PHYSICAL;
       
-      // Primeiro criamos a assinatura sem expandir o payment_intent
+      // Verificar se o cliente existe no Stripe
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (!customer || (customer as any).deleted) {
+          throw new Error(`Cliente não encontrado no Stripe: ${customerId}`);
+        }
+        console.log(`Cliente verificado no Stripe: ${customerId}`);
+      } catch (err) {
+        console.error(`Erro ao verificar cliente no Stripe:`, err);
+        throw new Error(`Cliente inválido ou não encontrado no Stripe: ${customerId}`);
+      }
+      
+      const priceId = tipoAssinatura === 'email' ? PRECOS.EMAIL : PRECOS.PHYSICAL;
+      console.log(`Usando price_id: ${priceId} para assinatura ${tipoAssinatura}`);
+      
+      // Primeiro criar um PaymentIntent para a primeira cobrança
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: tipoAssinatura === 'email' ? 990 : 2990, // valores em centavos
+        currency: 'brl',
+        customer: customerId,
+        setup_future_usage: 'off_session', // para permitir cobranças futuras sem cartão
+      });
+      
+      console.log(`PaymentIntent criado: ${paymentIntent.id}`);
+      
+      // Agora criamos a assinatura com o payment_intent já existente
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
+        default_payment_method: 'pm_card_visa', // Método de pagamento padrão para testes
         payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        // Não usamos expand aqui para evitar erros
+        expand: ['latest_invoice.payment_intent'],
       });
       
       console.log(`Assinatura criada com ID: ${subscription.id}`);
       
-      // Acessando o ID do invoice para buscar o payment intent separadamente
+      // Extrair o client_secret do payment_intent
       let clientSecret = null;
-      const invoiceId = subscription.latest_invoice;
       
-      if (invoiceId && typeof invoiceId === 'string') {
-        console.log(`Buscando invoice: ${invoiceId}`);
-        const invoice = await stripe.invoices.retrieve(invoiceId, {
-          expand: ['payment_intent'],
-        });
-        
-        console.log(`Invoice recuperado: ${invoice.id}, status: ${invoice.status}`);
-        
-        // Precisamos usar any aqui porque o tipo do invoice pode variar
-        const paymentIntent = (invoice as any).payment_intent;
-        if (paymentIntent && typeof paymentIntent === 'object' && paymentIntent.client_secret) {
-          clientSecret = paymentIntent.client_secret;
-          console.log(`Client secret obtido do payment intent`);
-        } else {
-          console.log(`Não foi possível obter payment_intent do invoice`, paymentIntent);
-        }
+      // Verificar se temos latest_invoice com payment_intent expandido
+      // Precisamos usar type assertion porque o tipo da API do Stripe não tem payment_intent na interface Invoice
+      const invoice = subscription.latest_invoice as any;
+      if (invoice && 
+          typeof invoice !== 'string' &&
+          invoice.payment_intent &&
+          typeof invoice.payment_intent !== 'string') {
+        clientSecret = invoice.payment_intent.client_secret;
+        console.log('Client secret obtido diretamente da fatura da assinatura');
       } else {
-        console.log(`Invoice não encontrado ou não é string: ${invoiceId}`);
+        // Tenta obter o client_secret do PaymentIntent criado separadamente
+        clientSecret = paymentIntent.client_secret;
+        console.log('Usando client secret do PaymentIntent criado separadamente');
       }
       
       return {

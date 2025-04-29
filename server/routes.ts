@@ -312,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Buscar ou criar usuário (para ambiente de desenvolvimento com MemStorage)
+      // Buscar informações do usuário
       let user;
       try {
         // Tenta encontrar usuário existente
@@ -322,11 +322,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user = await storage.getUser(userIdNum);
         }
         
-        // Se não encontrar, cria um usuário temporário para teste
+        // Se não encontrar na base de dados local, tentar buscar no Supabase
         if (!user) {
-          console.log(`Criando usuário temporário para teste com email derivado de: ${userId}`);
+          try {
+            console.log(`Tentando buscar usuário no Supabase com ID: ${userId}`);
+            const { authService } = await import("../lib/supabase-service");
+            const supabaseUser = await authService.getUserById(userId);
+            
+            if (supabaseUser) {
+              console.log(`Usuário encontrado no Supabase:`, supabaseUser);
+              // Criar o usuário localmente para operações com Stripe
+              user = await storage.createUser({
+                email: supabaseUser.email,
+                name: supabaseUser.name,
+                password: "senha-temporaria-gerada"
+              });
+            }
+          } catch (supabaseError) {
+            console.error("Erro ao buscar usuário no Supabase:", supabaseError);
+          }
+        }
+        
+        // Se ainda não encontrar, criar um usuário temporário para teste
+        if (!user) {
+          console.log(`Criando usuário temporário para teste com ID: ${userId}`);
+          const testEmail = `user-${userId}@example.com`;
           const testUser = await storage.createUser({
-            email: `user-${userId}@example.com`,
+            email: testEmail,
             name: `Usuário de Teste ${userId}`,
             password: "senha-segura-123"
           });
@@ -349,21 +371,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Criar ou obter cliente no Stripe
+      console.log(`Processando assinatura para usuário:`, {
+        id: user.id,
+        email: user.email,
+        stripeCustomerId: user.stripeCustomerId
+      });
+      
+      // Verificar se o usuário já existe como cliente no Stripe
       let stripeCustomerId = user.stripeCustomerId;
       
       if (!stripeCustomerId) {
-        // Criar cliente no Stripe
-        stripeCustomerId = await stripeService.createCustomer(user);
-        // Atualizar o usuário com o ID do cliente no Stripe
-        await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+        // Verificar se já existe um cliente no Stripe com este email
+        const existingCustomerId = await stripeService.findCustomerByEmail(user.email);
+        
+        if (existingCustomerId) {
+          // Encontrou um cliente existente no Stripe
+          console.log(`Cliente encontrado no Stripe com o email ${user.email}, ID: ${existingCustomerId}`);
+          stripeCustomerId = existingCustomerId;
+          
+          // Atualizar o usuário local com o ID do cliente no Stripe
+          await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+        } else {
+          // Criar novo cliente no Stripe
+          console.log(`Criando novo cliente no Stripe para ${user.email}`);
+          stripeCustomerId = await stripeService.createCustomer(user);
+          
+          // Atualizar o usuário com o ID do cliente no Stripe
+          await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+        }
       }
+      
+      console.log(`Usando Stripe Customer ID: ${stripeCustomerId} para criar assinatura`);
       
       // Criar assinatura no Stripe
       const { subscriptionId, clientSecret } = await stripeService.createSubscription(
         stripeCustomerId,
         type as 'email' | 'physical'
       );
+      
+      if (!clientSecret) {
+        throw new Error('Não foi possível obter o client secret para o pagamento');
+      }
+      
+      console.log(`Assinatura criada no Stripe com ID: ${subscriptionId}`);
       
       // Criar a assinatura no banco de dados
       const subscription = await storage.createSubscriptionWithStripe({
@@ -373,6 +423,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "active",
         stripeSubscriptionId: subscriptionId,
       });
+      
+      console.log(`Assinatura registrada no banco de dados com ID: ${subscription.id}`);
       
       res.json({
         success: true,
