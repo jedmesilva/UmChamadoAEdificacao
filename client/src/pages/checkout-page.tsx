@@ -20,8 +20,15 @@ interface CheckoutPageProps {
   };
 }
 
+// Verificar se temos STRIPE_PUBLIC_KEY definido
+if (!import.meta.env.STRIPE_PUBLIC_KEY) {
+  console.warn('STRIPE_PUBLIC_KEY não está configurado. O checkout não funcionará corretamente.');
+}
+
 // Carregar o Stripe fora do componente
-const stripePromise = loadStripe(import.meta.env.STRIPE_PUBLIC_KEY as string);
+const stripePromise = import.meta.env.STRIPE_PUBLIC_KEY 
+  ? loadStripe(import.meta.env.STRIPE_PUBLIC_KEY as string)
+  : null;
 
 // Componente para o formulário de pagamento
 const CheckoutForm = ({ 
@@ -102,7 +109,6 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
   const [isManageMode, setIsManageMode] = useState(false);
   const { user } = useSupabaseAuth();
   const [_, setLocation] = useLocation();
-  const [match, params2] = useRoute("/checkout/:type");
   const { toast } = useToast();
   
   const isEmailSubscription = params.type === "email";
