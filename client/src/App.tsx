@@ -25,7 +25,7 @@ function Router() {
       <ProtectedRoute path="/letter/:id" component={LetterPage} />
       <ProtectedRoute path="/account" component={AccountPage} />
       <Route path="/subscriptions/:type" component={SubscriptionDetailsPage} />
-      <Route path="/checkout/:type" component={CheckoutPage} /> {/* Added route for checkout page */}
+      <ProtectedRoute path="/checkout/:type" component={CheckoutPage} /> {/* Added route for checkout page */}
       <Route component={NotFound} />
     </Switch>
   );
