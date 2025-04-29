@@ -77,6 +77,11 @@ export const stripeService = {
         payment_settings: {
           payment_method_types: ['card'],
           save_default_payment_method: 'on_subscription'
+        },
+        metadata: {
+          userId: customer.metadata.userId, // Pegando o userId dos metadados do customer
+          userEmail: customer.metadata.userEmail,
+          subscriptionType: tipoAssinatura
         }
       });
 
