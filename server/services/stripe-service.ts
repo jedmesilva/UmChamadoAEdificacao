@@ -69,14 +69,11 @@ export const stripeService = {
         payment_settings: {
           payment_method_types: ['card'],
           save_default_payment_method: 'on_subscription'
-        }
+        },
+        expand: ['latest_invoice.payment_intent']
       });
 
-      // Buscar a fatura e o payment intent separadamente
-      const invoice = await stripe.invoices.retrieve(subscription.latest_invoice as string, {
-        expand: ['payment_intent']
-      });
-      const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+      const paymentIntent = (subscription.latest_invoice as Stripe.Invoice).payment_intent as Stripe.PaymentIntent;
 
       return {
         subscriptionId: subscription.id,
