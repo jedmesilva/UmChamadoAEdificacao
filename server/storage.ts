@@ -598,10 +598,10 @@ export function createStorage(type: StorageType): IStorage {
   }
 }
 
-// Usar MemStorage porque as tabelas do Supabase não estão configuradas
-// Alterar o tipo de armazenamento para usar o banco de dados
-// O banco de dados já está configurado em server/db.ts
-const storageType = StorageType.DATABASE;
+// Temporariamente usando MemStorage para evitar problemas de conexão
+// Normalmente usaríamos StorageType.DATABASE para persistência
+// Isto é apenas para fins de desenvolvimento e teste
+const storageType = StorageType.MEMORY;
 
 console.log(`Usando armazenamento do tipo: ${storageType}`);
 
