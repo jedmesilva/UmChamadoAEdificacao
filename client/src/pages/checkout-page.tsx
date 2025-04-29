@@ -20,7 +20,7 @@ interface CheckoutPageProps {
   };
 }
 
-// Verificar se temos STRIPE_PUBLIC_KEY definido
+// Verificar se temos VITE_STRIPE_PUBLIC_KEY definido
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   console.warn('VITE_STRIPE_PUBLIC_KEY não está configurado. O checkout não funcionará corretamente.');
 }
@@ -30,52 +30,125 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as string)
   : null;
 
-// Componente para o formulário de pagamento
+// Componente para o formulário de pagamento do Stripe Elements
 const CheckoutForm = ({ 
+  userId,
+  planType,
   isProcessing, 
   setIsProcessing, 
   onSuccess 
 }: { 
+  userId: string;
+  planType: "email" | "physical";
   isProcessing: boolean; 
   setIsProcessing: (value: boolean) => void;
   onSuccess: () => void;
 }) => {
+  const [cardElement, setCardElement] = useState<any>(null);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [cardComplete, setCardComplete] = useState<boolean>(false);
+  const { toast } = useToast();
   const stripe = useStripe();
   const elements = useElements();
-  const { toast } = useToast();
 
+  // Carregar o elemento de cartão do Stripe
+  useEffect(() => {
+    if (elements) {
+      const cardEl = elements.create('card', {
+        style: {
+          base: {
+            color: '#32325d',
+            fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+            fontSmoothing: 'antialiased',
+            fontSize: '16px',
+            '::placeholder': {
+              color: '#aab7c4'
+            }
+          },
+          invalid: {
+            color: '#fa755a',
+            iconColor: '#fa755a'
+          }
+        }
+      });
+      
+      cardEl.mount('#card-element');
+      cardEl.on('change', (event: any) => {
+        setCardError(event.error ? event.error.message : '');
+        setCardComplete(event.complete);
+      });
+      
+      setCardElement(cardEl);
+      
+      return () => {
+        cardEl.unmount();
+      };
+    }
+  }, [elements]);
+
+  // Função para processar o pagamento
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!stripe || !elements) {
+    
+    if (!stripe || !elements || !cardComplete) {
       return;
     }
-
+    
     setIsProcessing(true);
-
+    
     try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + "/account?tab=subscriptions&payment=success",
-        },
-        redirect: "if_required"
+      console.log("Iniciando processo de assinatura para:", userId, "tipo:", planType);
+      
+      // 1. Primeiro criar o cliente e a assinatura no backend
+      const createSubscriptionResponse = await apiRequest("POST", "/api/stripe/create-subscription", {
+        userId,
+        type: planType
       });
-
+      
+      if (!createSubscriptionResponse.ok) {
+        const errorData = await createSubscriptionResponse.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || 
+          errorData.message || 
+          `Erro ao criar assinatura: ${createSubscriptionResponse.status}`
+        );
+      }
+      
+      const subscriptionData = await createSubscriptionResponse.json();
+      console.log("Assinatura criada:", subscriptionData);
+      
+      if (!subscriptionData.success || !subscriptionData.clientSecret) {
+        throw new Error("Falha ao obter secret do pagamento");
+      }
+      
+      // 2. Usar o clientSecret para confirmar o pagamento
+      const { error, paymentIntent } = await stripe.confirmCardPayment(
+        subscriptionData.clientSecret,
+        {
+          payment_method: {
+            card: elements.getElement('card')!,
+            billing_details: {
+              name: 'Nome do Cliente', // Idealmente, obtenha do formulário ou do usuário logado
+            },
+          },
+        }
+      );
+      
       if (error) {
-        toast({
-          title: "Erro no pagamento",
-          description: error.message || "Ocorreu um erro ao processar o pagamento.",
-          variant: "destructive"
-        });
-      } else {
+        throw new Error(error.message || "Falha ao processar pagamento");
+      }
+      
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
         toast({
           title: "Pagamento realizado com sucesso!",
           description: "Sua assinatura foi ativada.",
         });
         onSuccess();
+      } else {
+        throw new Error("O pagamento não foi concluído com sucesso");
       }
     } catch (error: any) {
+      console.error("Erro no checkout:", error);
       toast({
         title: "Erro ao processar pagamento",
         description: error.message || "Ocorreu um erro ao processar o pagamento.",
@@ -88,21 +161,31 @@ const CheckoutForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+      <div className="border rounded-md p-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Informações do Cartão
+        </label>
+        <div id="card-element" className="p-3 border rounded-md bg-white" />
+        {cardError && <div className="text-red-500 text-sm mt-2">{cardError}</div>}
+      </div>
+      
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={!stripe || !elements || isProcessing}
+        disabled={!stripe || !elements || !cardComplete || isProcessing}
       >
         <CreditCard className="h-4 w-4 mr-2" />
-        {isProcessing ? "Processando..." : "Finalizar pagamento"}
+        {isProcessing ? "Processando..." : "Finalizar assinatura"}
       </Button>
+      
+      <div className="text-xs text-gray-500 text-center">
+        Pagamentos seguros processados pela Stripe. Seus dados do cartão não são armazenados em nossos servidores.
+      </div>
     </form>
   );
 };
 
 const CheckoutPage = ({ params }: CheckoutPageProps) => {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userSubscription, setUserSubscription] = useState<any>(null);
@@ -147,76 +230,38 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
         setUserSubscription(data.subscription);
         setIsManageMode(true);
       } else {
-        // Caso contrário, iniciar checkout para nova assinatura
-        initializeCheckout();
+        // Caso contrário, verificar login e permitir checkout
+        verifyUserLoggedIn();
       }
     } catch (error) {
-      // Se ocorrer erro na busca (provavelmente não tem assinatura), iniciar checkout
-      initializeCheckout();
+      // Se ocorrer erro na busca (provavelmente não tem assinatura), verificar login
+      verifyUserLoggedIn();
     } finally {
       setIsLoading(false);
     }
   };
 
-  const initializeCheckout = async () => {
+  // Verificação simplificada apenas para garantir login
+  const verifyUserLoggedIn = () => {
     if (!user?.id) {
       toast({
         title: "Erro de autenticação",
         description: "Você precisa estar logado para assinar um plano.",
         variant: "destructive"
       });
-      return;
+      return false;
     }
     
-    setIsLoading(true);
-    try {
-      // Verificar se a API key do Stripe está configurada
-      if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-        console.error("Erro: Chave pública do Stripe não encontrada. Verifique as variáveis de ambiente.");
-        throw new Error("Chave do Stripe não configurada. Contate o administrador.");
-      }
-      console.log("Chave pública do Stripe disponível:", !!import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-      
-      console.log("Iniciando checkout para usuário:", user.id, "tipo:", isEmailSubscription ? "email" : "physical");
-      
-      // Criar assinatura no Stripe
-      const response = await apiRequest("POST", "/api/stripe/create-subscription", {
-        userId: user.id,
-        type: isEmailSubscription ? "email" : "physical"
-      });
-      
-      if (!response.ok) {
-        // Se a resposta não for ok, tenta obter detalhes do erro
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || 
-          errorData.message || 
-          `Erro no servidor: ${response.status} ${response.statusText}`
-        );
-      }
-      
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || "Falha ao iniciar o checkout");
-      }
-      
-      if (!data.clientSecret) {
-        throw new Error("Cliente secret não retornado pelo servidor");
-      }
-      
-      console.log("Checkout iniciado com sucesso, client secret recebido");
-      setClientSecret(data.clientSecret);
-    } catch (error: any) {
-      console.error("Erro detalhado:", error);
+    if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
       toast({
-        title: "Erro ao iniciar checkout",
-        description: error.message || "Ocorreu um erro ao iniciar o checkout. Tente novamente.",
+        title: "Configuração incompleta",
+        description: "A integração com o serviço de pagamento está incompleta. Contate o administrador.",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
+      return false;
     }
+    
+    return true;
   };
 
   const handleSubscribeSuccess = () => {
@@ -227,17 +272,6 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
     // Recarregar a página após gerenciar assinatura
     setLocation("/account?tab=subscriptions");
   };
-
-  const stripeOptions = clientSecret ? {
-    clientSecret: clientSecret,
-    appearance: {
-      theme: 'stripe' as const,
-      variables: {
-        colorPrimary: '#6366f1',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-      },
-    },
-  } : undefined;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -307,23 +341,16 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
                     onSuccess={handleManageSuccess}
                   />
                 </div>
-              ) : clientSecret ? (
-                <Elements stripe={stripePromise} options={stripeOptions}>
+              ) : (
+                <Elements stripe={stripePromise}>
                   <CheckoutForm 
+                    userId={user?.id || ''}
+                    planType={isEmailSubscription ? "email" : "physical"}
                     isProcessing={isProcessing} 
                     setIsProcessing={setIsProcessing}
                     onSuccess={handleSubscribeSuccess}
                   />
                 </Elements>
-              ) : (
-                <Button 
-                  className="w-full"
-                  onClick={initializeCheckout}
-                  disabled={isProcessing || !user?.id}
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Continuar para pagamento
-                </Button>
               )}
             </div>
           </CardContent>
