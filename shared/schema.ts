@@ -45,7 +45,7 @@ export const letterReadStatus = pgTable("letter_read_status", {
 export const subscriptionTypeEnum = pgEnum("subscription_type", ["email", "physical"]);
 
 // Status da assinatura
-export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "inactive", "canceled", "paused"]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "inactive", "canceled", "paused", "pending"]);
 
 // Subscrições ao newsletter e assinaturas físicas
 export const subscriptions = pgTable("subscriptions", {

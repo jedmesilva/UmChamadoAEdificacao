@@ -291,9 +291,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === Endpoints do Stripe ===
   
-  // Criar customer e assinatura no Stripe
+  // Criar uma sessão de checkout do Stripe para assinatura (método recomendado)
+  app.post(apiRouter("/stripe/create-checkout-session"), async (req, res) => {
+    console.log("Recebida requisição para criar sessão de checkout:", req.body);
+    try {
+      const { userId, type, successUrl, cancelUrl } = req.body;
+      
+      if (!userId || !type || !successUrl || !cancelUrl) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "ID do usuário, tipo de assinatura, URL de sucesso e URL de cancelamento são obrigatórios" 
+        });
+      }
+      
+      // Validar tipo de assinatura
+      if (type !== "email" && type !== "physical") {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Tipo de assinatura inválido. Use 'email' ou 'physical'." 
+        });
+      }
+      
+      // Buscar informações do usuário
+      let user;
+      try {
+        // Tenta encontrar usuário existente
+        const userIdNum = parseInt(userId);
+        if (!isNaN(userIdNum)) {
+          console.log(`Buscando usuário com ID: ${userIdNum}`);
+          user = await storage.getUser(userIdNum);
+        }
+        
+        // Se não encontrar na base de dados local, tentar buscar no Supabase
+        if (!user) {
+          try {
+            console.log(`Tentando buscar usuário no Supabase com ID: ${userId}`);
+            const { authService } = await import("../lib/supabase-service");
+            const supabaseUser = await authService.getUserById(userId);
+            
+            if (supabaseUser) {
+              console.log(`Usuário encontrado no Supabase:`, supabaseUser);
+              // Criar o usuário localmente para operações com Stripe
+              user = await storage.createUser({
+                email: supabaseUser.email,
+                name: supabaseUser.name,
+                password: "senha-temporaria-gerada"
+              });
+            }
+          } catch (supabaseError) {
+            console.error("Erro ao buscar usuário no Supabase:", supabaseError);
+          }
+        }
+        
+        // Se ainda não encontrar, criar um usuário temporário para teste
+        if (!user) {
+          console.log(`Criando usuário temporário para teste com ID: ${userId}`);
+          const testEmail = `user-${userId}@example.com`;
+          const testUser = await storage.createUser({
+            email: testEmail,
+            name: `Usuário de Teste ${userId}`,
+            password: "senha-segura-123"
+          });
+          console.log(`Usuário de teste criado com ID: ${testUser.id}`);
+          user = testUser;
+        }
+      } catch (error) {
+        console.error("Erro ao buscar/criar usuário:", error);
+        return res.status(500).json({ 
+          success: false, 
+          error: "Erro ao processar usuário" 
+        });
+      }
+      
+      // Verificar novamente se temos um usuário válido
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Não foi possível encontrar ou criar usuário" 
+        });
+      }
+      
+      console.log(`Processando checkout para usuário:`, {
+        id: user.id,
+        email: user.email,
+        stripeCustomerId: user.stripeCustomerId
+      });
+      
+      // Verificar se o usuário já existe como cliente no Stripe
+      let stripeCustomerId = user.stripeCustomerId;
+      
+      if (!stripeCustomerId) {
+        // Verificar se já existe um cliente no Stripe com este email
+        const existingCustomerId = await stripeService.findCustomerByEmail(user.email);
+        
+        if (existingCustomerId) {
+          // Encontrou um cliente existente no Stripe
+          console.log(`Cliente encontrado no Stripe com o email ${user.email}, ID: ${existingCustomerId}`);
+          stripeCustomerId = existingCustomerId;
+          
+          // Atualizar o usuário local com o ID do cliente no Stripe
+          await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+        } else {
+          // Criar novo cliente no Stripe
+          console.log(`Criando novo cliente no Stripe para ${user.email}`);
+          stripeCustomerId = await stripeService.createCustomer(user);
+          
+          // Atualizar o usuário com o ID do cliente no Stripe
+          await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+        }
+      }
+      
+      console.log(`Usando Stripe Customer ID: ${stripeCustomerId} para criar sessão de checkout`);
+      
+      // Criar sessão de checkout para assinatura
+      const { sessionId, url } = await stripeService.createSubscriptionCheckout(
+        stripeCustomerId,
+        type as 'email' | 'physical',
+        successUrl,
+        cancelUrl
+      );
+      
+      console.log(`Sessão de checkout criada com ID: ${sessionId}, URL: ${url}`);
+      
+      // Pré-criar a assinatura no banco de dados com status pendente
+      // Será atualizada quando o webhook confirmar pagamento
+      const subscription = await storage.createSubscriptionWithStripe({
+        userId: user.id,
+        email: user.email,
+        type,
+        status: "pending",
+        stripeSubscriptionId: "pending_" + sessionId, // Será atualizado pelo webhook
+      });
+      
+      console.log(`Assinatura pendente registrada no banco de dados com ID: ${subscription.id}`);
+      
+      res.json({
+        success: true,
+        sessionId,
+        checkoutUrl: url,
+        subscription
+      });
+    } catch (error: any) {
+      console.error("Erro ao criar sessão de checkout:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Falha ao processar checkout", 
+        message: error.message 
+      });
+    }
+  });
+
+  // Método legado: Criar customer e assinatura no Stripe para uso com Elements (mantido para compatibilidade)
   app.post(apiRouter("/stripe/create-subscription"), async (req, res) => {
-    console.log("Recebida requisição para criar assinatura:", req.body);
+    console.log("Recebida requisição para criar assinatura (método legado):", req.body);
     try {
       const { userId, type } = req.body;
       

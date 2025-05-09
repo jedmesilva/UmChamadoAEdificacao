@@ -55,14 +55,16 @@ export const stripeService = {
   },
 
   /**
-   * Criar uma assinatura no Stripe
+   * Criar uma assinatura no Stripe usando Checkout
    */
-  async createSubscription(
+  async createSubscriptionCheckout(
     customerId: string, 
-    tipoAssinatura: 'email' | 'physical'
-  ): Promise<{ subscriptionId: string; clientSecret: string | null }> {
+    tipoAssinatura: 'email' | 'physical',
+    successUrl: string,
+    cancelUrl: string
+  ): Promise<{ sessionId: string; url: string }> {
     try {
-      console.log(`Criando assinatura para cliente ${customerId}, tipo: ${tipoAssinatura}`);
+      console.log(`Criando sessão de checkout para cliente ${customerId}, tipo: ${tipoAssinatura}`);
       
       // Verificar se o cliente existe no Stripe
       try {
@@ -79,6 +81,58 @@ export const stripeService = {
       const priceId = tipoAssinatura === 'email' ? PRECOS.EMAIL : PRECOS.PHYSICAL;
       console.log(`Usando price_id: ${priceId} para assinatura ${tipoAssinatura}`);
       
+      // Criar uma sessão de checkout para assinatura
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        customer: customerId,
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: successUrl + '?session_id={CHECKOUT_SESSION_ID}',
+        cancel_url: cancelUrl,
+        locale: 'pt-BR',
+      });
+      
+      console.log(`Sessão de checkout criada: ${session.id}, URL: ${session.url}`);
+      
+      return {
+        sessionId: session.id,
+        url: session.url || '',
+      };
+    } catch (error) {
+      console.error('Erro ao criar sessão de checkout:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Método legado - criar uma assinatura no Stripe (mantido para compatibilidade)
+   */
+  async createSubscription(
+    customerId: string, 
+    tipoAssinatura: 'email' | 'physical'
+  ): Promise<{ subscriptionId: string; clientSecret: string | null }> {
+    try {
+      console.log(`[DEPRECATED] Usando método legado de criação de assinatura para cliente ${customerId}`);
+      console.log(`Recomendamos migrar para o método createSubscriptionCheckout`);
+      
+      // Verificar se o cliente existe no Stripe
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (!customer || (customer as any).deleted) {
+          throw new Error(`Cliente não encontrado no Stripe: ${customerId}`);
+        }
+      } catch (err) {
+        console.error(`Erro ao verificar cliente no Stripe:`, err);
+        throw new Error(`Cliente inválido ou não encontrado no Stripe: ${customerId}`);
+      }
+      
+      const priceId = tipoAssinatura === 'email' ? PRECOS.EMAIL : PRECOS.PHYSICAL;
+      
       // Primeiro criar um PaymentIntent para a primeira cobrança
       const paymentIntent = await stripe.paymentIntents.create({
         amount: tipoAssinatura === 'email' ? 990 : 2990, // valores em centavos
@@ -87,9 +141,7 @@ export const stripeService = {
         setup_future_usage: 'off_session', // para permitir cobranças futuras sem cartão
       });
       
-      console.log(`PaymentIntent criado: ${paymentIntent.id}`);
-      
-      // Agora criamos a assinatura com o payment_intent já existente
+      // Criar a assinatura
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
@@ -98,24 +150,19 @@ export const stripeService = {
         expand: ['latest_invoice.payment_intent'],
       });
       
-      console.log(`Assinatura criada com ID: ${subscription.id}`);
-      
       // Extrair o client_secret do payment_intent
       let clientSecret = null;
       
       // Verificar se temos latest_invoice com payment_intent expandido
-      // Precisamos usar type assertion porque o tipo da API do Stripe não tem payment_intent na interface Invoice
       const invoice = subscription.latest_invoice as any;
       if (invoice && 
           typeof invoice !== 'string' &&
           invoice.payment_intent &&
           typeof invoice.payment_intent !== 'string') {
         clientSecret = invoice.payment_intent.client_secret;
-        console.log('Client secret obtido diretamente da fatura da assinatura');
       } else {
         // Tenta obter o client_secret do PaymentIntent criado separadamente
         clientSecret = paymentIntent.client_secret;
-        console.log('Usando client secret do PaymentIntent criado separadamente');
       }
       
       return {

@@ -9,13 +9,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Scroll, CreditCard, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Elements, 
-  CardElement,
-  useStripe, 
-  useElements
-} from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import CancelSubscriptionDialog from "@/components/subscription/cancel-subscription-dialog";
 
 interface CheckoutPageProps {
@@ -29,12 +22,7 @@ if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   console.warn('VITE_STRIPE_PUBLIC_KEY não está configurado. O checkout não funcionará corretamente.');
 }
 
-// Carregar o Stripe fora do componente
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as string)
-  : null;
-
-// Componente para o formulário de pagamento do Stripe Elements
+// Componente para o formulário de checkout redirecionado para o Stripe Checkout
 const CheckoutForm = ({ 
   userId,
   planType,
@@ -48,88 +36,55 @@ const CheckoutForm = ({
   setIsProcessing: (value: boolean) => void;
   onSuccess: () => void;
 }) => {
-  const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [paymentFormReady, setPaymentFormReady] = useState<boolean>(false);
   const { toast } = useToast();
-  const stripe = useStripe();
-  const elements = useElements();
 
-  // Função para processar o pagamento
+  // Função para processar o pagamento via Stripe Checkout (por redirecionamento)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!stripe || !elements || !paymentFormReady) {
-      return;
-    }
     
     setIsProcessing(true);
     
     try {
-      console.log("Iniciando processo de assinatura para:", userId, "tipo:", planType);
+      console.log("Iniciando processo de checkout para:", userId, "tipo:", planType);
       
-      // 1. Primeiro criar o cliente e a assinatura no backend
-      const createSubscriptionResponse = await apiRequest("POST", "/api/stripe/create-subscription", {
+      // URLs de redirecionamento
+      const successUrl = window.location.origin + '/account?tab=subscriptions&payment_success=true';
+      const cancelUrl = window.location.origin + '/checkout/' + planType + '?canceled=true';
+      
+      // Criar sessão de checkout no backend
+      const checkoutResponse = await apiRequest("POST", "/api/stripe/create-checkout-session", {
         userId,
-        type: planType
+        type: planType,
+        successUrl,
+        cancelUrl
       });
       
-      if (!createSubscriptionResponse.ok) {
-        const errorData = await createSubscriptionResponse.json().catch(() => ({}));
+      if (!checkoutResponse.ok) {
+        const errorData = await checkoutResponse.json().catch(() => ({}));
         throw new Error(
           errorData.error || 
           errorData.message || 
-          `Erro ao criar assinatura: ${createSubscriptionResponse.status}`
+          `Erro ao criar sessão de checkout: ${checkoutResponse.status}`
         );
       }
       
-      const subscriptionData = await createSubscriptionResponse.json();
-      console.log("Assinatura criada:", subscriptionData);
+      const checkoutData = await checkoutResponse.json();
+      console.log("Sessão de checkout criada:", checkoutData);
       
-      if (!subscriptionData.success || !subscriptionData.clientSecret) {
-        throw new Error("Falha ao obter secret do pagamento");
+      if (!checkoutData.success || !checkoutData.checkoutUrl) {
+        throw new Error("Falha ao obter URL de checkout");
       }
       
-      // 2. Usar o clientSecret para confirmar o pagamento
-      const { error, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + '/account?tab=subscriptions&payment_success=true',
-          payment_method_data: {
-            billing_details: {
-              name: 'Nome do Cliente',
-            },
-          },
-        },
-        redirect: 'if_required',
-      });
+      // Redirecionar para a página de checkout do Stripe
+      window.location.href = checkoutData.checkoutUrl;
       
-      if (error) {
-        throw new Error(error.message || "Falha ao processar pagamento");
-      }
-      
-      if (paymentIntent && paymentIntent.status === 'succeeded') {
-        toast({
-          title: "Pagamento realizado com sucesso!",
-          description: "Sua assinatura foi ativada.",
-        });
-        onSuccess();
-      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
-        // Para casos onde autenticação adicional é necessária, o user será redirecionado
-        toast({
-          title: "Autenticação Adicional",
-          description: "Seu banco requer autenticação adicional. Você será redirecionado.",
-        });
-      } else {
-        throw new Error("O pagamento não foi concluído com sucesso");
-      }
     } catch (error: any) {
-      console.error("Erro no checkout:", error);
+      console.error("Erro ao iniciar checkout:", error);
       toast({
-        title: "Erro ao processar pagamento",
-        description: error.message || "Ocorreu um erro ao processar o pagamento.",
+        title: "Erro ao iniciar checkout",
+        description: error.message || "Ocorreu um erro ao iniciar o processo de pagamento.",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -139,52 +94,23 @@ const CheckoutForm = ({
       <div className="border rounded-md p-5 bg-white shadow-sm">
         <div className="mb-4">
           <h3 className="text-sm font-medium text-gray-700 mb-1">
-            Informações de Pagamento
+            Pagamento seguro via Stripe
           </h3>
           <p className="text-xs text-gray-500 mb-3">
-            Preencha os dados do seu cartão para finalizar a assinatura
+            Clique no botão abaixo para continuar com o pagamento. Você será 
+            redirecionado para o Stripe Checkout, onde poderá adicionar suas 
+            informações de pagamento de maneira segura.
           </p>
-        </div>
-        
-        <div className="space-y-4">
-          <CardElement 
-            id="card-element"
-            onChange={(event) => {
-              setPaymentError(event.error ? event.error.message : null);
-              setPaymentFormReady(event.complete);
-            }}
-            options={{
-              style: {
-                base: {
-                  fontSize: '16px',
-                  color: '#32325d',
-                  fontFamily: 'Arial, sans-serif',
-                  '::placeholder': {
-                    color: '#aab7c4',
-                  },
-                },
-                invalid: {
-                  color: '#fa755a',
-                  iconColor: '#fa755a',
-                },
-              },
-            }}
-          />
-          {paymentError && 
-            <div className="text-red-500 text-sm p-2 bg-red-50 border border-red-100 rounded">
-              {paymentError}
-            </div>
-          }
         </div>
       </div>
       
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={!stripe || !elements || !paymentFormReady || isProcessing}
+        disabled={isProcessing}
       >
         <CreditCard className="h-4 w-4 mr-2" />
-        {isProcessing ? "Processando..." : "Finalizar assinatura"}
+        {isProcessing ? "Processando..." : "Continuar para o pagamento"}
       </Button>
       
       <div className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
@@ -353,17 +279,13 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
                 </div>
               ) : (
                 <div>
-                  <Elements 
-                    stripe={stripePromise}
-                  >
-                    <CheckoutForm 
-                      userId={user?.id || ''}
-                      planType={isEmailSubscription ? "email" : "physical"}
-                      isProcessing={isProcessing} 
-                      setIsProcessing={setIsProcessing}
-                      onSuccess={handleSubscribeSuccess}
-                    />
-                  </Elements>
+                  <CheckoutForm 
+                    userId={user?.id || ''}
+                    planType={isEmailSubscription ? "email" : "physical"}
+                    isProcessing={isProcessing} 
+                    setIsProcessing={setIsProcessing}
+                    onSuccess={handleSubscribeSuccess}
+                  />
                 </div>
               )}
             </div>
