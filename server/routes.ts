@@ -295,7 +295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(apiRouter("/stripe/create-checkout-session"), async (req, res) => {
     console.log("Recebida requisição para criar sessão de checkout:", req.body);
     try {
-      const { userId, type, successUrl, cancelUrl } = req.body;
+      const { userId, userEmail, type, successUrl, cancelUrl } = req.body;
       
       if (!userId || !type || !successUrl || !cancelUrl) {
         return res.status(400).json({ 

@@ -24,12 +24,14 @@ if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
 // Componente para o formulário de checkout redirecionado para o Stripe Checkout
 const CheckoutForm = ({ 
   userId,
+  userEmail,
   planType,
   isProcessing, 
   setIsProcessing, 
   onSuccess 
 }: { 
   userId: string;
+  userEmail: string;
   planType: "email" | "physical";
   isProcessing: boolean; 
   setIsProcessing: (value: boolean) => void;
@@ -57,6 +59,7 @@ const CheckoutForm = ({
           },
           body: JSON.stringify({
             userId,
+            userEmail,  // Enviar email do usuário para o servidor
             type: planType,
             successUrl,
             cancelUrl
@@ -295,6 +298,7 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
                 <div>
                   <CheckoutForm 
                     userId={user?.id || ''}
+                    userEmail={user?.email || ''}
                     planType={isEmailSubscription ? "email" : "physical"}
                     isProcessing={isProcessing} 
                     setIsProcessing={setIsProcessing}
