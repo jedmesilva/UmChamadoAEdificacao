@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
 import { useToast } from "@/hooks/use-toast";
-import { signatureService } from "@/lib/signature-service";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Scroll, CreditCard, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -45,72 +44,47 @@ const CheckoutForm = ({
     setIsProcessing(true);
     
     try {
-      console.log("Iniciando processo de checkout para:", userId, "tipo:", planType);
-      
       // URLs de redirecionamento
       const successUrl = window.location.origin + '/account?tab=subscriptions&payment_success=true';
       const cancelUrl = window.location.origin + '/checkout/' + planType + '?canceled=true';
       
-      // Criar sessão de checkout no backend
-      const checkoutResponse = await apiRequest("POST", "/api/stripe/create-checkout-session", {
-        userId,
-        type: planType,
-        successUrl,
-        cancelUrl
-      });
-      
-      // Verificar se a resposta é válida
-      if (!checkoutResponse.ok) {
-        let errorMessage = `Erro ao criar sessão de checkout: ${checkoutResponse.status}`;
-        try {
-          // Tentar extrair informações detalhadas do erro, se disponíveis
-          const errorData = await checkoutResponse.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch (e) {
-          console.error("Não foi possível parsear resposta de erro:", e);
-        }
-        throw new Error(errorMessage);
-      }
-      
-      // Obter os dados da resposta
-      let checkoutData;
+      // Criar a sessão de checkout
       try {
-        checkoutData = await checkoutResponse.json();
-      } catch (e) {
-        console.error("Erro ao parsear resposta JSON:", e);
-        throw new Error("A resposta do servidor não é válida. Tente novamente.");
-      }
-      console.log("Sessão de checkout criada:", checkoutData);
-      
-      if (!checkoutData.success || !checkoutData.checkoutUrl) {
-        throw new Error("Falha ao obter URL de checkout");
-      }
-      
-      // Redirecionar para a página de checkout do Stripe
-      console.log("Redirecionando para URL:", checkoutData.checkoutUrl);
-      
-      // Usar a URL da sessão de checkout fornecida pelo Stripe
-      if (checkoutData.checkoutUrl) {
-        console.log("URL completa do checkout:", checkoutData.checkoutUrl);
+        const response = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            type: planType,
+            successUrl,
+            cancelUrl
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erro ao criar sessão de checkout: ${response.status}`);
+        }
+
+        const data = await response.json();
         
+        if (!data.success || !data.checkoutUrl) {
+          throw new Error("Falha ao obter URL de checkout");
+        }
+        
+        // Notificar usuário
         toast({
           title: "Redirecionando para o Stripe",
           description: "Você será levado para a página segura de pagamento.",
         });
         
-        // Redirecionamento simples
-        window.location.href = checkoutData.checkoutUrl;
+        // Redirecionar para o Stripe (forma simples)
+        window.location.href = data.checkoutUrl;
         
-        // Backup: tentar abrir em nova aba se o redirecionamento falhar
-        setTimeout(() => {
-          if (document.hasFocus()) { // Se ainda estamos na página atual
-            console.log("Redirecionamento normal falhou, tentando abrir em nova aba");
-            window.open(checkoutData.checkoutUrl, '_blank');
-            setIsProcessing(false);
-          }
-        }, 2000);
-      } else {
-        throw new Error("URL de checkout não disponível")
+      } catch (error: any) {
+        console.error("Erro na requisição:", error);
+        throw new Error(error.message);
       }
       
     } catch (error: any) {
@@ -193,7 +167,12 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
     setIsLoading(true);
     try {
       // Buscar assinaturas do usuário
-      const response = await apiRequest("GET", `/api/subscriptions/user/${user.id}?type=${isEmailSubscription ? "email" : "physical"}`);
+      const response = await fetch(`/api/subscriptions/user/${user.id}?type=${isEmailSubscription ? "email" : "physical"}`);
+      
+      if (!response.ok) {
+        throw new Error("Erro ao buscar assinaturas");
+      }
+      
       const data = await response.json();
       
       if (data && data.subscription && data.subscription.status === "active") {
