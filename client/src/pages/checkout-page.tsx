@@ -59,16 +59,27 @@ const CheckoutForm = ({
         cancelUrl
       });
       
+      // Verificar se a resposta é válida
       if (!checkoutResponse.ok) {
-        const errorData = await checkoutResponse.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || 
-          errorData.message || 
-          `Erro ao criar sessão de checkout: ${checkoutResponse.status}`
-        );
+        let errorMessage = `Erro ao criar sessão de checkout: ${checkoutResponse.status}`;
+        try {
+          // Tentar extrair informações detalhadas do erro, se disponíveis
+          const errorData = await checkoutResponse.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          console.error("Não foi possível parsear resposta de erro:", e);
+        }
+        throw new Error(errorMessage);
       }
       
-      const checkoutData = await checkoutResponse.json();
+      // Obter os dados da resposta
+      let checkoutData;
+      try {
+        checkoutData = await checkoutResponse.json();
+      } catch (e) {
+        console.error("Erro ao parsear resposta JSON:", e);
+        throw new Error("A resposta do servidor não é válida. Tente novamente.");
+      }
       console.log("Sessão de checkout criada:", checkoutData);
       
       if (!checkoutData.success || !checkoutData.checkoutUrl) {
