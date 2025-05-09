@@ -95,6 +95,8 @@ export const stripeService = {
         success_url: successUrl + '?session_id={CHECKOUT_SESSION_ID}',
         cancel_url: cancelUrl,
         locale: 'pt-BR',
+        allow_promotion_codes: true,
+        billing_address_collection: 'auto',
       });
       
       console.log(`Sessão de checkout criada: ${session.id}, URL: ${session.url}`);

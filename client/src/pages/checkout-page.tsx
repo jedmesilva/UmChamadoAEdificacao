@@ -76,7 +76,31 @@ const CheckoutForm = ({
       }
       
       // Redirecionar para a página de checkout do Stripe
-      window.location.href = checkoutData.checkoutUrl;
+      console.log("Redirecionando para URL:", checkoutData.checkoutUrl);
+      
+      // Usar a URL da sessão de checkout fornecida pelo Stripe
+      if (checkoutData.checkoutUrl) {
+        console.log("URL completa do checkout:", checkoutData.checkoutUrl);
+        
+        toast({
+          title: "Redirecionando para o Stripe",
+          description: "Você será levado para a página segura de pagamento.",
+        });
+        
+        // Redirecionamento simples
+        window.location.href = checkoutData.checkoutUrl;
+        
+        // Backup: tentar abrir em nova aba se o redirecionamento falhar
+        setTimeout(() => {
+          if (document.hasFocus()) { // Se ainda estamos na página atual
+            console.log("Redirecionamento normal falhou, tentando abrir em nova aba");
+            window.open(checkoutData.checkoutUrl, '_blank');
+            setIsProcessing(false);
+          }
+        }, 2000);
+      } else {
+        throw new Error("URL de checkout não disponível")
+      }
       
     } catch (error: any) {
       console.error("Erro ao iniciar checkout:", error);

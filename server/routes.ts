@@ -425,6 +425,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Assinatura pendente registrada no banco de dados com ID: ${subscription.id}`);
       
+      // Garantir que os dados da resposta sejam válidos
+      if (!url) {
+        throw new Error("URL de checkout inválida");
+      }
+      
+      // Forçar um cabeçalho específico para evitar problemas de cache
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Type', 'application/json');
+      
       res.json({
         success: true,
         sessionId,
