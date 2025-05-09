@@ -10,7 +10,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Scroll, CreditCard, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { 
+  Elements, 
+  PaymentElement, 
+  useStripe, 
+  useElements
+} from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import CancelSubscriptionDialog from "@/components/subscription/cancel-subscription-dialog";
 
@@ -44,53 +49,17 @@ const CheckoutForm = ({
   setIsProcessing: (value: boolean) => void;
   onSuccess: () => void;
 }) => {
-  const [cardElement, setCardElement] = useState<any>(null);
-  const [cardError, setCardError] = useState<string | null>(null);
-  const [cardComplete, setCardComplete] = useState<boolean>(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentFormReady, setPaymentFormReady] = useState<boolean>(false);
   const { toast } = useToast();
   const stripe = useStripe();
   const elements = useElements();
-
-  // Carregar o elemento de cartão do Stripe
-  useEffect(() => {
-    if (elements) {
-      const cardEl = elements.create('card', {
-        style: {
-          base: {
-            color: '#32325d',
-            fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-            fontSmoothing: 'antialiased',
-            fontSize: '16px',
-            '::placeholder': {
-              color: '#aab7c4'
-            }
-          },
-          invalid: {
-            color: '#fa755a',
-            iconColor: '#fa755a'
-          }
-        }
-      });
-      
-      cardEl.mount('#card-element');
-      cardEl.on('change', (event: any) => {
-        setCardError(event.error ? event.error.message : '');
-        setCardComplete(event.complete);
-      });
-      
-      setCardElement(cardEl);
-      
-      return () => {
-        cardEl.unmount();
-      };
-    }
-  }, [elements]);
 
   // Função para processar o pagamento
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!stripe || !elements || !cardComplete) {
+    if (!stripe || !elements || !paymentFormReady) {
       return;
     }
     
@@ -122,17 +91,18 @@ const CheckoutForm = ({
       }
       
       // 2. Usar o clientSecret para confirmar o pagamento
-      const { error, paymentIntent } = await stripe.confirmCardPayment(
-        subscriptionData.clientSecret,
-        {
-          payment_method: {
-            card: elements.getElement('card')!,
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + '/account?tab=subscriptions&payment_success=true',
+          payment_method_data: {
             billing_details: {
-              name: 'Nome do Cliente', // Idealmente, obtenha do formulário ou do usuário logado
+              name: 'Nome do Cliente',
             },
           },
-        }
-      );
+        },
+        redirect: 'if_required',
+      });
       
       if (error) {
         throw new Error(error.message || "Falha ao processar pagamento");
@@ -144,6 +114,12 @@ const CheckoutForm = ({
           description: "Sua assinatura foi ativada.",
         });
         onSuccess();
+      } else if (paymentIntent && paymentIntent.status === 'requires_action') {
+        // Para casos onde autenticação adicional é necessária, o user será redirecionado
+        toast({
+          title: "Autenticação Adicional",
+          description: "Seu banco requer autenticação adicional. Você será redirecionado.",
+        });
       } else {
         throw new Error("O pagamento não foi concluído com sucesso");
       }
@@ -161,25 +137,60 @@ const CheckoutForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="border rounded-md p-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Informações do Cartão
-        </label>
-        <div id="card-element" className="p-3 border rounded-md bg-white" />
-        {cardError && <div className="text-red-500 text-sm mt-2">{cardError}</div>}
+      <div className="border rounded-md p-5 bg-white shadow-sm">
+        <div className="mb-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-1">
+            Informações de Pagamento
+          </h3>
+          <p className="text-xs text-gray-500 mb-3">
+            Preencha os dados do seu cartão para finalizar a assinatura
+          </p>
+        </div>
+        
+        <div className="space-y-4">
+          <PaymentElement 
+            id="payment-element"
+            onReady={() => setPaymentFormReady(true)}
+            onChange={(event) => {
+              // A propriedade 'error' e 'complete' vêm do Stripe mas o tipo não está correto
+              // Estamos fazendo um type assertion para acessar essas propriedades
+              const paymentEvent = event as any;
+              setPaymentError(paymentEvent.error ? paymentEvent.error.message : null);
+              setPaymentFormReady(paymentEvent.complete);
+            }}
+            options={{
+              layout: 'tabs',
+              fields: {
+                billingDetails: {
+                  name: 'auto',
+                }
+              },
+              wallets: {
+                applePay: 'auto',
+                googlePay: 'auto'
+              }
+            }}
+          />
+          {paymentError && 
+            <div className="text-red-500 text-sm p-2 bg-red-50 border border-red-100 rounded">
+              {paymentError}
+            </div>
+          }
+        </div>
       </div>
       
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={!stripe || !elements || !cardComplete || isProcessing}
+        disabled={!stripe || !elements || !paymentFormReady || isProcessing}
       >
         <CreditCard className="h-4 w-4 mr-2" />
         {isProcessing ? "Processando..." : "Finalizar assinatura"}
       </Button>
       
-      <div className="text-xs text-gray-500 text-center">
-        Pagamentos seguros processados pela Stripe. Seus dados do cartão não são armazenados em nossos servidores.
+      <div className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
+        <CreditCard className="h-3 w-3" />
+        <span>Pagamentos seguros processados pela Stripe. Seus dados do cartão não são armazenados em nossos servidores.</span>
       </div>
     </form>
   );
@@ -342,7 +353,20 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
                   />
                 </div>
               ) : (
-                <Elements stripe={stripePromise}>
+                <Elements 
+                  stripe={stripePromise} 
+                  options={{
+                    appearance: {
+                      theme: 'stripe' as const,
+                      variables: {
+                        colorPrimary: '#6366f1',
+                        colorBackground: '#ffffff',
+                        colorText: '#1f2937'
+                      }
+                    },
+                    locale: 'pt-BR' as any
+                  }}
+                >
                   <CheckoutForm 
                     userId={user?.id || ''}
                     planType={isEmailSubscription ? "email" : "physical"}
