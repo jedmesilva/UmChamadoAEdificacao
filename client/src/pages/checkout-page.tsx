@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth";
@@ -12,7 +11,7 @@ import { ArrowLeft, Mail, Scroll, CreditCard, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   Elements, 
-  PaymentElement, 
+  CardElement,
   useStripe, 
   useElements
 } from "@stripe/react-stripe-js";
@@ -148,27 +147,27 @@ const CheckoutForm = ({
         </div>
         
         <div className="space-y-4">
-          <PaymentElement 
-            id="payment-element"
-            onReady={() => setPaymentFormReady(true)}
+          <CardElement 
+            id="card-element"
             onChange={(event) => {
-              // A propriedade 'error' e 'complete' vêm do Stripe mas o tipo não está correto
-              // Estamos fazendo um type assertion para acessar essas propriedades
-              const paymentEvent = event as any;
-              setPaymentError(paymentEvent.error ? paymentEvent.error.message : null);
-              setPaymentFormReady(paymentEvent.complete);
+              setPaymentError(event.error ? event.error.message : null);
+              setPaymentFormReady(event.complete);
             }}
             options={{
-              layout: 'tabs',
-              fields: {
-                billingDetails: {
-                  name: 'auto',
-                }
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#32325d',
+                  fontFamily: 'Arial, sans-serif',
+                  '::placeholder': {
+                    color: '#aab7c4',
+                  },
+                },
+                invalid: {
+                  color: '#fa755a',
+                  iconColor: '#fa755a',
+                },
               },
-              wallets: {
-                applePay: 'auto',
-                googlePay: 'auto'
-              }
             }}
           />
           {paymentError && 
@@ -353,28 +352,19 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
                   />
                 </div>
               ) : (
-                <Elements 
-                  stripe={stripePromise} 
-                  options={{
-                    appearance: {
-                      theme: 'stripe' as const,
-                      variables: {
-                        colorPrimary: '#6366f1',
-                        colorBackground: '#ffffff',
-                        colorText: '#1f2937'
-                      }
-                    },
-                    locale: 'pt-BR' as any
-                  }}
-                >
-                  <CheckoutForm 
-                    userId={user?.id || ''}
-                    planType={isEmailSubscription ? "email" : "physical"}
-                    isProcessing={isProcessing} 
-                    setIsProcessing={setIsProcessing}
-                    onSuccess={handleSubscribeSuccess}
-                  />
-                </Elements>
+                <div>
+                  <Elements 
+                    stripe={stripePromise}
+                  >
+                    <CheckoutForm 
+                      userId={user?.id || ''}
+                      planType={isEmailSubscription ? "email" : "physical"}
+                      isProcessing={isProcessing} 
+                      setIsProcessing={setIsProcessing}
+                      onSuccess={handleSubscribeSuccess}
+                    />
+                  </Elements>
+                </div>
               )}
             </div>
           </CardContent>
