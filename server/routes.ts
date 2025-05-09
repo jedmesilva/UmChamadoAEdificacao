@@ -291,8 +291,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === Endpoints do Stripe ===
   
-  // Criar uma sessão de checkout do Stripe para assinatura (método recomendado)
+  // Novo endpoint para criar checkout com suporte a email explícito
   app.post(apiRouter("/stripe/create-checkout-session"), async (req, res) => {
+    console.log("Recebida requisição para checkout com email:", req.body);
+    
+    try {
+      const { userId, userEmail, type, successUrl, cancelUrl } = req.body;
+      
+      if (!userId || !type || !successUrl || !cancelUrl) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "ID do usuário, tipo de assinatura, URLs de sucesso e cancelamento são obrigatórios" 
+        });
+      }
+      
+      // Validar tipo de assinatura
+      if (type !== "email" && type !== "physical") {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Tipo de assinatura inválido. Use 'email' ou 'physical'." 
+        });
+      }
+      
+      // Criar um usuário com o email fornecido ou gerar um temporário
+      let email = userEmail || `checkout-${new Date().getTime()}@example.com`;
+      if (!email.includes('@')) {
+        email = `cliente-${new Date().getTime()}@example.com`;
+      }
+      
+      console.log(`Usando email para checkout: ${email}`);
+      
+      // Criar usuário para checkout
+      const user = await storage.createUser({
+        email: email,
+        name: email.split('@')[0],
+        password: "senha-temporaria-checkout"
+      });
+      
+      console.log(`Usuário criado/atualizado para checkout:`, {
+        id: user.id,
+        email: user.email
+      });
+      
+      // Obter/criar cliente no Stripe
+      let stripeCustomerId = user.stripeCustomerId;
+      
+      if (!stripeCustomerId) {
+        // Verificar se já existe um cliente no Stripe
+        const existingCustomerId = await stripeService.findCustomerByEmail(user.email);
+        
+        if (existingCustomerId) {
+          console.log(`Cliente encontrado no Stripe: ${existingCustomerId}`);
+          stripeCustomerId = existingCustomerId;
+          
+          // Atualizar usuário
+          await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+        } else {
+          // Criar novo cliente no Stripe
+          console.log(`Criando cliente no Stripe para: ${user.email}`);
+          stripeCustomerId = await stripeService.createCustomer(user);
+          
+          await storage.updateStripeCustomerId(user.id, stripeCustomerId);
+        }
+      }
+      
+      // Criar sessão de checkout
+      const { sessionId, url } = await stripeService.createSubscriptionCheckout(
+        stripeCustomerId,
+        type as 'email' | 'physical',
+        successUrl,
+        cancelUrl
+      );
+      
+      console.log(`Sessão de checkout criada: ${sessionId}, URL: ${url}`);
+      
+      // Registrar assinatura pendente
+      const subscription = await storage.createSubscriptionWithStripe({
+        userId: user.id,
+        email: user.email,
+        type,
+        status: "pending",
+        stripeSubscriptionId: "pending_" + sessionId,
+      });
+      
+      console.log(`Assinatura pendente registrada com ID: ${subscription.id}`);
+      
+      if (!url) {
+        throw new Error("URL de checkout inválida");
+      }
+      
+      // Retornar resultado
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Type', 'application/json');
+      
+      res.json({
+        success: true,
+        sessionId,
+        checkoutUrl: url,
+        subscription
+      });
+    } catch (error: any) {
+      console.error("Erro ao processar checkout:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Falha ao processar checkout", 
+        message: error.message 
+      });
+    }
+  });
+
+  // Método legado para criar sessão de checkout
+  app.post(apiRouter("/stripe/create-checkout-session-old"), async (req, res) => {
     console.log("Recebida requisição para criar sessão de checkout:", req.body);
     try {
       const { userId, userEmail, type, successUrl, cancelUrl } = req.body;
