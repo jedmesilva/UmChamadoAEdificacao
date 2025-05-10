@@ -52,7 +52,7 @@ const CheckoutForm = ({
       
       // Criar a sessão de checkout
       try {
-        const response = await fetch('/api/stripe/create-checkout-session', {
+        const response = await fetch(window.location.origin + '/api/stripe/create-checkout-session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

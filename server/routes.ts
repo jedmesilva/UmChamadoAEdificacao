@@ -7,6 +7,16 @@ import { stripeService } from "./services/stripe-service";
 import Stripe from "stripe";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+
+  // Handler global para OPTIONS (CORS preflight)
+  app.options("*", (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+    res.status(200).end();
+  });
+
+
   // API Routes
   const apiRouter = (path: string) => `/api${path}`;
   
@@ -292,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === Endpoints do Stripe ===
   
   // Novo endpoint para criar checkout com suporte a email explícito
-  app.post(apiRouter("/stripe/create-checkout-session"), async (req, res) => {
+  app.post("/api/stripe/create-checkout-session", async (req, res) => {
     console.log("Recebida requisição para checkout com email:", req.body);
     
     try {
