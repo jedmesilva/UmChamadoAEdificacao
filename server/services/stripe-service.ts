@@ -10,8 +10,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Preços reais das assinaturas no Stripe
 const PRECOS = {
-  EMAIL: 'price_1RIxZy2fmZFrPmI8ninIzKB9', // ID do preço para o plano de email
-  PHYSICAL: 'price_1RIxfk2fmZFrPmI8LTf4uC3s', // ID do preço para o plano físico (pergaminho)
+  EMAIL: 'price_1RN17rK1jF3lhVXRLlkKZ1Ya', // ID do preço para o plano de email
+  PHYSICAL: 'price_1RN19lK1jF3lhVXR5eCkEZ9i', // ID do preço para o plano físico (pergaminho)
 };
 
 export const stripeService = {
