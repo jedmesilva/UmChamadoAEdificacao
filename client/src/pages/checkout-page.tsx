@@ -52,7 +52,16 @@ const CheckoutForm = ({
       
       // Criar a sessão de checkout
       try {
-        const response = await fetch(window.location.origin + '/api/stripe/create-checkout-session', {
+        // Determinar qual endpoint usar com base no ambiente (Vercel ou Replit)
+        const isVercelProduction = window.location.hostname.includes('.vercel.app');
+        const checkoutEndpoint = isVercelProduction
+          ? '/api/create-checkout-session'
+          : '/api/stripe/create-checkout-session';
+        
+        console.log(`Ambiente detectado: ${isVercelProduction ? 'Vercel' : 'Desenvolvimento'}`);
+        console.log(`Usando endpoint: ${checkoutEndpoint}`);
+        
+        const response = await fetch(window.location.origin + checkoutEndpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -67,7 +76,28 @@ const CheckoutForm = ({
         });
 
         if (!response.ok) {
-          throw new Error(`Erro ao criar sessão de checkout: ${response.status}`);
+          const errorText = await response.text();
+          let errorMessage = `Erro ao criar sessão de checkout: ${response.status}`;
+          
+          try {
+            // Tentar extrair mensagem de erro JSON
+            const errorJson = JSON.parse(errorText);
+            if (errorJson.error) {
+              errorMessage += ` - ${errorJson.error}`;
+            }
+          } catch (e) {
+            // Se não for JSON, usar o texto como está
+            if (errorText) {
+              errorMessage += ` - ${errorText}`;
+            }
+          }
+          
+          // Log simplificado
+          console.error(`Resposta detalhada: status=${response.status}, statusText=${response.statusText}`);
+          console.error(`Content-Type: ${response.headers.get('content-type')}`);
+          console.error(`Body: ${errorText}`);
+          
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();

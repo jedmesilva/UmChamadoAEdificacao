@@ -95,6 +95,8 @@
     { "source": "/api/auth/register", "destination": "/api/auth/register.js" },
     { "source": "/api/auth/create-profile", "destination": "/api/auth/create-profile.js" },
     { "source": "/api/stripe/test-redirect", "destination": "/api/stripe/test-redirect.js" },
+    { "source": "/api/stripe/webhook", "destination": "/api/stripe/webhook.js" },
+    { "source": "/api/create-checkout-session", "destination": "/api/create-checkout-session.js" },
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
