@@ -382,23 +382,28 @@ async function updateEmailSignature(user_id, stripe_customer_id, price_id, produ
       return;
     }
     
-    const timestamp = new Date().toISOString();
+    // Registrar informações de debug em metadados (opcional)
+    const metadataString = JSON.stringify({
+      stripe_customer_id,
+      price_id,
+      product_id,
+      updated_at: new Date().toISOString()
+    });
+    
+    console.log(`[Webhook] Metadados da assinatura: ${metadataString}`);
     
     if (existingSignature && existingSignature.length > 0) {
-      // Atualizar assinatura existente
+      // Atualizar assinatura existente - usando apenas campos definidos na interface
       const { error: updateError } = await supabase
         .from('signature_email')
         .update({
-          status_signature: status,
-          stripe_customer_id,
-          price_id,
-          product_id,
-          updated_at: timestamp
+          status_signature: status
         })
         .eq('id', existingSignature[0].id);
         
       if (updateError) {
         console.error('[Webhook] Erro ao atualizar assinatura de email:', updateError);
+        console.error('[Webhook] Detalhes:', JSON.stringify(updateError));
       } else {
         console.log(`[Webhook] Assinatura de email atualizada com sucesso para o usuário: ${user_id}`);
       }
@@ -408,15 +413,12 @@ async function updateEmailSignature(user_id, stripe_customer_id, price_id, produ
         .from('signature_email')
         .insert([{
           user_id,
-          status_signature: status,
-          stripe_customer_id,
-          price_id,
-          product_id,
-          updated_at: timestamp
+          status_signature: status
         }]);
         
       if (insertError) {
         console.error('[Webhook] Erro ao criar assinatura de email:', insertError);
+        console.error('[Webhook] Detalhes:', JSON.stringify(insertError));
       } else {
         console.log(`[Webhook] Nova assinatura de email criada com sucesso para o usuário: ${user_id}`);
       }
@@ -449,23 +451,28 @@ async function updateParchmentSignature(user_id, stripe_customer_id, price_id, p
       return;
     }
     
-    const timestamp = new Date().toISOString();
+    // Registrar informações de debug em metadados (opcional)
+    const metadataString = JSON.stringify({
+      stripe_customer_id,
+      price_id,
+      product_id,
+      updated_at: new Date().toISOString()
+    });
+    
+    console.log(`[Webhook] Metadados da assinatura física: ${metadataString}`);
     
     if (existingSignature && existingSignature.length > 0) {
-      // Atualizar assinatura existente
+      // Atualizar assinatura existente - usando apenas campos definidos na interface
       const { error: updateError } = await supabase
         .from('signature_parchment')
         .update({
-          status_signature: status,
-          stripe_customer_id,
-          price_id,
-          product_id,
-          updated_at: timestamp
+          status_signature: status
         })
         .eq('id', existingSignature[0].id);
         
       if (updateError) {
         console.error('[Webhook] Erro ao atualizar assinatura física:', updateError);
+        console.error('[Webhook] Detalhes:', JSON.stringify(updateError));
       } else {
         console.log(`[Webhook] Assinatura física atualizada com sucesso para o usuário: ${user_id}`);
       }
@@ -475,15 +482,12 @@ async function updateParchmentSignature(user_id, stripe_customer_id, price_id, p
         .from('signature_parchment')
         .insert([{
           user_id,
-          status_signature: status,
-          stripe_customer_id,
-          price_id,
-          product_id,
-          updated_at: timestamp
+          status_signature: status
         }]);
         
       if (insertError) {
         console.error('[Webhook] Erro ao criar assinatura física:', insertError);
+        console.error('[Webhook] Detalhes:', JSON.stringify(insertError));
       } else {
         console.log(`[Webhook] Nova assinatura física criada com sucesso para o usuário: ${user_id}`);
       }
