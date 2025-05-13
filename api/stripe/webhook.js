@@ -118,8 +118,37 @@ export default async function handler(req, res) {
     
   } catch (error) {
     console.error(`[Webhook] Erro ao processar webhook:`, error);
-    res.status(500).json({ error: `Erro ao processar webhook: ${error.message}` });
+    
+    // Formatando mensagem de erro para o cliente
+    const formattedError = formatStripeError(error);
+    
+    res.status(500).json({ 
+      error: `Erro ao processar webhook`, 
+      message: formattedError 
+    });
   }
+}
+
+/**
+ * Formata erros do Stripe para uma mensagem amigável ao usuário
+ */
+function formatStripeError(error) {
+  const errorMsg = error.message || "";
+  
+  // Lista de erros específicos do Stripe que devem ser mostrados ao usuário
+  const stripeSpecificErrors = [
+    "card_declined", "insufficient_funds", "expired_card", "invalid_card",
+    "cartão recusado", "saldo insuficiente", "cartão expirado", 
+    "payment_intent_unexpected_state", "payment_method_unverified",
+    "requires_payment_method"
+  ];
+  
+  const isStripeSpecificError = stripeSpecificErrors.some(
+    specificError => errorMsg.toLowerCase().includes(specificError.toLowerCase())
+  );
+  
+  // Retornar erro específico do Stripe ou mensagem genérica amigável
+  return isStripeSpecificError ? error.message : "Ocorreu um erro, tente novamente!";
 }
 
 /**

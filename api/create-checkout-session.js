@@ -16,6 +16,26 @@ const PRICE_IDS = {
   physical: process.env.STRIPE_PRICE_PHYSICAL || 'price_1RN19lK1jF3lhVXR5eCkEZ9i' // Chamado EDF Parchment - R$ 99,99/mês
 };
 
+// Helper para formatar erros do Stripe
+function formatStripeError(error) {
+  const errorMsg = error.message || "";
+  
+  // Lista de erros específicos do Stripe que devem ser mostrados ao usuário
+  const stripeSpecificErrors = [
+    "card_declined", "insufficient_funds", "expired_card", "invalid_card",
+    "cartão recusado", "saldo insuficiente", "cartão expirado", 
+    "payment_intent_unexpected_state", "payment_method_unverified",
+    "requires_payment_method"
+  ];
+  
+  const isStripeSpecificError = stripeSpecificErrors.some(
+    specificError => errorMsg.toLowerCase().includes(specificError.toLowerCase())
+  );
+  
+  // Retornar erro específico do Stripe ou mensagem genérica amigável
+  return isStripeSpecificError ? error.message : "Ocorreu um erro, tente novamente!";
+}
+
 /**
  * Endpoint API para criar sessão de checkout do Stripe
  */
@@ -129,29 +149,12 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('[Vercel API] Erro ao criar sessão de checkout:', error);
     
-    // Verificar se é um erro específico do Stripe que deve ser preservado
-    let errorMessage = "Ocorreu um erro, tente novamente.";
-    const errorMsg = error.message || "";
-    
-    // Lista de erros específicos do Stripe que devem ser mostrados ao usuário
-    const stripeSpecificErrors = [
-      "card_declined", "insufficient_funds", "expired_card", "invalid_card",
-      "cartão recusado", "saldo insuficiente", "cartão expirado", 
-      "payment_intent_unexpected_state", "payment_method_unverified",
-      "requires_payment_method"
-    ];
-    
-    const isStripeSpecificError = stripeSpecificErrors.some(
-      specificError => errorMsg.toLowerCase().includes(specificError.toLowerCase())
-    );
-    
-    if (isStripeSpecificError) {
-      errorMessage = error.message;
-    }
+    // Usar a função de formatação de erros
+    const errorMessage = formatStripeError(error);
     
     return res.status(500).json({ 
       success: false, 
-      error: isStripeSpecificError ? error.message : "Falha ao processar checkout", 
+      error: "Falha ao processar checkout", 
       message: errorMessage
     });
   }
