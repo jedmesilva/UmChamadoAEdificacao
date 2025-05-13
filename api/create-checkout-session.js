@@ -10,10 +10,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
 
-// Preços de teste (1 centavo) das assinaturas no Stripe
+// Preços reais das assinaturas no Stripe
 const PRICE_IDS = {
-  email: process.env.STRIPE_PRICE_EMAIL || 'price_1ROAphK1jF3lhVXRB0JonXdX', // Chamado EDF E-mail - preço de teste (1 centavo)
-  physical: process.env.STRIPE_PRICE_PHYSICAL || 'price_1ROAoCK1jF3lhVXRTrocULii' // Chamado EDF Parchment - preço de teste (1 centavo)
+  email: process.env.STRIPE_PRICE_EMAIL || 'price_1RN17rK1jF3lhVXRLlkKZ1Ya', // Chamado EDF E-mail - R$ 9,99/mês
+  physical: process.env.STRIPE_PRICE_PHYSICAL || 'price_1RN19lK1jF3lhVXR5eCkEZ9i' // Chamado EDF Parchment - R$ 99,99/mês
 };
 
 /**

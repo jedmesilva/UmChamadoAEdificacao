@@ -31,10 +31,10 @@ console.log(`Configuração do Stripe: Usando chave secreta que começa com "${s
 // Inicialização do cliente Stripe com a chave validada
 const stripe = new Stripe(stripeSecretKey);
 
-// Preços de teste (1 centavo) das assinaturas no Stripe
+// Preços reais das assinaturas no Stripe
 const PRECOS = {
-  EMAIL: 'price_1ROAphK1jF3lhVXRB0JonXdX', // Chamado EDF E-mail - preço de teste (1 centavo)
-  PHYSICAL: 'price_1ROAoCK1jF3lhVXRTrocULii', // Chamado EDF Parchment - preço de teste (1 centavo)
+  EMAIL: 'price_1RN17rK1jF3lhVXRLlkKZ1Ya', // Chamado EDF E-mail - R$ 9,99/mês
+  PHYSICAL: 'price_1RN19lK1jF3lhVXR5eCkEZ9i', // Chamado EDF Parchment - R$ 99,99/mês
 };
 
 export const stripeService = {

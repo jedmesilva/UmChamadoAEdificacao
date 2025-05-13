@@ -196,7 +196,7 @@ const CheckoutPage = ({ params }: CheckoutPageProps) => {
   const isEmailSubscription = params.type === "email";
   const title = isEmailSubscription ? "Assinatura Digital" : "Assinatura Física";
   const icon = isEmailSubscription ? <Mail className="h-6 w-6 mr-2" /> : <Scroll className="h-6 w-6 mr-2" />;
-  const price = isEmailSubscription ? "R$ 0,01/mês (teste)" : "R$ 0,01/mês (teste)";
+  const price = isEmailSubscription ? "R$ 9,99/mês" : "R$ 99,99/mês";
   const benefits = isEmailSubscription ? [
     "Receba as cartas instantaneamente",
     "Acesso ao arquivo completo",
