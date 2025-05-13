@@ -113,6 +113,10 @@ export default async function handler(req, res) {
       locale: 'pt-BR',
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
+      subscription_data: {
+        trial_period_days: 0, // Sem período de avaliação
+        payment_behavior: 'default_incomplete' // Cobrar imediatamente
+      }
     });
 
     console.log(`[Vercel API] Sessão de checkout criada: ${session.id}, URL: ${session.url}`);

@@ -119,6 +119,8 @@ export const stripeService = {
       console.log(`Usando price_id: ${priceId} para assinatura ${tipoAssinatura}`);
       
       // Criar uma sessão de checkout para assinatura
+      // Estamos usando a configuração básica do Stripe, que já faz a cobrança no início do ciclo
+      // No painel do Stripe, você pode configurar para cobrar no momento da assinatura
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         customer: customerId,
@@ -133,7 +135,7 @@ export const stripeService = {
         cancel_url: cancelUrl,
         locale: 'pt-BR',
         allow_promotion_codes: true,
-        billing_address_collection: 'auto',
+        billing_address_collection: 'auto'
       });
       
       console.log(`Sessão de checkout criada: ${session.id}, URL: ${session.url}`);
