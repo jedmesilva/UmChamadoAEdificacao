@@ -143,9 +143,22 @@ const CheckoutForm = ({
       
     } catch (error: any) {
       console.error("Erro ao iniciar checkout:", error);
+      
+      // Verificar se é um erro específico do Stripe que deve ser preservado
+      const errorMsg = error.message || "";
+      const isStripeSpecificError = 
+        errorMsg.includes("cartão recusado") || 
+        errorMsg.includes("saldo insuficiente") || 
+        errorMsg.includes("card_declined") || 
+        errorMsg.includes("insufficient_funds") ||
+        errorMsg.includes("expired_card") ||
+        errorMsg.includes("invalid_card");
+      
       toast({
         title: "Erro ao iniciar checkout",
-        description: error.message || "Ocorreu um erro ao iniciar o processo de pagamento.",
+        description: isStripeSpecificError 
+          ? error.message 
+          : "Ocorreu um erro, tente novamente.",
         variant: "destructive"
       });
       setIsProcessing(false);

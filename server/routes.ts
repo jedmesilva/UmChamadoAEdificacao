@@ -453,10 +453,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Erro ao processar checkout:", error);
+      
+      // Verificar se é um erro específico do Stripe que deve ser preservado
+      let errorMessage = "Ocorreu um erro, tente novamente.";
+      const errorMsg = error.message || "";
+      
+      // Lista de erros específicos do Stripe que devem ser mostrados ao usuário
+      const stripeSpecificErrors = [
+        "card_declined", "insufficient_funds", "expired_card", "invalid_card",
+        "cartão recusado", "saldo insuficiente", "cartão expirado", 
+        "payment_intent_unexpected_state", "payment_method_unverified",
+        "requires_payment_method"
+      ];
+      
+      const isStripeSpecificError = stripeSpecificErrors.some(
+        specificError => errorMsg.toLowerCase().includes(specificError.toLowerCase())
+      );
+      
+      if (isStripeSpecificError) {
+        errorMessage = error.message;
+      }
+      
       res.status(500).json({ 
         success: false, 
-        error: "Falha ao processar checkout", 
-        message: error.message 
+        error: isStripeSpecificError ? error.message : "Falha ao processar checkout", 
+        message: errorMessage
       });
     }
   });
@@ -612,10 +633,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Erro ao criar sessão de checkout:", error);
+      
+      // Verificar se é um erro específico do Stripe que deve ser preservado
+      let errorMessage = "Ocorreu um erro, tente novamente.";
+      const errorMsg = error.message || "";
+      
+      // Lista de erros específicos do Stripe que devem ser mostrados ao usuário
+      const stripeSpecificErrors = [
+        "card_declined", "insufficient_funds", "expired_card", "invalid_card",
+        "cartão recusado", "saldo insuficiente", "cartão expirado", 
+        "payment_intent_unexpected_state", "payment_method_unverified",
+        "requires_payment_method"
+      ];
+      
+      const isStripeSpecificError = stripeSpecificErrors.some(
+        specificError => errorMsg.toLowerCase().includes(specificError.toLowerCase())
+      );
+      
+      if (isStripeSpecificError) {
+        errorMessage = error.message;
+      }
+      
       res.status(500).json({ 
         success: false, 
-        error: "Falha ao processar checkout", 
-        message: error.message 
+        error: isStripeSpecificError ? error.message : "Falha ao processar checkout", 
+        message: errorMessage
       });
     }
   });
@@ -980,10 +1022,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Erro ao criar payment intent:", error);
+      
+      // Verificar se é um erro específico do Stripe que deve ser preservado
+      let errorMessage = "Ocorreu um erro, tente novamente.";
+      const errorMsg = error.message || "";
+      
+      // Lista de erros específicos do Stripe que devem ser mostrados ao usuário
+      const stripeSpecificErrors = [
+        "card_declined", "insufficient_funds", "expired_card", "invalid_card",
+        "cartão recusado", "saldo insuficiente", "cartão expirado", 
+        "payment_intent_unexpected_state", "payment_method_unverified",
+        "requires_payment_method"
+      ];
+      
+      const isStripeSpecificError = stripeSpecificErrors.some(
+        specificError => errorMsg.toLowerCase().includes(specificError.toLowerCase())
+      );
+      
+      if (isStripeSpecificError) {
+        errorMessage = error.message;
+      }
+      
       res.status(500).json({ 
         success: false, 
-        error: "Falha ao processar pagamento", 
-        message: error.message 
+        error: isStripeSpecificError ? error.message : "Falha ao processar pagamento", 
+        message: errorMessage
       });
     }
   });
