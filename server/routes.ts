@@ -298,6 +298,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch stats" });
     }
   });
+  
+  // Endpoint para verificar a configuração do Stripe
+  app.get(apiRouter("/stripe-status"), async (req, res) => {
+    try {
+      console.log("Verificando status da configuração do Stripe...");
+      
+      // Tento extrair as primeiras letras da chave para verificação (sem expor a chave completa)
+      const stripeKeyPreview = process.env.STRIPE_SECRET_KEY?.substring(0, 3) || "não encontrada";
+      const isValidKeyFormat = process.env.STRIPE_SECRET_KEY?.startsWith("sk_") || false;
+      
+      // Verificar status da API do Stripe
+      let stripeApiStatus = "não testado";
+      let stripeDetails = null;
+      
+      try {
+        // Fazemos um teste diretamente com o módulo Stripe
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+        const balanceInfo = await stripe.balance.retrieve();
+        
+        stripeApiStatus = "funcionando";
+        stripeDetails = {
+          mode: balanceInfo.livemode ? "produção" : "teste",
+          available: true
+        };
+      } catch (error: unknown) {
+        const stripeError = error as Error;
+        console.error("Erro ao testar conexão com o Stripe:", stripeError);
+        stripeApiStatus = "erro";
+        stripeDetails = {
+          error: stripeError.message || "Erro desconhecido",
+          available: false
+        };
+      }
+      
+      res.json({
+        success: true,
+        stripeConfig: {
+          keyType: stripeKeyPreview,
+          isValidKeyFormat,
+          apiStatus: stripeApiStatus,
+          details: stripeDetails
+        }
+      });
+    } catch (error) {
+      console.error("Erro ao verificar status do Stripe:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: "Falha ao verificar configuração do Stripe" 
+      });
+    }
+  });
 
   // === Endpoints do Stripe ===
   

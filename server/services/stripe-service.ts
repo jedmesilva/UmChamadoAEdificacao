@@ -1,12 +1,35 @@
 import Stripe from 'stripe';
 import { User, Subscription } from '@shared/schema';
 
-if (!process.env.STRIPE_SECRET_KEY) {
+// Validação explícita da chave secreta do Stripe
+let stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+// Verificação adicional para garantir que estamos usando uma chave secreta válida
+if (!stripeSecretKey) {
   throw new Error('STRIPE_SECRET_KEY não configurada no ambiente.');
 }
 
-// Inicialização do cliente Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Verificação se a chave é do tipo correto (deve começar com sk_)
+if (!stripeSecretKey.startsWith('sk_')) {
+  console.error('AVISO: A chave secreta do Stripe não começa com "sk_", o que indica que pode não ser uma chave secreta válida.');
+  console.error('A integração com o Stripe pode falhar se a chave não for do tipo correto.');
+  
+  // Configuração alternativa para ambiente de produção na Vercel
+  if (process.env.VERCEL_ENV === 'production') {
+    console.log('Tentando usar variável STRIPE_SECRET alternativa em ambiente Vercel');
+    const alternativeKey = process.env.STRIPE_SECRET;
+    
+    if (alternativeKey && alternativeKey.startsWith('sk_')) {
+      console.log('Usando chave secreta alternativa do Stripe encontrada em STRIPE_SECRET');
+      stripeSecretKey = alternativeKey;
+    }
+  }
+}
+
+console.log(`Configuração do Stripe: Usando chave secreta que começa com "${stripeSecretKey.substring(0, 3)}..."`);
+
+// Inicialização do cliente Stripe com a chave validada
+const stripe = new Stripe(stripeSecretKey);
 
 // Preços reais das assinaturas no Stripe
 const PRECOS = {
@@ -15,6 +38,20 @@ const PRECOS = {
 };
 
 export const stripeService = {
+  /**
+   * Testa a conexão com o Stripe para verificar se a chave está válida
+   */
+  async testConnection() {
+    try {
+      // Usamos um método simples para testar a conexão
+      const balance = await stripe.balance.retrieve();
+      return balance;
+    } catch (error) {
+      console.error('Erro ao testar conexão com o Stripe:', error);
+      throw error;
+    }
+  },
+  
   /**
    * Criar cliente no Stripe
    */
