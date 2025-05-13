@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertLetterSchema, insertSubscriptionSchema, insertUserSchema } from "@shared/schema";
-import { stripeService } from "./services/stripe-service";
+import { stripeService, formatStripeError } from "./services/stripe-service";
 import Stripe from "stripe";
 
 export async function registerRoutes(app: Express): Promise<Server> {

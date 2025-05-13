@@ -37,6 +37,30 @@ const PRECOS = {
   PHYSICAL: 'price_1RN19lK1jF3lhVXR5eCkEZ9i', // Chamado EDF Parchment - R$ 99,99/mês
 };
 
+// Helper para tratar erros do Stripe
+export function formatStripeError(error: any): { errorMessage: string; isStripeSpecificError: boolean } {
+  let errorMessage = "Ocorreu um erro, tente novamente.";
+  const errorMsg = error.message || "";
+  
+  // Lista de erros específicos do Stripe que devem ser mostrados ao usuário
+  const stripeSpecificErrors = [
+    "card_declined", "insufficient_funds", "expired_card", "invalid_card",
+    "cartão recusado", "saldo insuficiente", "cartão expirado", 
+    "payment_intent_unexpected_state", "payment_method_unverified",
+    "requires_payment_method"
+  ];
+  
+  const isStripeSpecificError = stripeSpecificErrors.some(
+    specificError => errorMsg.toLowerCase().includes(specificError.toLowerCase())
+  );
+  
+  if (isStripeSpecificError) {
+    errorMessage = error.message;
+  }
+  
+  return { errorMessage, isStripeSpecificError };
+}
+
 export const stripeService = {
   /**
    * Testa a conexão com o Stripe para verificar se a chave está válida
