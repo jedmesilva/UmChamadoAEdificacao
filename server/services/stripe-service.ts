@@ -33,7 +33,7 @@ const stripe = new Stripe(stripeSecretKey);
 
 // Preços reais das assinaturas no Stripe
 const PRECOS = {
-  EMAIL: 'price_1RN17rK1jF3lhVXRLlkKZ1Ya', // Chamado EDF E-mail - R$ 9,99/mês
+  EMAIL: 'price_1ROAphK1jF3lhVXRB0JonXdX', // Chamado EDF E-mail - R$ 0,01/mês
   PHYSICAL: 'price_1RN19lK1jF3lhVXR5eCkEZ9i', // Chamado EDF Parchment - R$ 99,99/mês
 };
 
