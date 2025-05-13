@@ -114,7 +114,7 @@ export default async function handler(req, res) {
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       subscription_data: {
-        trial_period_days: 0, // Sem período de avaliação
+        // Removendo completamente o campo trial_period_days
         payment_behavior: 'default_incomplete' // Cobrar imediatamente
       }
     });
