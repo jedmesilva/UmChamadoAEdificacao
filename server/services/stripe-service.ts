@@ -129,7 +129,7 @@ export const stripeService = {
           },
         ],
         mode: 'subscription',
-        success_url: successUrl + '?session_id={CHECKOUT_SESSION_ID}',
+        success_url: successUrl + (successUrl.includes('?') ? '&' : '?') + 'session_id={CHECKOUT_SESSION_ID}',
         cancel_url: cancelUrl,
         locale: 'pt-BR',
         allow_promotion_codes: true,

@@ -94,6 +94,7 @@
     { "source": "/api/auth/login", "destination": "/api/auth/login.js" },
     { "source": "/api/auth/register", "destination": "/api/auth/register.js" },
     { "source": "/api/auth/create-profile", "destination": "/api/auth/create-profile.js" },
+    { "source": "/api/stripe/test-redirect", "destination": "/api/stripe/test-redirect.js" },
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

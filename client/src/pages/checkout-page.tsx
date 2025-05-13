@@ -82,8 +82,29 @@ const CheckoutForm = ({
           description: "Você será levado para a página segura de pagamento.",
         });
         
-        // Redirecionar para o Stripe (forma simples)
-        window.location.href = data.checkoutUrl;
+        // Abordagem mais robusta para redirecionamento
+        console.log("Redirecionando para URL do Stripe:", data.checkoutUrl);
+        
+        // Método 1: Usar window.location.assign (preferido para navegação)
+        window.location.assign(data.checkoutUrl);
+        
+        // Método 2 (fallback): Se o redirecionamento acima falhar, tentamos criar um link e clicar nele
+        setTimeout(() => {
+          try {
+            console.log("Tentando redirecionamento alternativo");
+            const link = document.createElement('a');
+            link.href = data.checkoutUrl;
+            link.target = '_self';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          } catch (e) {
+            console.error("Erro no redirecionamento alternativo:", e);
+            // Método 3 (último recurso): window.location.href padrão
+            window.location.href = data.checkoutUrl;
+          }
+        }, 1000); // Dar tempo para o primeiro método funcionar
         
       } catch (error: any) {
         console.error("Erro na requisição:", error);
