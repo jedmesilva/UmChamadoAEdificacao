@@ -326,9 +326,9 @@ async function processSubscriptionData(subscription, customer_email, stripe_cust
     
     // Atualizar a tabela correta com base no tipo de assinatura
     if (subscriptionType === 'email') {
-      await updateEmailSignature(user_id, stripe_customer_id, price_id, product_id, status);
+      await updateEmailSignature(user_id, stripe_customer_id, price_id, product_id, status, customer_email);
     } else if (subscriptionType === 'physical') {
-      await updateParchmentSignature(user_id, stripe_customer_id, price_id, product_id, status);
+      await updateParchmentSignature(user_id, stripe_customer_id, price_id, product_id, status, customer_email);
     }
     
   } catch (error) {
@@ -364,8 +364,8 @@ function getSubscriptionType(price_id) {
 /**
  * Atualiza ou cria um registro na tabela signature_email
  */
-async function updateEmailSignature(user_id, stripe_customer_id, price_id, product_id, status) {
-  console.log(`[Webhook] Atualizando assinatura de email para usuário: ${user_id}`);
+async function updateEmailSignature(user_id, stripe_customer_id, price_id, product_id, status, customer_email) {
+  console.log(`[Webhook] Atualizando assinatura de email para usuário: ${user_id}, email: ${customer_email}`);
   
   try {
     // Buscar assinatura existente
@@ -393,11 +393,13 @@ async function updateEmailSignature(user_id, stripe_customer_id, price_id, produ
     console.log(`[Webhook] Metadados da assinatura: ${metadataString}`);
     
     if (existingSignature && existingSignature.length > 0) {
-      // Atualizar assinatura existente - usando apenas campos definidos na interface
+      // Atualizar assinatura existente - usando o campo status_signature conforme já implementado no código existente
+      // e adicionando o customer_email
       const { error: updateError } = await supabase
         .from('signature_email')
         .update({
-          status_signature: status
+          status_signature: status,
+          customer_email: customer_email
         })
         .eq('id', existingSignature[0].id);
         
@@ -413,7 +415,8 @@ async function updateEmailSignature(user_id, stripe_customer_id, price_id, produ
         .from('signature_email')
         .insert([{
           user_id,
-          status_signature: status
+          status_signature: status,
+          customer_email: customer_email
         }]);
         
       if (insertError) {
@@ -433,8 +436,8 @@ async function updateEmailSignature(user_id, stripe_customer_id, price_id, produ
 /**
  * Atualiza ou cria um registro na tabela signature_parchment
  */
-async function updateParchmentSignature(user_id, stripe_customer_id, price_id, product_id, status) {
-  console.log(`[Webhook] Atualizando assinatura física para usuário: ${user_id}`);
+async function updateParchmentSignature(user_id, stripe_customer_id, price_id, product_id, status, customer_email) {
+  console.log(`[Webhook] Atualizando assinatura física para usuário: ${user_id}, email: ${customer_email}`);
   
   try {
     // Buscar assinatura existente
@@ -462,11 +465,13 @@ async function updateParchmentSignature(user_id, stripe_customer_id, price_id, p
     console.log(`[Webhook] Metadados da assinatura física: ${metadataString}`);
     
     if (existingSignature && existingSignature.length > 0) {
-      // Atualizar assinatura existente - usando apenas campos definidos na interface
+      // Atualizar assinatura existente - usando o campo status_signature conforme já implementado no código existente
+      // e adicionando o customer_email
       const { error: updateError } = await supabase
         .from('signature_parchment')
         .update({
-          status_signature: status
+          status_signature: status,
+          customer_email: customer_email
         })
         .eq('id', existingSignature[0].id);
         
@@ -482,7 +487,8 @@ async function updateParchmentSignature(user_id, stripe_customer_id, price_id, p
         .from('signature_parchment')
         .insert([{
           user_id,
-          status_signature: status
+          status_signature: status,
+          customer_email: customer_email
         }]);
         
       if (insertError) {
